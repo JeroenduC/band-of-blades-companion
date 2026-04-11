@@ -1,15 +1,17 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 import { signOut } from '@/server/actions/auth';
 
 export const metadata = { title: 'Commander — Band of Blades' };
 
 export default async function CommanderDashboardPage() {
   const supabase = await createClient();
+  const db = createServiceClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/sign-in');
 
-  const { data: membership } = await supabase
+  const { data: membership } = await db
     .from('campaign_memberships')
     .select('campaigns(name)')
     .eq('user_id', user.id)

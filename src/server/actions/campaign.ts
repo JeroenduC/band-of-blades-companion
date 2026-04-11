@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 import type { LegionRole, MemberRank } from '@/lib/types';
 
 function generateInviteCode(): string {
@@ -19,7 +20,11 @@ export async function createCampaign(
   _prevState: { error: string } | null,
   formData: FormData
 ) {
+  // Use the user-scoped client only for auth verification.
+  // All writes go through the service client because the JWT isn't reliably
+  // propagated to RLS in Next.js server actions with @supabase/ssr.
   const supabase = await createClient();
+  const db = createServiceClient();
 
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) redirect('/sign-in');
@@ -30,7 +35,7 @@ export async function createCampaign(
   // Retry up to 5 times to get a unique invite code.
   let inviteCode = generateInviteCode();
   for (let i = 0; i < 5; i++) {
-    const { data: existing } = await supabase
+    const { data: existing } = await db
       .from('campaigns')
       .select('id')
       .eq('invite_code', inviteCode)
@@ -39,7 +44,7 @@ export async function createCampaign(
     inviteCode = generateInviteCode();
   }
 
-  const { data: campaign, error } = await supabase
+  const { data: campaign, error } = await db
     .from('campaigns')
     .insert({ name, invite_code: inviteCode })
     .select()
@@ -47,7 +52,7 @@ export async function createCampaign(
 
   if (error || !campaign) return { error: error?.message ?? 'Failed to create campaign' };
 
-  const { error: memberError } = await supabase
+  const { error: memberError } = await db
     .from('campaign_memberships')
     .insert({
       user_id: user.id,
@@ -67,6 +72,7 @@ export async function joinCampaign(
   formData: FormData
 ) {
   const supabase = await createClient();
+  const db = createServiceClient();
 
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) redirect('/sign-in');
@@ -74,7 +80,7 @@ export async function joinCampaign(
   const inviteCode = (formData.get('invite_code') as string)?.trim().toUpperCase();
   if (!inviteCode) return { error: 'Invite code is required' };
 
-  const { data: campaign, error: campaignError } = await supabase
+  const { data: campaign, error: campaignError } = await db
     .from('campaigns')
     .select('id')
     .eq('invite_code', inviteCode)
@@ -82,7 +88,7 @@ export async function joinCampaign(
 
   if (campaignError || !campaign) return { error: 'Invalid invite code' };
 
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from('campaign_memberships')
     .select('id')
     .eq('campaign_id', campaign.id)
@@ -92,7 +98,7 @@ export async function joinCampaign(
   if (existing) return { error: 'You are already a member of this campaign' };
 
   // New members join as SOLDIER until the GM assigns them a role.
-  const { error: memberError } = await supabase
+  const { error: memberError } = await db
     .from('campaign_memberships')
     .insert({
       user_id: user.id,
@@ -112,6 +118,7 @@ export async function assignRole(
   formData: FormData
 ) {
   const supabase = await createClient();
+  const db = createServiceClient();
 
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) redirect('/sign-in');
@@ -122,7 +129,7 @@ export async function assignRole(
   const campaignId = formData.get('campaign_id') as string;
 
   // Verify the caller is the GM of this campaign before allowing any update.
-  const { data: gmMembership } = await supabase
+  const { data: gmMembership } = await db
     .from('campaign_memberships')
     .select('id')
     .eq('campaign_id', campaignId)
@@ -132,7 +139,7 @@ export async function assignRole(
 
   if (!gmMembership) return { error: 'Only the GM can assign roles' };
 
-  const { error } = await supabase
+  const { error } = await db
     .from('campaign_memberships')
     .update({ role, rank })
     .eq('id', membershipId);

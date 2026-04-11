@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 
 export async function signUp(_prevState: { error: string } | null, formData: FormData) {
   const supabase = await createClient();
@@ -16,9 +17,14 @@ export async function signUp(_prevState: { error: string } | null, formData: For
   if (error) return { error: error.message };
 
   if (data.user) {
-    const { error: profileError } = await supabase
+    // The trigger already inserted the profile row. Update display_name using
+    // the service role client because the user's session isn't in cookies yet
+    // at this point in the sign-up flow.
+    const serviceClient = createServiceClient();
+    const { error: profileError } = await serviceClient
       .from('profiles')
-      .insert({ id: data.user.id, display_name: displayName.trim() });
+      .update({ display_name: displayName.trim() })
+      .eq('id', data.user.id);
 
     if (profileError) return { error: profileError.message };
   }

@@ -1,5 +1,6 @@
 import { redirect, notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 import { RoleAssignmentForm } from '@/components/features/campaign/role-assignment-form';
 import type { CampaignMembershipWithProfile } from '@/lib/types';
 
@@ -12,12 +13,13 @@ interface Props {
 export default async function MembersPage({ params }: Props) {
   const { id: campaignId } = await params;
   const supabase = await createClient();
+  const db = createServiceClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/sign-in');
 
   // Verify the caller is the GM of this campaign.
-  const { data: gmMembership } = await supabase
+  const { data: gmMembership } = await db
     .from('campaign_memberships')
     .select('id')
     .eq('campaign_id', campaignId)
@@ -27,13 +29,13 @@ export default async function MembersPage({ params }: Props) {
 
   if (!gmMembership) notFound();
 
-  const { data: campaign } = await supabase
+  const { data: campaign } = await db
     .from('campaigns')
     .select('name')
     .eq('id', campaignId)
     .single();
 
-  const { data: memberships } = await supabase
+  const { data: memberships } = await db
     .from('campaign_memberships')
     .select('id, user_id, campaign_id, role, rank, assigned_at, profiles(display_name)')
     .eq('campaign_id', campaignId)

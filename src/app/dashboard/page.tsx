@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 import type { LegionRole } from '@/lib/types';
 
 const ROLE_ROUTES: Record<LegionRole, string> = {
@@ -14,12 +15,13 @@ const ROLE_ROUTES: Record<LegionRole, string> = {
 
 export default async function DashboardPage() {
   const supabase = await createClient();
+  const db = createServiceClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/sign-in');
 
   // Find the user's PRIMARY role in the most recently joined campaign.
-  const { data: membership } = await supabase
+  const { data: membership } = await db
     .from('campaign_memberships')
     .select('role, campaign_id')
     .eq('user_id', user.id)
