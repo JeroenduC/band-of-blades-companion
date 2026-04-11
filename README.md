@@ -10,9 +10,9 @@ A web application that digitises the campaign phase of [Band of Blades](https://
 
 ## 🚀 Current Status
 
-**Sprint 0 — Setup** ⏳
+**Epic 2 — Visual Identity & Design System** ⏳
 
-The project is in the planning phase. Architecture, design direction, and sprint roadmap are defined in the [Project Brief](docs/PROJECT_BRIEF.md).
+The app is deployed and functional. Next up: making it look and feel like Band of Blades — design tokens, dark theme, component wrappers, and visual identity.
 
 ---
 
@@ -46,17 +46,15 @@ The project is in the planning phase. Architecture, design direction, and sprint
 
 ## 📋 Roadmap
 
-### ⏳ Sprint 0: Setup
-- [ ] Create GitHub repository
-- [ ] Install Node.js, Git, and Claude Code
-- [ ] Create Supabase project
-- [ ] Create Vercel account, link to repo
-- [ ] Commit Project Brief, CLAUDE.md, and README.md
-- [ ] Create Epic issues on GitHub
-- [ ] Create Sprint 1 milestone
+### ✅ Sprint 0: Setup
+- [x] Create GitHub repository
+- [x] Install Node.js, Git, and Claude Code
+- [x] Create Supabase project
+- [x] Create Vercel account, link to repo
+- [x] Commit Project Brief, CLAUDE.md, and README.md
 
-### ⏳ Epic 1: Project Foundation
-Deployed app with auth, invite flow, and placeholder dashboard.
+### ✅ Epic 1: Project Foundation
+Next.js 16 app deployed to Vercel. Email/password auth, campaign creation with invite codes, player join flow, GM role assignment, placeholder dashboards for all six roles.
 
 ### ⏳ Epic 2: Visual Identity & Design System
 The app looks and feels like Band of Blades. Design tokens, themed components, component wrapper layer.
