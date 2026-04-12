@@ -206,13 +206,14 @@ Before declaring a sprint complete, verify:
 Before moving any issue to "Review" status, Claude Code must do a self-review:
 1. **Re-read the acceptance criteria** of the issue.
 2. **Verify each criterion is met** — not just that the code looks correct, but that the feature actually works as intended. For UI issues, this means checking the compiled output (CSS, HTML), not just the source files.
-3. **Test the golden path** end-to-end: can a real user complete the intended action?
-4. **Check for regressions** in related features.
-5. **Only then** move to Review and add the testing comment.
-6. **Always run `npm run build`** before marking an issue for review. If the build fails, the issue is not ready for review. Fix all build errors first.
-7. **If new Shadcn components or dependencies were installed**, verify they are in `package.json` dependencies AND that `package-lock.json` is staged in the commit. A missing lockfile is a silent Vercel build failure.
+3. **For visual/UI changes: take a screenshot with Playwright before asking the user anything.** Run `npm run dev` in the background, then `npm run screenshot -- /path`. Read the resulting image file to verify the visual result yourself. Only escalate to the user if something is genuinely ambiguous after seeing the screenshot.
+4. **Test the golden path** end-to-end: can a real user complete the intended action?
+5. **Check for regressions** in related features.
+6. **Only then** move to Review and add the testing comment.
+7. **Always run `npm run build`** before marking an issue for review. If the build fails, the issue is not ready for review. Fix all build errors first.
+8. **If new Shadcn components or dependencies were installed**, verify they are in `package.json` dependencies AND that `package-lock.json` is staged in the commit. A missing lockfile is a silent Vercel build failure.
 
-If a criterion cannot be verified (e.g. requires a browser), say so explicitly and describe what the reviewer should check.
+If a criterion cannot be verified even after a screenshot, say so explicitly and describe what the reviewer should check.
 
 ### Ask, Don't Assume
 When debugging or verifying visual/UI issues:

@@ -44,3 +44,6 @@ yarn-error.log*
 .idea/
 *.swp
 *.swo
+
+# Playwright screenshots (self-review tool output)
+screenshots/
