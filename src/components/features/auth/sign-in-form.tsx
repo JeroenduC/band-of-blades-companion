@@ -3,32 +3,37 @@
 import { useActionState } from 'react';
 import Link from 'next/link';
 import { signIn } from '@/server/actions/auth';
+import { LegionButton, LegionInput } from '@/components/legion';
+import { AuthShell } from './auth-shell';
 
 export function SignInForm() {
   const [state, action, pending] = useActionState(signIn, null);
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-sm space-y-6">
+    <AuthShell>
+      <div className="space-y-6">
+        {/* Form heading */}
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold">Sign in</h1>
+          <h2 className="font-heading text-xl font-semibold tracking-wide">
+            Sign in
+          </h2>
           <p className="text-sm text-muted-foreground">
             Welcome back, Legionnaire.
           </p>
         </div>
 
-        <form action={action} className="space-y-4">
+        <form action={action} className="space-y-4" noValidate>
           <div className="space-y-1">
             <label htmlFor="email" className="text-sm font-medium">
               Email
             </label>
-            <input
+            <LegionInput
               id="email"
               name="email"
               type="email"
               required
               autoComplete="email"
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-describedby={state?.error ? 'auth-error' : undefined}
             />
           </div>
 
@@ -36,38 +41,42 @@ export function SignInForm() {
             <label htmlFor="password" className="text-sm font-medium">
               Password
             </label>
-            <input
+            <LegionInput
               id="password"
               name="password"
               type="password"
               required
               autoComplete="current-password"
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-describedby={state?.error ? 'auth-error' : undefined}
             />
           </div>
 
           {state?.error && (
-            <p role="alert" className="text-sm text-destructive">
+            <p
+              id="auth-error"
+              role="alert"
+              aria-live="assertive"
+              className="text-sm text-destructive"
+            >
               {state.error}
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={pending}
-            className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-          >
+          <LegionButton type="submit" disabled={pending} className="w-full">
             {pending ? 'Signing in…' : 'Sign in'}
-          </button>
+          </LegionButton>
         </form>
 
         <p className="text-center text-sm text-muted-foreground">
           No account yet?{' '}
-          <Link href="/sign-up" className="underline underline-offset-4">
+          <Link
+            href="/sign-up"
+            className="text-legion-amber underline underline-offset-4"
+          >
             Create one
           </Link>
         </p>
       </div>
-    </main>
+    </AuthShell>
   );
 }

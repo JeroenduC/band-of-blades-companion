@@ -1,120 +1,159 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "../styles/theme.css";
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Tailwind v4 theme bridge.
+ * Maps CSS custom properties to Tailwind colour utilities.
+ * --color-X creates bg-X, text-X, border-X, etc.
+ *
+ * Rule: never use raw Tailwind palette classes (bg-zinc-900, text-gray-200…).
+ * Always use these semantic utilities or direct var(--bob-*) references.
+ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
+  /* --- Shadcn semantic mappings (used by all Shadcn/ui components) --- */
+  --color-background:         var(--background);
+  --color-foreground:         var(--foreground);
+  --color-card:               var(--card);
+  --color-card-foreground:    var(--card-foreground);
+  --color-popover:            var(--popover);
   --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --color-primary:            var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary:          var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted:              var(--muted);
+  --color-muted-foreground:   var(--muted-foreground);
+  --color-accent:             var(--accent);
+  --color-accent-foreground:  var(--accent-foreground);
+  --color-destructive:        var(--destructive);
+  --color-border:             var(--border);
+  --color-input:              var(--input);
+  --color-ring:               var(--ring);
+  --color-chart-1:            var(--chart-1);
+  --color-chart-2:            var(--chart-2);
+  --color-chart-3:            var(--chart-3);
+  --color-chart-4:            var(--chart-4);
+  --color-chart-5:            var(--chart-5);
+  --color-sidebar:            var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary:    var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent:     var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border:     var(--sidebar-border);
+  --color-sidebar-ring:       var(--sidebar-ring);
+
+  /* --- Band of Blades semantic utilities (page/feature code) --- */
+  /* Use these for app-specific colour intent that Shadcn names don't cover. */
+  --color-legion-amber:        var(--bob-amber);
+  --color-legion-amber-muted:  var(--bob-amber-muted);
+  --color-legion-danger:       var(--bob-danger);
+  --color-legion-danger-subtle: var(--bob-danger-subtle);
+  --color-legion-success:      var(--bob-success);
+  --color-legion-warning:      var(--bob-warning);
+  --color-legion-bg-base:      var(--bob-bg-base);
+  --color-legion-bg-surface:   var(--bob-bg-surface);
+  --color-legion-bg-elevated:  var(--bob-bg-elevated);
+  --color-legion-bg-overlay:   var(--bob-bg-overlay);
+  --color-legion-text-primary: var(--bob-text-primary);
+  --color-legion-text-muted:   var(--bob-text-muted);
+  --color-legion-text-faint:   var(--bob-text-faint);
+  --color-legion-border-focus: var(--bob-border-focus);
+
+  /* --- Typography --- */
+  /* These reference --bob-font-* which in turn reference the next/font CSS variables
+   * set on <html> by layout.tsx. Avoids circular var() references. */
+  --font-sans:    var(--bob-font-body);
+  --font-mono:    var(--bob-font-mono);
+  --font-heading: var(--bob-font-heading);
+
+  /* --- Type scale utilities (legion-text-*) --- */
+  --text-legion-xs:   var(--bob-text-xs);    /* 12px — captions, badges */
+  --text-legion-sm:   var(--bob-text-sm);    /* 14px — labels */
+  --text-legion-base: var(--bob-text-base);  /* 16px — body */
+  --text-legion-lg:   var(--bob-text-lg);    /* 18px */
+  --text-legion-xl:   var(--bob-text-xl);    /* 20px */
+  --text-legion-2xl:  var(--bob-text-2xl);   /* 24px — h4 */
+  --text-legion-3xl:  var(--bob-text-3xl);   /* 30px — h3 */
+  --text-legion-4xl:  var(--bob-text-4xl);   /* 36px — h2 */
+  --text-legion-5xl:  var(--bob-text-5xl);   /* 48px — h1 */
+
+  /* --- Border radius --- */
+  --radius-sm: var(--bob-radius-sm);
+  --radius-md: var(--bob-radius-md);
+  --radius-lg: var(--bob-radius-lg);
+  --radius-xl: var(--bob-radius-xl);
 }
 
-:root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
-
+/*
+ * Shadcn semantic variable mapping.
+ * Dark military theme is the DEFAULT — there is no light theme.
+ * The .dark selector is kept so Shadcn component dark: variants still resolve,
+ * but its values are identical to :root.
+ */
+:root,
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  color-scheme: dark;
+
+  /* Backgrounds */
+  --background: var(--bob-bg-base);
+  --card:       var(--bob-bg-surface);
+  --popover:    var(--bob-bg-elevated);
+
+  /* Foregrounds */
+  --foreground:           var(--bob-text-primary);
+  --card-foreground:      var(--bob-text-primary);
+  --popover-foreground:   var(--bob-text-primary);
+
+  /* Primary — amber/gold interactive */
+  --primary:              var(--bob-amber);
+  --primary-foreground:   var(--bob-amber-fg);
+
+  /* Secondary — elevated surface */
+  --secondary:            var(--bob-bg-elevated);
+  --secondary-foreground: var(--bob-text-primary);
+
+  /* Muted — surface + subdued text */
+  --muted:                var(--bob-bg-surface);
+  --muted-foreground:     var(--bob-text-muted);
+
+  /* Accent — also amber (same intent as primary in this theme) */
+  --accent:               var(--bob-amber);
+  --accent-foreground:    var(--bob-amber-fg);
+
+  /* Destructive */
+  --destructive:          var(--bob-danger);
+
+  /* Borders & inputs */
+  --border: var(--bob-border);
+  /* Input borders use the stronger 25% opacity white so fields are clearly
+   * readable against the dark background without being harsh. */
+  --input:  var(--bob-border-strong);
+  --ring:   var(--bob-border-focus);
+
+  /* Shared radius base — components scale off this */
+  --radius: var(--bob-radius-md);
+
+  /* Chart colours (pressure curves, resource graphs) */
+  --chart-1: var(--bob-amber);
+  --chart-2: var(--bob-success);
+  --chart-3: var(--bob-danger);
+  --chart-4: var(--bob-amber-muted);
+  --chart-5: var(--bob-text-muted);
+
+  /* Sidebar */
+  --sidebar:                    var(--bob-bg-surface);
+  --sidebar-foreground:         var(--bob-text-primary);
+  --sidebar-primary:            var(--bob-amber);
+  --sidebar-primary-foreground: var(--bob-amber-fg);
+  --sidebar-accent:             var(--bob-bg-elevated);
+  --sidebar-accent-foreground:  var(--bob-text-primary);
+  --sidebar-border:             var(--bob-border);
+  --sidebar-ring:               var(--bob-border-focus);
 }
 
 @layer base {
@@ -126,5 +165,63 @@
   }
   html {
     @apply font-sans;
+  }
+  /* Cinzel for all headings — tracked slightly for the Roman inscription feel */
+  h1, h2, h3, h4 {
+    font-family: var(--bob-font-heading);
+    letter-spacing: 0.04em;
+    line-height: 1.15;
+  }
+}
+
+@layer utilities {
+  /*
+   * Subtle grain/noise texture utilities.
+   *
+   * The texture is a CSS-only SVG feTurbulence filter rendered as a
+   * pseudo-element overlay. It uses mix-blend-mode: overlay at very low
+   * opacity so it darkens/lightens the surface slightly without affecting
+   * text readability or contrast ratios.
+   *
+   * Usage:
+   *   grain-base    — apply to the page background (lighter grain)
+   *   grain-surface — apply to card/panel surfaces (slightly denser grain)
+   *
+   * Implementation notes:
+   * - The pseudo-element covers the parent; pointer-events: none so it never
+   *   blocks clicks.
+   * - Respects prefers-reduced-motion: the filter is static (no animation).
+   * - Does not affect contrast: the overlay is below 5% opacity. Run
+   *   `npm run a11y` after applying to verify.
+   */
+
+  .grain-base {
+    position: relative;
+  }
+  .grain-base::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+  }
+
+  .grain-surface {
+    position: relative;
+  }
+  .grain-surface::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: 0.045;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 150px 150px;
   }
 }
