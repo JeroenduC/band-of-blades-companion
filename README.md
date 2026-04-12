@@ -34,7 +34,7 @@ The app is deployed and functional. Next up: making it look and feel like Band o
 
 | Layer | Choice |
 |-------|--------|
-| Framework | Next.js 14+ (App Router), TypeScript |
+| Framework | Next.js 15 (App Router), TypeScript |
 | Database + Auth | Supabase (PostgreSQL + Row-Level Security) |
 | Design System | Shadcn/ui + Radix UI (wrapped in project-owned components) |
 | Styling | Tailwind CSS with custom design tokens |
@@ -54,7 +54,7 @@ The app is deployed and functional. Next up: making it look and feel like Band o
 - [x] Commit Project Brief, CLAUDE.md, and README.md
 
 ### ✅ Epic 1: Project Foundation
-Next.js 16 app deployed to Vercel. Email/password auth, campaign creation with invite codes, player join flow, GM role assignment, placeholder dashboards for all six roles.
+Next.js 15 app deployed to Vercel. Email/password auth, campaign creation with invite codes, player join flow, GM role assignment, placeholder dashboards for all six roles.
 
 ### ⏳ Epic 2: Visual Identity & Design System
 The app looks and feels like Band of Blades. Design tokens, themed components, component wrapper layer.

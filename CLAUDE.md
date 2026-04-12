@@ -7,7 +7,7 @@ Read this at the start of every session as the basis for all decisions.
 
 ## 0. Meta: Autonomous Context Management
 
-**Proactive Updates:** Claude is responsible for keeping this file current. When a new architectural decision is made, a structural bug is resolved, or a new project standard is established: update `CLAUDE.md` directly without asking permission.
+**Proactive Updates:** Claude is responsible for keeping **all human-readable documentation** current during development. This includes `CLAUDE.md`, `README.md`, `docs/PROJECT_BRIEF.md`, `docs/DESIGN_TOKENS.md`, and `docs/DATA_MODEL.md`. When a technical decision changes (e.g. a version downgrade, a schema change, a new standard), every document that references the old information must be updated in the same commit. Never let docs drift from reality.
 
 **Token Optimisation:** If extended back-and-forth occurs on a complex topic, Claude summarises the final conclusion, adds it as a hard rule to the appropriate section, and reports: *"I've updated CLAUDE.md with this rule. You can now `/compact` to save tokens."*
 
@@ -27,7 +27,7 @@ Read this at the start of every session as the basis for all decisions.
 **What this is:** A web app that digitises the campaign phase of the tabletop RPG Band of Blades. Players complete the campaign phase asynchronously between sessions, each acting through their assigned Legion role.
 
 **Tech Stack:**
-- Framework: Next.js 14+ (App Router) with TypeScript
+- Framework: Next.js 15 (App Router) with TypeScript
 - Database + Auth: Supabase (PostgreSQL + Row-Level Security)
 - Design System: Shadcn/ui + Radix UI (wrapped in project-owned components)
 - Styling: Tailwind CSS with custom design tokens

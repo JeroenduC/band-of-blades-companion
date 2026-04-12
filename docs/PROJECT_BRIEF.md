@@ -332,7 +332,7 @@ A future expansion (Epic 12) envisions multiple physical groups playing in the s
 
 | Layer | Choice | Why |
 |-------|--------|-----|
-| Framework | Next.js 14+ (App Router) | React-based, handles both frontend and API routes in one project. Huge ecosystem, TypeScript-first. Server components reduce client-side JavaScript for fast mobile performance. |
+| Framework | Next.js 15 (App Router) | React-based, handles both frontend and API routes in one project. Huge ecosystem, TypeScript-first. Server components reduce client-side JavaScript for fast mobile performance. |
 | Language | TypeScript | Type safety catches bugs before they reach players. Essential for a data-heavy app where a wrong number can break a campaign. |
 | Database + Auth | Supabase (hosted PostgreSQL) | Relational database with row-level security. Built-in auth with email/password. Generous free tier. Real-time subscriptions for live updates. |
 | Hosting (initial) | Vercel | Starting choice. Deploys automatically from GitHub. Free tier is sufficient. Optimised for Next.js. See ADR-001 for hosting evaluation. |
