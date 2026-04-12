@@ -4,21 +4,25 @@ import { useActionState } from 'react';
 import Link from 'next/link';
 import { signUp } from '@/server/actions/auth';
 import { LegionButton, LegionInput } from '@/components/legion';
+import { AuthShell } from './auth-shell';
 
 export function SignUpForm() {
   const [state, action, pending] = useActionState(signUp, null);
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-sm space-y-6">
+    <AuthShell>
+      <div className="space-y-6">
+        {/* Form heading */}
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold">Create your account</h1>
+          <h2 className="font-heading text-xl font-semibold tracking-wide">
+            Join the Legion
+          </h2>
           <p className="text-sm text-muted-foreground">
-            Join the Legion. Enter your details below.
+            Create your account to begin the campaign.
           </p>
         </div>
 
-        <form action={action} className="space-y-4">
+        <form action={action} className="space-y-4" noValidate>
           <div className="space-y-1">
             <label htmlFor="display_name" className="text-sm font-medium">
               Display name
@@ -29,6 +33,7 @@ export function SignUpForm() {
               type="text"
               required
               autoComplete="name"
+              aria-describedby={state?.error ? 'auth-error' : undefined}
             />
           </div>
 
@@ -42,6 +47,7 @@ export function SignUpForm() {
               type="email"
               required
               autoComplete="email"
+              aria-describedby={state?.error ? 'auth-error' : undefined}
             />
           </div>
 
@@ -56,11 +62,22 @@ export function SignUpForm() {
               required
               autoComplete="new-password"
               minLength={8}
+              aria-describedby={
+                state?.error ? 'auth-error' : 'password-hint'
+              }
             />
+            <p id="password-hint" className="text-xs text-muted-foreground">
+              Minimum 8 characters.
+            </p>
           </div>
 
           {state?.error && (
-            <p role="alert" className="text-sm text-destructive">
+            <p
+              id="auth-error"
+              role="alert"
+              aria-live="assertive"
+              className="text-sm text-destructive"
+            >
               {state.error}
             </p>
           )}
@@ -72,11 +89,14 @@ export function SignUpForm() {
 
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{' '}
-          <Link href="/sign-in" className="underline underline-offset-4">
+          <Link
+            href="/sign-in"
+            className="text-legion-amber underline-offset-4 hover:underline"
+          >
             Sign in
           </Link>
         </p>
       </div>
-    </main>
+    </AuthShell>
   );
 }
