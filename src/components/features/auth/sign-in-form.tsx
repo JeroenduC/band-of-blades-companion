@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import Link from 'next/link';
 import { signIn } from '@/server/actions/auth';
+import { LegionButton, LegionInput } from '@/components/legion';
 
 export function SignInForm() {
   const [state, action, pending] = useActionState(signIn, null);
@@ -22,13 +23,12 @@ export function SignInForm() {
             <label htmlFor="email" className="text-sm font-medium">
               Email
             </label>
-            <input
+            <LegionInput
               id="email"
               name="email"
               type="email"
               required
               autoComplete="email"
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
 
@@ -36,13 +36,12 @@ export function SignInForm() {
             <label htmlFor="password" className="text-sm font-medium">
               Password
             </label>
-            <input
+            <LegionInput
               id="password"
               name="password"
               type="password"
               required
               autoComplete="current-password"
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
 
@@ -52,13 +51,9 @@ export function SignInForm() {
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={pending}
-            className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-          >
+          <LegionButton type="submit" disabled={pending} className="w-full">
             {pending ? 'Signing in…' : 'Sign in'}
-          </button>
+          </LegionButton>
         </form>
 
         <p className="text-center text-sm text-muted-foreground">

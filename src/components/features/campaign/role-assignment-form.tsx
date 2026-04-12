@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import { assignRole } from '@/server/actions/campaign';
 import type { LegionRole, MemberRank, CampaignMembershipWithProfile } from '@/lib/types';
+import { LegionButton } from '@/components/legion';
 
 // GM is excluded from the assignable list — GM status is set at campaign
 // creation and is not reassignable through this UI.
@@ -74,13 +75,9 @@ export function RoleAssignmentForm({ membership, campaignId }: RoleAssignmentFor
         ))}
       </select>
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-md bg-primary px-3 py-1 text-sm font-medium text-primary-foreground disabled:opacity-50"
-      >
+      <LegionButton type="submit" disabled={pending} size="sm">
         {pending ? 'Saving…' : 'Assign'}
-      </button>
+      </LegionButton>
 
       {state?.error && (
         <p role="alert" className="w-full text-sm text-destructive">
