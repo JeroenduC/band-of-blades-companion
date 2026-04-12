@@ -117,10 +117,11 @@
    * on <html> and referenced here for use in components.
    * =================================================================== */
 
-  /* Resolved in layout.tsx via next/font — see issue #13 */
-  --bob-font-heading: var(--font-heading, Georgia, serif);
-  --bob-font-body:    var(--font-body, system-ui, sans-serif);
-  --bob-font-mono:    var(--font-mono, 'Courier New', monospace);
+  /* Resolved in layout.tsx via next/font — variable names match the CSS variables
+   * set by next/font's `variable` option on the <html> element. */
+  --bob-font-heading: var(--font-cinzel, Georgia, serif);
+  --bob-font-body:    var(--font-geist-sans, system-ui, sans-serif);
+  --bob-font-mono:    var(--font-geist-mono, 'Courier New', monospace);
 
   /* Type scale — used in component classes */
   --bob-text-xs:   0.75rem;    /* 12px — captions, badges */

@@ -65,9 +65,22 @@
   --color-legion-border-focus: var(--bob-border-focus);
 
   /* --- Typography --- */
-  --font-sans:    var(--font-body, var(--font-geist-sans), system-ui, sans-serif);
-  --font-mono:    var(--font-mono, var(--font-geist-mono), 'Courier New', monospace);
-  --font-heading: var(--font-heading, Georgia, serif);
+  /* These reference --bob-font-* which in turn reference the next/font CSS variables
+   * set on <html> by layout.tsx. Avoids circular var() references. */
+  --font-sans:    var(--bob-font-body);
+  --font-mono:    var(--bob-font-mono);
+  --font-heading: var(--bob-font-heading);
+
+  /* --- Type scale utilities (legion-text-*) --- */
+  --text-legion-xs:   var(--bob-text-xs);    /* 12px — captions, badges */
+  --text-legion-sm:   var(--bob-text-sm);    /* 14px — labels */
+  --text-legion-base: var(--bob-text-base);  /* 16px — body */
+  --text-legion-lg:   var(--bob-text-lg);    /* 18px */
+  --text-legion-xl:   var(--bob-text-xl);    /* 20px */
+  --text-legion-2xl:  var(--bob-text-2xl);   /* 24px — h4 */
+  --text-legion-3xl:  var(--bob-text-3xl);   /* 30px — h3 */
+  --text-legion-4xl:  var(--bob-text-4xl);   /* 36px — h2 */
+  --text-legion-5xl:  var(--bob-text-5xl);   /* 48px — h1 */
 
   /* --- Border radius --- */
   --radius-sm: var(--bob-radius-sm);
@@ -150,5 +163,11 @@
   }
   html {
     @apply font-sans;
+  }
+  /* Cinzel for all headings — tracked slightly for the Roman inscription feel */
+  h1, h2, h3, h4 {
+    font-family: var(--bob-font-heading);
+    letter-spacing: 0.04em;
+    line-height: 1.15;
   }
 }
