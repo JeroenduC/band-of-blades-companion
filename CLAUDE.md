@@ -201,6 +201,24 @@ Before declaring a sprint complete, verify:
 - [ ] All sprint issues are in "Done" or "Review" status
 - [ ] No sprint issues are still in "In Progress" or "Sprint Backlog"
 - [ ] If any issues are in "Review", notify the owner and wait for them to be moved to "Done" before closing the sprint
+- [ ] Sprint Retrospective issue is in "Done" (see below)
+
+### Sprint Retrospective
+Before closing any sprint, create and complete a retrospective issue:
+1. Create an issue titled "Sprint N Retrospective — Best Practices Review"
+2. Review all work done during the sprint and identify best practices in four areas:
+   - **Token efficiency:** What wasted tokens this sprint? What patterns should be avoided? What shortcuts can be reused?
+   - **Long-term over short-term:** Were any shortcuts taken that created technical debt? Were there solutions that favoured long-term maintainability?
+   - **Accessibility & UX:** What accessibility lessons were learned? What WCAG requirements were tricky? What UX patterns worked well?
+   - **Mistakes to prevent:** What went wrong? What was the root cause? What rule or check would have prevented it?
+3. For each best practice identified, check if it's already captured in CLAUDE.md. If not, add it to the relevant section.
+4. Commit the updated CLAUDE.md with message "docs: sprint N retrospective — update best practices"
+5. Add a summary of the retrospective findings to the sprint journal entry
+6. Close the retrospective issue
+
+**Important:** Not every sprint will produce new best practices, and that's fine. Don't force insights where there are none — an empty retrospective that says "nothing new to add" is perfectly valid. But when there genuinely is something to learn, capture it. The goal is continuous improvement, not bureaucracy.
+
+This issue must be in "Done" before the sprint can be closed.
 
 ### Self-Review Before Moving to Review
 Before moving any issue to "Review" status, Claude Code must do a self-review:
