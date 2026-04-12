@@ -209,6 +209,8 @@ Before moving any issue to "Review" status, Claude Code must do a self-review:
 3. **Test the golden path** end-to-end: can a real user complete the intended action?
 4. **Check for regressions** in related features.
 5. **Only then** move to Review and add the testing comment.
+6. **Always run `npm run build`** before marking an issue for review. If the build fails, the issue is not ready for review. Fix all build errors first.
+7. **If new Shadcn components or dependencies were installed**, verify they are in `package.json` dependencies AND that `package-lock.json` is staged in the commit. A missing lockfile is a silent Vercel build failure.
 
 If a criterion cannot be verified (e.g. requires a browser), say so explicitly and describe what the reviewer should check.
 
