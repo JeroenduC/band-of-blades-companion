@@ -158,11 +158,6 @@ export function PhaseProgressIndicator({
                           {ROLE_LABELS[role] ?? role}
                         </span>
                       ))}
-                      {isParallel && (
-                        <span className="text-[10px] text-legion-text-faint self-center">
-                          (simultaneous)
-                        </span>
-                      )}
                     </div>
                   )}
                 </div>
