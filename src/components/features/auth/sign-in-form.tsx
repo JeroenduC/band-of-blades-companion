@@ -71,7 +71,7 @@ export function SignInForm() {
           No account yet?{' '}
           <Link
             href="/sign-up"
-            className="text-legion-amber underline-offset-4 hover:underline"
+            className="text-legion-amber underline underline-offset-4"
           >
             Create one
           </Link>

@@ -16,7 +16,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
       <div className="hidden md:flex flex-col justify-between p-12 border-r border-border bg-legion-bg-surface">
         <div>
           {/* Regiment tag */}
-          <p className="font-mono text-xs uppercase tracking-[0.25em] text-legion-text-faint mb-10">
+          <p className="font-mono text-xs uppercase tracking-[0.25em] text-legion-text-muted mb-10">
             338th Legion · Campaign Phase
           </p>
 
@@ -35,8 +35,10 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Atmospheric quote — bottom of brand panel */}
-        <blockquote className="border-l-2 border-legion-amber pl-4">
-          <p className="text-sm text-legion-text-faint italic leading-relaxed">
+        {/* Purely decorative flavour text — aria-hidden so screen readers
+            skip it; it conveys no functional information. */}
+        <blockquote aria-hidden="true" className="border-l-2 border-legion-amber pl-4">
+          <p className="text-sm text-legion-text-muted italic leading-relaxed">
             "The Long March does not end until the last soldier falls<br />
             or the Black City burns. Every choice is a debt.<br />
             Every debt comes due."
@@ -49,7 +51,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
 
         {/* Mobile brand header (hidden on desktop) */}
         <header className="md:hidden text-center pt-10 pb-8">
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-legion-text-faint mb-4">
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-legion-text-muted mb-4">
             338th Legion · Campaign Phase
           </p>
           <h1 className="font-heading text-4xl font-bold uppercase tracking-[0.06em] text-legion-amber leading-none">

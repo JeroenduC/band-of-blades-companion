@@ -35,7 +35,10 @@
   --bob-text-primary: oklch(0.87 0.028 78);
   /* Labels, secondary text, supporting copy */
   --bob-text-muted:   oklch(0.64 0.018 62);
-  /* Disabled text, placeholders, captions */
+  /* Disabled text, placeholders — WCAG WARNING: fails 4.5:1 at small sizes
+   * against bg-surface/bg-elevated. Only use for truly decorative visible
+   * text or for disabled/placeholder states where contrast exemption applies.
+   * For captions or metadata use --bob-text-muted instead. */
   --bob-text-faint:   oklch(0.46 0.012 58);
 
   /* ===================================================================
