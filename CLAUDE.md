@@ -201,7 +201,20 @@ Before declaring a sprint complete, verify:
 - [ ] All sprint issues are in "Done" or "Review" status
 - [ ] No sprint issues are still in "In Progress" or "Sprint Backlog"
 - [ ] If any issues are in "Review", notify the owner and wait for them to be moved to "Done" before closing the sprint
+- [ ] Development Journal updated with a sprint entry in `docs/journal/` (see below)
 - [ ] Sprint Retrospective issue is in "Done" (see below)
+
+### Development Journal
+At the end of every sprint, add a journal entry before closing:
+1. Create or update the file `docs/journal/sprint-NN.md` (e.g. `sprint-02.md`)
+2. The entry must cover:
+   - **What was built:** a brief list of the features/components delivered
+   - **Key decisions:** any architectural or design choices made and why
+   - **Blockers & fixes:** notable problems encountered and how they were resolved
+3. Commit the journal entry with message `docs: sprint N journal`
+4. Verify `README.md` links to the journal file (the README links to the `docs/journal/` directory)
+
+A sprint **cannot be closed** without a committed journal entry.
 
 ### Sprint Retrospective
 Before closing any sprint, create and complete a retrospective issue:
