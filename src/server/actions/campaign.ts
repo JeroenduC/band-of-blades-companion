@@ -136,9 +136,22 @@ export async function assignRole(
   if (authError || !user) redirect('/sign-in');
 
   const membershipId = formData.get('membership_id') as string;
-  const role = formData.get('role') as LegionRole;
-  const rank = (formData.get('rank') as MemberRank) ?? 'PRIMARY';
+  const roleRaw = formData.get('role') as string;
+  const rankRaw = formData.get('rank') as string;
   const campaignId = formData.get('campaign_id') as string;
+
+  const VALID_ROLES: LegionRole[] = ['GM', 'COMMANDER', 'MARSHAL', 'QUARTERMASTER', 'LOREKEEPER', 'SPYMASTER', 'SOLDIER'];
+  const VALID_RANKS: MemberRank[] = ['PRIMARY', 'DEPUTY'];
+
+  if (!VALID_ROLES.includes(roleRaw as LegionRole)) {
+    return { error: 'Please select a valid role before saving.' };
+  }
+  if (!VALID_RANKS.includes(rankRaw as MemberRank)) {
+    return { error: 'Please select a valid rank before saving.' };
+  }
+
+  const role = roleRaw as LegionRole;
+  const rank = rankRaw as MemberRank;
 
   // Verify the caller is the GM of this campaign before allowing any update.
   const { data: gmMembership } = await db
