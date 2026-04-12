@@ -251,3 +251,57 @@ When adding a testing comment to a GitHub issue:
 ### Commit References
 - Always reference the issue number in commit messages: `feat(auth): implement sign-up flow (#3)`
 - Use `closes #N` in PR descriptions to auto-close issues on merge, but only after review is complete
+
+---
+
+## 12. Accessible Forms (NL Design System Guidelines)
+
+Reference: https://nldesignsystem.nl/richtlijnen/formulieren/
+These rules apply whenever creating or modifying any form in the app.
+
+### Labels & Descriptions
+- Always place a visible label ABOVE the input field, never as placeholder-only
+- Use `<label>` elements properly associated with their input via `htmlFor`/`id`
+- Add descriptions (extra help text) between the label and the input field, not below the input
+- Associate descriptions with the input using `aria-describedby`
+- Keep descriptions short and to-the-point
+
+### Required & Optional Fields
+- Only ask for information that is genuinely needed
+- If most fields are required, mark the optional ones with "(not required)" rather than marking required ones with an asterisk
+- Never use only an asterisk (*) to indicate required fields — it requires prior knowledge of the convention
+- If you do use an asterisk, explain its meaning above the form
+
+### Error Handling
+- Show validation requirements BEFORE the user submits, not after
+- Display error messages directly next to the relevant field, between the label and the input
+- Associate error messages with the input using `aria-describedby` (combine with description if both exist)
+- Use more than just colour to indicate errors — add an icon or text prefix like "Error:"
+- Provide helpful error messages that explain what needs to change, not just "invalid input"
+- Never clear a field the user has already filled in when showing an error elsewhere
+
+### Form Elements
+- Never use `<select multiple>` — use checkboxes instead for multiple selections
+- Be cautious with date pickers — test with keyboard and screen reader. A simple set of text inputs (day/month/year) is often more accessible
+- Avoid `<input type="number">` for short numeric inputs (like day/month) — users accidentally scroll the value. Use `<input type="text" inputmode="numeric">` instead
+- Use radio buttons instead of dropdowns when there are fewer than 7 options
+- Make clickable areas large enough — minimum 44x44px touch target
+
+### Visual Design
+- Input field borders must have sufficient contrast against the background (3:1 minimum)
+- Input text must have sufficient contrast (4.5:1 minimum)
+- Placeholder text must have sufficient contrast (4.5:1 minimum) — if you can't achieve this, don't use placeholders
+- Focus indicators must be clearly visible (use the design token `--bob-border-focus`)
+- Never rely on colour alone to convey information (errors, required status, valid/invalid)
+
+### Layout & Flow
+- One question/topic per screen where possible (especially for complex multi-step flows like campaign actions)
+- Logical tab order that matches visual order
+- Don't let the page jump unexpectedly when showing/hiding elements
+- Provide clear navigation: users must always know how to go forward and back
+- At the end of a form/flow, confirm what was submitted and what happens next
+
+### Testing
+- Test every form with keyboard-only navigation (Tab, Shift+Tab, Enter, Space, Arrow keys)
+- Test with a screen reader if possible (or at minimum verify ARIA attributes are correct)
+- Verify the form works on mobile (375px viewport, touch targets, virtual keyboard doesn't obscure inputs)
