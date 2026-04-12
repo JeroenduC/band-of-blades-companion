@@ -173,3 +173,55 @@
     line-height: 1.15;
   }
 }
+
+@layer utilities {
+  /*
+   * Subtle grain/noise texture utilities.
+   *
+   * The texture is a CSS-only SVG feTurbulence filter rendered as a
+   * pseudo-element overlay. It uses mix-blend-mode: overlay at very low
+   * opacity so it darkens/lightens the surface slightly without affecting
+   * text readability or contrast ratios.
+   *
+   * Usage:
+   *   grain-base    — apply to the page background (lighter grain)
+   *   grain-surface — apply to card/panel surfaces (slightly denser grain)
+   *
+   * Implementation notes:
+   * - The pseudo-element covers the parent; pointer-events: none so it never
+   *   blocks clicks.
+   * - Respects prefers-reduced-motion: the filter is static (no animation).
+   * - Does not affect contrast: the overlay is below 5% opacity. Run
+   *   `npm run a11y` after applying to verify.
+   */
+
+  .grain-base {
+    position: relative;
+  }
+  .grain-base::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+  }
+
+  .grain-surface {
+    position: relative;
+  }
+  .grain-surface::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: 0.045;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 150px 150px;
+  }
+}
