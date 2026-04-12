@@ -10,10 +10,14 @@
  *   npx tsx scripts/screenshot.ts /dashboard/gm --output gm-dashboard.png
  *   npx tsx scripts/screenshot.ts                  (defaults to /)
  *
- * The script connects to the already-running dev server (npm run dev) on
- * localhost:3000, takes a full-page screenshot, and saves it to
- * screenshots/<filename>. Claude Code can then read the image file to
- * verify visual changes without asking the user.
+ * The script connects to the already-running dev or production server on
+ * localhost:3000 (or BASE_URL env var), takes a full-page screenshot, and
+ * saves it to screenshots/<filename>. Claude Code can then read the image
+ * file to verify visual changes without asking the user.
+ *
+ * IMPORTANT: For self-review, always screenshot from a production build
+ * (npm run build && PORT=3001 npm start) not just the dev server — the dev
+ * server may serve fonts/CSS differently. Use BASE_URL=http://localhost:3001.
  *
  * If the dev server is not running, the script exits with a clear error.
  */
@@ -22,7 +26,7 @@ import { chromium } from '@playwright/test';
 import { existsSync, mkdirSync } from 'fs';
 import { resolve } from 'path';
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL ?? 'http://localhost:3000';
 const OUTPUT_DIR = resolve(process.cwd(), 'screenshots');
 
 function parseArgs(): { path: string; output: string } {
