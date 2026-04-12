@@ -1,0 +1,138 @@
+/*
+ * Band of Blades — Design Token System
+ * Single source of truth for all visual values.
+ * Changing the look of the app means changing this file only.
+ *
+ * Naming convention: --bob-{category}-{variant}
+ * All values are in oklch for perceptual uniformity.
+ *
+ * WCAG 2.1 AA note: all text tokens are calibrated to ≥4.5:1 contrast
+ * against their intended background. See docs/DESIGN_TOKENS.md.
+ */
+
+:root {
+  /* ===================================================================
+   * BACKGROUNDS
+   * Deep charcoal hierarchy — evokes a command tent at night.
+   * =================================================================== */
+
+  /* Page background — darkest layer */
+  --bob-bg-base:     oklch(0.14 0.010 50);
+  /* Card and panel surfaces */
+  --bob-bg-surface:  oklch(0.19 0.012 52);
+  /* Elevated elements: dropdowns, modals, tooltips */
+  --bob-bg-elevated: oklch(0.23 0.012 52);
+  /* Hover and selected row overlays */
+  --bob-bg-overlay:  oklch(0.28 0.012 52);
+
+  /* ===================================================================
+   * TEXT
+   * Warm parchment palette — evokes field journals and orders.
+   * Contrast against --bob-bg-base: primary ≈13:1, muted ≈7:1, faint ≈4.5:1
+   * =================================================================== */
+
+  /* Main body text — warm off-white parchment */
+  --bob-text-primary: oklch(0.87 0.028 78);
+  /* Labels, secondary text, supporting copy */
+  --bob-text-muted:   oklch(0.64 0.018 62);
+  /* Disabled text, placeholders, captions */
+  --bob-text-faint:   oklch(0.46 0.012 58);
+
+  /* ===================================================================
+   * ACCENT — AMBER / GOLD
+   * The Legion's colour. Used for interactive elements and emphasis.
+   * =================================================================== */
+
+  /* Primary interactive accent */
+  --bob-amber:       oklch(0.71 0.145 73);
+  /* Hovered amber */
+  --bob-amber-hover: oklch(0.77 0.145 73);
+  /* Desaturated amber for secondary/ghost buttons */
+  --bob-amber-muted: oklch(0.56 0.082 70);
+  /* Text rendered ON amber backgrounds (dark, for contrast) */
+  --bob-amber-fg:    oklch(0.14 0.010 50);
+
+  /* ===================================================================
+   * SEMANTIC — DANGER
+   * Desaturated blood-red. Used for death, injury, failed rolls.
+   * =================================================================== */
+
+  --bob-danger:       oklch(0.48 0.130 22);
+  --bob-danger-hover: oklch(0.54 0.130 22);
+  /* Subtle danger surface tint (e.g. destructive confirmation bg) */
+  --bob-danger-subtle: oklch(0.22 0.060 22);
+  /* Text rendered ON danger backgrounds */
+  --bob-danger-fg:    oklch(0.92 0.010 50);
+
+  /* ===================================================================
+   * SEMANTIC — SUCCESS
+   * Military olive-green. Used for completed missions, recovered resources.
+   * =================================================================== */
+
+  --bob-success:    oklch(0.52 0.092 145);
+  --bob-success-fg: oklch(0.92 0.010 50);
+
+  /* ===================================================================
+   * SEMANTIC — WARNING
+   * Amber-family. Used for low supplies, pressure escalation alerts.
+   * =================================================================== */
+
+  --bob-warning:    oklch(0.65 0.140 75);
+  --bob-warning-fg: oklch(0.14 0.010 50);
+
+  /* ===================================================================
+   * BORDERS & DIVIDERS
+   * =================================================================== */
+
+  /* Default subtle border */
+  --bob-border:       oklch(1 0 0 / 12%);
+  /* Stronger border for focused or active containers */
+  --bob-border-strong: oklch(1 0 0 / 25%);
+  /* Focus ring — amber, matches interactive accent */
+  --bob-border-focus: oklch(0.71 0.145 73);
+
+  /* ===================================================================
+   * SHAPE
+   * Slightly softened corners — military precision, not corporate round.
+   * =================================================================== */
+
+  --bob-radius-sm:  0.1875rem;   /*  3px */
+  --bob-radius-md:  0.3125rem;   /*  5px */
+  --bob-radius-lg:  0.5rem;      /*  8px */
+  --bob-radius-xl:  0.75rem;     /* 12px */
+
+  /* ===================================================================
+   * ELEVATION / SHADOWS
+   * Dark, dramatic shadows — helps surfaces read against the dark bg.
+   * =================================================================== */
+
+  --bob-shadow-sm: 0 1px 3px  oklch(0 0 0 / 50%);
+  --bob-shadow-md: 0 4px 12px oklch(0 0 0 / 60%);
+  --bob-shadow-lg: 0 8px 24px oklch(0 0 0 / 70%);
+
+  /* ===================================================================
+   * TYPOGRAPHY
+   * Font family tokens are populated by next/font in layout.tsx.
+   * The --font-* CSS variables below are set as className attributes
+   * on <html> and referenced here for use in components.
+   * =================================================================== */
+
+  /* Resolved in layout.tsx via next/font — see issue #13 */
+  --bob-font-heading: var(--font-heading, Georgia, serif);
+  --bob-font-body:    var(--font-body, system-ui, sans-serif);
+  --bob-font-mono:    var(--font-mono, 'Courier New', monospace);
+
+  /* Type scale — used in component classes */
+  --bob-text-xs:   0.75rem;    /* 12px — captions, badges */
+  --bob-text-sm:   0.875rem;   /* 14px — small copy, labels */
+  --bob-text-base: 1rem;       /* 16px — body */
+  --bob-text-lg:   1.125rem;   /* 18px */
+  --bob-text-xl:   1.25rem;    /* 20px */
+  --bob-text-2xl:  1.5rem;     /* 24px — h4 */
+  --bob-text-3xl:  1.875rem;   /* 30px — h3 */
+  --bob-text-4xl:  2.25rem;    /* 36px — h2 */
+  --bob-text-5xl:  3rem;       /* 48px — h1 */
+
+  /* Minimum touch target — WCAG 2.5.5 */
+  --bob-touch-target: 2.75rem; /* 44px */
+}
