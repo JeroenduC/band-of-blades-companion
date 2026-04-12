@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import type { LegionRole, MemberRank } from '@/lib/types';
+import { seedBackAtCampScenes } from './campaign-phase';
 
 function generateInviteCode(): string {
   // Exclude visually ambiguous characters (0/O, 1/I/L) to reduce join errors.
@@ -62,6 +63,9 @@ export async function createCampaign(
     });
 
   if (memberError) return { error: memberError.message };
+
+  // Seed the Back at Camp scene pool for this campaign
+  await seedBackAtCampScenes(campaign.id);
 
   revalidatePath('/dashboard');
   redirect('/dashboard/gm');
