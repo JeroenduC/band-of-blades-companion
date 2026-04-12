@@ -145,6 +145,15 @@ npm run dev
 
 ---
 
+## 📓 Development Journal
+
+The development process is documented sprint by sprint in [`docs/journal/`](docs/journal/).
+Each entry covers what was built, decisions made, and lessons learned — written as the project progresses.
+
+- [Sprint 1 — Foundation](docs/journal/sprint-01-foundation.md)
+
+---
+
 ## 🤝 Contributing
 
 This project is currently in early development. The repository is private. Contribution guidelines and licensing will be established before the project is made public (see ADR-004).
