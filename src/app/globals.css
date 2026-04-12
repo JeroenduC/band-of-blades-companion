@@ -130,7 +130,9 @@
 
   /* Borders & inputs */
   --border: var(--bob-border);
-  --input:  var(--bob-border);
+  /* Input borders use the stronger 25% opacity white so fields are clearly
+   * readable against the dark background without being harsh. */
+  --input:  var(--bob-border-strong);
   --ring:   var(--bob-border-focus);
 
   /* Shared radius base — components scale off this */

@@ -36,7 +36,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${cinzel.variable} ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      // `dark` class activates all Shadcn `dark:` variant overrides (input bg,
+      // button borders, etc.). Our app is dark-only; there is no light mode.
+      className={`dark ${cinzel.variable} ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
