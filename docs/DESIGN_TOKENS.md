@@ -270,55 +270,55 @@ Never import from `lucide-react` directly in feature code. Use `LegionIcon` with
 
 ### Role Icons
 
-| Name | Lucide icon | Legion role |
-|---|---|---|
-| `commander` | `Crown` | Commander |
-| `marshal` | `Swords` | Marshal |
-| `quartermaster` | `Package` | Quartermaster |
-| `lorekeeper` | `BookOpen` | Lorekeeper |
-| `spymaster` | `Eye` | Spymaster |
-| `rookie` | `Shield` | Rookie / generic soldier |
+| Icon | Name | Lucide icon | Legion role |
+|:---:|---|---|---|
+| 👑 | `commander` | `Crown` | Commander |
+| ⚔️ | `marshal` | `Swords` | Marshal |
+| 📦 | `quartermaster` | `Package` | Quartermaster |
+| 📖 | `lorekeeper` | `BookOpen` | Lorekeeper |
+| 👁️ | `spymaster` | `Eye` | Spymaster |
+| 🛡️ | `rookie` | `Shield` | Rookie / generic soldier |
 
 ### Resource Icons
 
-| Name | Lucide icon | Resource |
-|---|---|---|
-| `food` | `Wheat` | Food supplies |
-| `horses` | `Footprints` | Horses (no horse icon in Lucide; footprints suggest cavalry movement) |
-| `supply` | `Box` | General supply |
-| `black-shot` | `Flame` | Black shot / munitions |
+| Icon | Name | Lucide icon | Resource |
+|:---:|---|---|---|
+| 🌾 | `food` | `Wheat` | Food supplies |
+| 👣 | `horses` | `Footprints` | Horses (no horse icon in Lucide; footprints suggest cavalry movement) |
+| 🗃️ | `supply` | `Box` | General supply |
+| 🔥 | `black-shot` | `Flame` | Black shot / munitions |
 
 ### Action Icons
 
-| Name | Lucide icon | Action |
-|---|---|---|
-| `advance` | `ArrowRight` | Advance / march |
-| `recruit` | `UserPlus` | Recruit soldiers |
-| `liberty` | `Unlock` | Liberty campaign action |
+| Icon | Name | Lucide icon | Action |
+|:---:|---|---|---|
+| ➡️ | `advance` | `ArrowRight` | Advance / march |
+| 🧑‍🤝‍🧑 | `recruit` | `UserPlus` | Recruit soldiers |
+| 🔓 | `liberty` | `Unlock` | Liberty campaign action |
 
 ### Status Icons
 
-| Name | Lucide icon | Meaning |
-|---|---|---|
-| `clock` | `Circle` | Clock segment placeholder |
-| `pressure` | `Gauge` | Pressure level |
-| `morale` | `Heart` | Morale |
-| `warning` | `AlertTriangle` | Warning / low resource |
-| `success` | `CheckCircle2` | Completed / success |
-| `failed` | `XCircle` | Failed / dead |
+| Icon | Name | Lucide icon | Meaning |
+|:---:|---|---|---|
+| ⭕ | `clock` | `Circle` | Clock segment placeholder |
+| 🎚️ | `pressure` | `Gauge` | Pressure level |
+| ❤️ | `morale` | `Heart` | Morale |
+| ⚠️ | `warning` | `AlertTriangle` | Warning / low resource |
+| ✅ | `success` | `CheckCircle2` | Completed / success |
+| ❌ | `failed` | `XCircle` | Failed / dead |
 
 ### Navigation & UI Icons
 
-| Name | Lucide icon | Use |
-|---|---|---|
-| `chevron-right` | `ChevronRight` | Forward navigation |
-| `chevron-left` | `ChevronLeft` | Back navigation |
-| `chevron-down` | `ChevronDown` | Expand / dropdown |
-| `close` | `X` | Close / dismiss |
-| `add` | `Plus` | Add item |
-| `remove` | `Minus` | Remove item |
-| `info` | `Info` | Contextual help |
-| `loading` | `Loader2` | Loading spinner |
+| Icon | Name | Lucide icon | Use |
+|:---:|---|---|---|
+| › | `chevron-right` | `ChevronRight` | Forward navigation |
+| ‹ | `chevron-left` | `ChevronLeft` | Back navigation |
+| ˅ | `chevron-down` | `ChevronDown` | Expand / dropdown |
+| ✕ | `close` | `X` | Close / dismiss |
+| ➕ | `add` | `Plus` | Add item |
+| ➖ | `remove` | `Minus` | Remove item |
+| ℹ️ | `info` | `Info` | Contextual help |
+| ⏳ | `loading` | `Loader2` | Loading spinner |
 
 ### Accessibility
 
