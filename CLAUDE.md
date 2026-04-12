@@ -202,6 +202,24 @@ Before declaring a sprint complete, verify:
 - [ ] No sprint issues are still in "In Progress" or "Sprint Backlog"
 - [ ] If any issues are in "Review", notify the owner and wait for them to be moved to "Done" before closing the sprint
 
+### Self-Review Before Moving to Review
+Before moving any issue to "Review" status, Claude Code must do a self-review:
+1. **Re-read the acceptance criteria** of the issue.
+2. **Verify each criterion is met** — not just that the code looks correct, but that the feature actually works as intended. For UI issues, this means checking the compiled output (CSS, HTML), not just the source files.
+3. **Test the golden path** end-to-end: can a real user complete the intended action?
+4. **Check for regressions** in related features.
+5. **Only then** move to Review and add the testing comment.
+
+If a criterion cannot be verified (e.g. requires a browser), say so explicitly and describe what the reviewer should check.
+
+### Ask, Don't Assume
+When debugging or verifying visual/UI issues:
+1. If you cannot programmatically verify something (e.g. "does the background look dark?"), ask the user to check and report back. Don't spend tokens guessing.
+2. If you've spent more than 2 attempts fixing the same issue without success, stop and ask the user what they actually see. Request a screenshot if needed.
+3. If you're making assumptions about what the user's browser is showing, state the assumption explicitly and ask them to confirm before proceeding.
+4. Never assume which branch or deployment the user is looking at. If the fix is on a feature branch but the user might be viewing the production URL (which deploys from main), ask: "Are you looking at localhost, the Vercel production URL, or a preview deployment?" Confirm before debugging further.
+5. A quick question costs far fewer tokens than three wrong guesses.
+
 ### Commit References
 - Always reference the issue number in commit messages: `feat(auth): implement sign-up flow (#3)`
 - Use `closes #N` in PR descriptions to auto-close issues on merge, but only after review is complete
