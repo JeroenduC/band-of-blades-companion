@@ -29,3 +29,4 @@ export {
 } from './legion-dialog';
 export { LegionBadge } from './legion-badge';
 export { LegionToaster } from './legion-toaster';
+export { LegionIcon, type IconName } from './legion-icon';

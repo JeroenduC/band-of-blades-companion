@@ -254,11 +254,78 @@ in feature or page code (see ADR-002).
 
 ## 6. Icon Inventory
 
-> **Status:** No icon set has been integrated yet (issue #22 — planned Sprint 2).
-> This section will be populated when iconography is defined.
+**Library:** [Lucide React](https://lucide.dev/) v1.8 — simple, bold line icons.
+**Wrapper:** `LegionIcon` in `src/components/legion/legion-icon.tsx`
+**Import:** `import { LegionIcon } from '@/components/legion'`
 
-**Planned approach:** A single icon library (TBD in #22) will be wrapped behind
-a `LegionIcon` component following the same ADR-002 wrapper pattern.
+Never import from `lucide-react` directly in feature code. Use `LegionIcon` with a semantic `name` prop.
+
+```tsx
+// Decorative (alongside visible text — aria-hidden applied automatically)
+<LegionIcon name="commander" />
+
+// Meaningful standalone icon — must have aria-label
+<LegionIcon name="pressure" size={20} aria-label="Pressure level" />
+```
+
+### Role Icons
+
+| Name | Lucide icon | Legion role |
+|---|---|---|
+| `commander` | `Crown` | Commander |
+| `marshal` | `Swords` | Marshal |
+| `quartermaster` | `Package` | Quartermaster |
+| `lorekeeper` | `BookOpen` | Lorekeeper |
+| `spymaster` | `Eye` | Spymaster |
+| `rookie` | `Shield` | Rookie / generic soldier |
+
+### Resource Icons
+
+| Name | Lucide icon | Resource |
+|---|---|---|
+| `food` | `Wheat` | Food supplies |
+| `horses` | `Footprints` | Horses (no horse icon in Lucide; footprints suggest cavalry movement) |
+| `supply` | `Box` | General supply |
+| `black-shot` | `Flame` | Black shot / munitions |
+
+### Action Icons
+
+| Name | Lucide icon | Action |
+|---|---|---|
+| `advance` | `ArrowRight` | Advance / march |
+| `recruit` | `UserPlus` | Recruit soldiers |
+| `liberty` | `Unlock` | Liberty campaign action |
+
+### Status Icons
+
+| Name | Lucide icon | Meaning |
+|---|---|---|
+| `clock` | `Circle` | Clock segment placeholder |
+| `pressure` | `Gauge` | Pressure level |
+| `morale` | `Heart` | Morale |
+| `warning` | `AlertTriangle` | Warning / low resource |
+| `success` | `CheckCircle2` | Completed / success |
+| `failed` | `XCircle` | Failed / dead |
+
+### Navigation & UI Icons
+
+| Name | Lucide icon | Use |
+|---|---|---|
+| `chevron-right` | `ChevronRight` | Forward navigation |
+| `chevron-left` | `ChevronLeft` | Back navigation |
+| `chevron-down` | `ChevronDown` | Expand / dropdown |
+| `close` | `X` | Close / dismiss |
+| `add` | `Plus` | Add item |
+| `remove` | `Minus` | Remove item |
+| `info` | `Info` | Contextual help |
+| `loading` | `Loader2` | Loading spinner |
+
+### Accessibility
+
+- Decorative icons (alongside visible text): `aria-hidden` is applied automatically — no extra props needed.
+- Standalone meaningful icons: pass `aria-label` describing what the icon conveys.
+- All icons render at `1rem` (16px) by default; override with the `size` prop (number in px).
+- Minimum interactive size: wrap in a `LegionButton size="icon"` (44px) if the icon is clickable.
 
 ---
 
