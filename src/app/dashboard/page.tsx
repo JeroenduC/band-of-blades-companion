@@ -20,7 +20,7 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/sign-in');
 
-  // Find the user's PRIMARY role in the most recently joined campaign.
+  // Find the user's most recent PRIMARY role membership.
   const { data: membership } = await db
     .from('campaign_memberships')
     .select('role, campaign_id')
@@ -30,9 +30,24 @@ export default async function DashboardPage() {
     .limit(1)
     .maybeSingle();
 
-  if (!membership) {
-    redirect('/campaign/join');
+  if (membership?.role && ROLE_ROUTES[membership.role as LegionRole]) {
+    redirect(ROLE_ROUTES[membership.role as LegionRole]);
   }
 
-  redirect(ROLE_ROUTES[membership.role as LegionRole]);
+  // No PRIMARY role found — check if they are a pending member (joined but no
+  // role assigned yet).
+  const { data: pending } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('user_id', user.id)
+    .is('role', null)
+    .limit(1)
+    .maybeSingle();
+
+  if (pending) {
+    redirect('/dashboard/pending');
+  }
+
+  // No membership at all — send them to join a campaign.
+  redirect('/campaign/join');
 }
