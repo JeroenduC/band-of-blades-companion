@@ -171,3 +171,37 @@ src/
 - Be concise — no unnecessary summaries at the end of a response.
 - When unsure about a game mechanic, reference the Band of Blades rulebook (the PDF is available in the project context) rather than guessing.
 - When facing an architectural choice, check if there's a relevant ADR before making a decision. If not, flag it as a potential new ADR.
+
+---
+
+## 10. Node / npm Path
+
+- Node.js is at `/c/Program Files/nodejs` — this is already in `~/.bashrc`.
+- GitHub CLI (`gh`) is at `/c/Program Files/GitHub CLI` — also in `~/.bashrc`.
+- Both are set in `~/.claude/settings.json` env block so they persist across sessions.
+
+---
+
+## 11. GitHub Project Workflow
+
+Claude Code must manage GitHub Issues and the Project Board actively during development.
+
+### Issue Lifecycle
+1. **Sprint start:** Move all issues for the current sprint to the "Sprint Backlog" column on the GitHub Project board.
+2. **Starting work:** When beginning work on any issue (planned, bug, or otherwise), move it to "In Progress" on the Project board.
+3. **Ready for review:** When work on an issue is complete:
+   - Move the issue to "Review" on the Project board
+   - Assign the issue to the project owner (JeroenduC)
+   - Add a comment on the issue explaining how to test it: what to look at, what URLs to visit, what to click, what the expected result is
+   - Do NOT close the issue — the owner closes it after review
+4. **Bugs:** Follow the same lifecycle, even for quick fixes. Create an issue, move it through In Progress → Review.
+
+### Sprint Closure
+Before declaring a sprint complete, verify:
+- [ ] All sprint issues are in "Done" or "Review" status
+- [ ] No sprint issues are still in "In Progress" or "Sprint Backlog"
+- [ ] If any issues are in "Review", notify the owner and wait for them to be moved to "Done" before closing the sprint
+
+### Commit References
+- Always reference the issue number in commit messages: `feat(auth): implement sign-up flow (#3)`
+- Use `closes #N` in PR descriptions to auto-close issues on merge, but only after review is complete
