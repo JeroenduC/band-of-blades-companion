@@ -35,7 +35,7 @@ export function RoleAssignmentForm({ membership, campaignId }: RoleAssignmentFor
 
       <select
         name="role"
-        defaultValue={membership.role}
+        defaultValue={membership.role ?? undefined}
         className="rounded-md border border-input bg-background px-2 py-1 text-sm"
       >
         {ROLES.map((r) => (
@@ -47,7 +47,7 @@ export function RoleAssignmentForm({ membership, campaignId }: RoleAssignmentFor
 
       <select
         name="rank"
-        defaultValue={membership.rank}
+        defaultValue={membership.rank ?? undefined}
         className="rounded-md border border-input bg-background px-2 py-1 text-sm"
       >
         {RANKS.map((r) => (

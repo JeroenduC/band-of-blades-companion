@@ -95,19 +95,31 @@ export async function joinCampaign(
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (existing) return { error: 'You are already a member of this campaign' };
+  if (existing) return { error: "You've already joined this campaign." };
 
-  // New members join as SOLDIER until the GM assigns them a role.
+  // Players join as pending members — no role assigned.
+  // The GM assigns roles from the role management screen.
+  // NOTE: the campaign_memberships.role and .rank columns must allow NULL
+  // in the database schema for this to work. If they are NOT NULL, run:
+  //   ALTER TABLE campaign_memberships ALTER COLUMN role DROP NOT NULL;
+  //   ALTER TABLE campaign_memberships ALTER COLUMN rank DROP NOT NULL;
   const { error: memberError } = await db
     .from('campaign_memberships')
     .insert({
       user_id: user.id,
       campaign_id: campaign.id,
-      role: 'SOLDIER' as LegionRole,
-      rank: 'PRIMARY' as MemberRank,
     });
 
-  if (memberError) return { error: memberError.message };
+  if (memberError) {
+    // 23505 = unique_violation: the player somehow already has a row
+    // (race condition between the check above and this insert).
+    if (memberError.code === '23505') {
+      return { error: "You've already joined this campaign." };
+    }
+    // Never expose raw database errors to users.
+    console.error('[joinCampaign] unexpected error:', memberError);
+    return { error: 'Something went wrong joining the campaign. Please try again.' };
+  }
 
   revalidatePath('/dashboard');
   redirect('/dashboard');

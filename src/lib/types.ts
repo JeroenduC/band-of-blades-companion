@@ -57,8 +57,9 @@ export interface CampaignMembership {
   id: string;
   user_id: string;
   campaign_id: string;
-  role: LegionRole;
-  rank: MemberRank;
+  // Null until the GM assigns a role. Players join as pending members.
+  role: LegionRole | null;
+  rank: MemberRank | null;
   assigned_at: string;
 }
 
