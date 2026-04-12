@@ -80,6 +80,11 @@ These rules come from the Project Brief section 1.3 and are non-negotiable.
 - **Never** allow a state transition that isn't explicitly defined in the state machine.
 - All state transitions are logged in the `CampaignPhaseLog`.
 
+### Extensibility by Default
+- New states, roles, actions, or game mechanics must be addable by modifying data/configuration, not by rewriting logic. If adding a new campaign action requires changing more than 3 files, the architecture needs refactoring.
+- Use data-driven patterns: arrays of states, maps of transitions, registries of actions. Avoid long if/else or switch chains that need editing every time something is added.
+- When building any feature, ask: "What if the game rules change?" Band of Blades has community houserules and the owner may want to customise the workflow. Build for that.
+
 ### Server-Side Dice
 - **All** dice rolls happen on the server using `crypto.getRandomValues()`.
 - **Never** roll dice on the client. Results are logged in `CampaignPhaseLog`.
