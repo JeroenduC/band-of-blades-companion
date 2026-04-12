@@ -1,69 +1,76 @@
-import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import { createServiceClient } from '@/lib/supabase/service';
-import { signOut } from '@/server/actions/auth';
+import { loadGmDashboard } from '@/server/loaders/dashboard';
+import { DashboardShell } from '@/components/features/campaign/dashboard-shell';
+import { PhaseProgressIndicator } from '@/components/features/campaign/phase-progress-indicator';
+import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle } from '@/components/legion';
+import { startCampaignPhase } from '@/server/actions/campaign-phase';
+import type { CampaignPhaseState } from '@/lib/types';
 
 export const metadata = { title: 'GM Dashboard — Band of Blades' };
 
 export default async function GmDashboardPage() {
-  const supabase = await createClient();
-  const db = createServiceClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/sign-in');
-
-  const { data: membership } = await db
-    .from('campaign_memberships')
-    .select('campaign_id, campaigns(name, invite_code)')
-    .eq('user_id', user.id)
-    .eq('role', 'GM')
-    .eq('rank', 'PRIMARY')
-    .order('assigned_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const campaign = membership?.campaigns as unknown as { name: string; invite_code: string } | null;
+  const { campaign, membership } = await loadGmDashboard();
+  const phaseState = campaign.campaign_phase_state as CampaignPhaseState | null;
+  const phaseActive = phaseState !== null && phaseState !== 'PHASE_COMPLETE';
 
   return (
-    <main className="flex min-h-screen flex-col p-6 gap-6 max-w-2xl mx-auto">
-      <header className="flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">GM</p>
-          <h1 className="text-xl font-bold">{campaign?.name ?? 'No campaign'}</h1>
-        </div>
-        <form action={signOut}>
-          <button type="submit" className="text-sm text-muted-foreground underline underline-offset-4">
-            Sign out
-          </button>
-        </form>
-      </header>
+    <DashboardShell role="GM" campaignName={campaign.name}>
 
-      {campaign && (
-        <section className="rounded-lg border p-4 space-y-1">
-          <p className="text-sm font-medium">Invite code</p>
-          <p className="font-mono text-lg tracking-widest">{campaign.invite_code}</p>
-          <p className="text-xs text-muted-foreground">Share this with your players so they can join.</p>
-        </section>
+      {/* Invite code + manage roles */}
+      <LegionCard>
+        <LegionCardHeader>
+          <LegionCardTitle className="text-sm font-medium text-legion-text-muted uppercase tracking-widest">
+            Invite code
+          </LegionCardTitle>
+        </LegionCardHeader>
+        <LegionCardContent className="flex items-center gap-4">
+          <span className="font-mono text-2xl tracking-[0.3em] text-legion-amber">
+            {campaign.invite_code}
+          </span>
+          <a
+            href={`/campaign/${membership.campaign_id}/members`}
+            className="text-sm text-legion-text-muted underline underline-offset-4 hover:text-legion-text-primary transition-colors"
+          >
+            Manage roles →
+          </a>
+        </LegionCardContent>
+      </LegionCard>
+
+      {/* Phase state */}
+      {!phaseActive ? (
+        <LegionCard>
+          <LegionCardContent className="py-8 text-center">
+            <p className="font-heading text-lg text-legion-text-primary mb-1">
+              No campaign phase in progress
+            </p>
+            <p className="text-sm text-legion-text-muted mb-6">
+              Start a new phase after your group completes a mission.
+            </p>
+            <form action={startCampaignPhase}>
+              <input type="hidden" name="campaign_id" value={campaign.id} />
+              <button
+                type="submit"
+                className="rounded-md bg-legion-amber px-5 py-2.5 font-heading text-sm font-semibold tracking-wide text-[var(--bob-amber-fg)] hover:opacity-90 transition-opacity"
+              >
+                Start Campaign Phase
+              </button>
+            </form>
+          </LegionCardContent>
+        </LegionCard>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <p className="font-heading text-sm uppercase tracking-widest text-legion-text-muted">
+              Phase {campaign.phase_number} in progress
+            </p>
+            <div className="flex gap-4 text-xs font-mono text-legion-text-muted">
+              <span>Morale <span className="text-legion-text-primary">{campaign.morale}</span></span>
+              <span>Pressure <span className="text-legion-text-primary">{campaign.pressure}</span></span>
+            </div>
+          </div>
+          <PhaseProgressIndicator currentState={phaseState} />
+        </div>
       )}
 
-      <section className="rounded-lg border p-4 space-y-2">
-        <h2 className="font-semibold">Campaign actions</h2>
-        <ul className="space-y-2">
-          {membership && (
-            <li>
-              <a
-                href={`/campaign/${membership.campaign_id}/members`}
-                className="text-sm underline underline-offset-4"
-              >
-                Manage roles →
-              </a>
-            </li>
-          )}
-        </ul>
-      </section>
-
-      <section className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
-        GM tools coming in Epic 9. For now, use the role management screen above to assign roles to your players.
-      </section>
-    </main>
+    </DashboardShell>
   );
 }

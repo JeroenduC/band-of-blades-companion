@@ -125,12 +125,9 @@ export async function transitionState(
  * GM action: start a new campaign phase.
  *
  * Increments phase_number, resets parallel completion flags, and transitions
- * state to AWAITING_MISSION_RESOLUTION. Rejects if a phase is already active.
+ * state to AWAITING_MISSION_RESOLUTION. Throws if a phase is already active.
  */
-export async function startCampaignPhase(
-  _prevState: { error: string } | null,
-  formData: FormData,
-) {
+export async function startCampaignPhase(formData: FormData): Promise<void> {
   const supabase = await createClient();
   const db = createServiceClient();
 
@@ -138,7 +135,7 @@ export async function startCampaignPhase(
   if (authError || !user) redirect('/sign-in');
 
   const campaignId = formData.get('campaign_id') as string;
-  if (!campaignId) return { error: 'Campaign ID is required' };
+  if (!campaignId) throw new Error('Campaign ID is required');
 
   // Verify caller is the GM
   const { data: membership } = await db
@@ -149,7 +146,7 @@ export async function startCampaignPhase(
     .eq('role', 'GM')
     .maybeSingle();
 
-  if (!membership) return { error: 'Only the GM can start a campaign phase' };
+  if (!membership) throw new Error('Only the GM can start a campaign phase');
 
   const { data: campaign, error: fetchError } = await db
     .from('campaigns')
@@ -157,13 +154,13 @@ export async function startCampaignPhase(
     .eq('id', campaignId)
     .single();
 
-  if (fetchError || !campaign) return { error: 'Campaign not found' };
+  if (fetchError || !campaign) throw new Error('Campaign not found');
 
   const currentState = campaign.campaign_phase_state as CampaignPhaseState | null;
 
   // Guard: reject if a phase is already in progress
   if (currentState !== null && currentState !== 'PHASE_COMPLETE') {
-    return { error: 'A campaign phase is already in progress' };
+    throw new Error('A campaign phase is already in progress');
   }
 
   const newPhaseNumber = (campaign.phase_number ?? 0) + 1;
@@ -178,7 +175,7 @@ export async function startCampaignPhase(
     })
     .eq('id', campaignId);
 
-  if (updateError) return { error: updateError.message };
+  if (updateError) throw new Error(updateError.message);
 
   await logCampaignAction({
     campaignId,
