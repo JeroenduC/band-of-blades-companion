@@ -59,9 +59,20 @@ async function runAxe(page: Page): Promise<AxeViolation[]> {
 async function main() {
   let hasViolations = false;
 
-  // Verify server is reachable
+  // Verify server is reachable AND is actually serving Next.js HTML (not a
+  // zombie process returning bare HTML). A missing <html lang> attribute is
+  // a telltale sign that axe-core would produce false positives.
   try {
-    await fetch(`${BASE_URL}/sign-in`, { signal: AbortSignal.timeout(3000) });
+    const res = await fetch(`${BASE_URL}/sign-in`, { signal: AbortSignal.timeout(3000) });
+    const html = await res.text();
+    if (!html.includes('lang="en"')) {
+      console.error(`\nError: Server at ${BASE_URL} is not serving Next.js HTML.`);
+      console.error('The <html lang="en"> attribute is missing — this is likely a zombie');
+      console.error('process on this port, not your dev server.');
+      console.error('Kill it with: npx kill-port <PORT>');
+      console.error('Then restart: PORT=<PORT> npm run dev\n');
+      process.exit(1);
+    }
   } catch {
     console.error(`\nError: Dev server not reachable at ${BASE_URL}`);
     console.error('Run "PORT=3009 npm run dev" in a separate terminal first.\n');

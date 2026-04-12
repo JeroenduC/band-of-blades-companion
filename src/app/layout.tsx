@@ -24,7 +24,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Band of Blades — Legion Companion',
+  title: 'Band of Blades — Legion Phase Companion',
   description: 'Async campaign phase companion for Band of Blades.',
 };
 
