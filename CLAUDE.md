@@ -220,7 +220,14 @@ When debugging or verifying visual/UI issues:
 2. If you've spent more than 2 attempts fixing the same issue without success, stop and ask the user what they actually see. Request a screenshot if needed.
 3. If you're making assumptions about what the user's browser is showing, state the assumption explicitly and ask them to confirm before proceeding.
 4. Never assume which branch or deployment the user is looking at. If the fix is on a feature branch but the user might be viewing the production URL (which deploys from main), ask: "Are you looking at localhost, the Vercel production URL, or a preview deployment?" Confirm before debugging further.
-5. A quick question costs far fewer tokens than three wrong guesses.
+5. **When the user reports something doesn't work: always ask which environment they tested on before starting to debug.** Ask explicitly: local dev (`npm run dev`), local production build, Vercel preview URL (feature branch), or Vercel production URL (main)?
+6. A quick question costs far fewer tokens than three wrong guesses.
+
+### Testing Instructions in Issues
+When adding a testing comment to a GitHub issue:
+- Always include the **exact URL** the user should visit (e.g. the full Vercel preview URL from the deployment status, or `http://localhost:3000/path`).
+- If the feature is only testable locally, say so and give the command to run.
+- Never write "visit the Vercel preview" without including the actual URL.
 
 ### Commit References
 - Always reference the issue number in commit messages: `feat(auth): implement sign-up flow (#3)`
