@@ -55,6 +55,8 @@ These rules come from the Project Brief section 1.3 and are non-negotiable.
    - All touch targets: minimum 44x44px
    - All forms: visible labels, associated errors
    - Respect `prefers-reduced-motion`
+   - **`aria-hidden` does NOT exempt visible text from contrast requirements.** axe-core checks the rendered colour regardless of the accessibility tree. If text is decorative, use `text-legion-text-muted` or stronger — never rely on `aria-hidden` to silence a contrast violation.
+   - **Links in body text must be distinguishable without colour** (WCAG 1.4.1). Always use permanent `underline underline-offset-4`, never `hover:underline` only.
 
 6. **Async-native.** Players act at different times. Show clear status indicators, notify when it's someone's turn, summarise what others have done.
 
@@ -132,7 +134,8 @@ src/
 - Use Vitest for unit tests.
 - Test game mechanics thoroughly: dice outcomes, state transitions, resource calculations.
 - No tests for trivial getters, simple components, or Supabase boilerplate.
-- Accessibility: run `axe-core` checks on new pages/components.
+- Accessibility: run `axe-core` checks on new pages/components (`npm run a11y`).
+- **Before running `npm run a11y` or `npm run screenshot`, always kill any stale dev server first:** `npx kill-port 3000` (or whichever port you're using). On Windows, zombie Next.js processes silently serve stale HTML — audits and screenshots against them produce false results. The audit script validates `lang="en"` in the served HTML as a sanity check, but killing the port first is the safest approach.
 
 ---
 
