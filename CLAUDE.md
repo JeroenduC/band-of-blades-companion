@@ -90,6 +90,17 @@ These rules come from the Project Brief section 1.3 and are non-negotiable.
 - Use data-driven patterns: arrays of states, maps of transitions, registries of actions. Avoid long if/else or switch chains that need editing every time something is added.
 - When building any feature, ask: "What if the game rules change?" Band of Blades has community houserules and the owner may want to customise the workflow. Build for that.
 
+### Server Actions and Client Component State
+- **`revalidatePath` does not re-render already-mounted Client Components.** When a server action calls `revalidatePath`, Server Components above the Client Component will re-render and pass fresh props down — but only if the Client Component is a direct child of a Server Component that receives the new data as props. If the component receives no new props, the displayed state will be stale.
+- **Fix pattern:** In a Client Component that uses `useActionState`, watch the returned state in a `useEffect`. When the action succeeds, call `router.refresh()` to force a full re-fetch:
+  ```tsx
+  const router = useRouter();
+  useEffect(() => {
+    if (state?.success) router.refresh();
+  }, [state]);
+  ```
+- **base-ui Dialog differs from Radix:** base-ui uses a `render` prop pattern (`render={<button />}`), not Radix's `asChild`. Never pass `asChild` to base-ui components — it will silently break.
+
 ### Server-Side Dice
 - **All** dice rolls happen on the server using `crypto.getRandomValues()`.
 - **Never** roll dice on the client. Results are logged in `CampaignPhaseLog`.
