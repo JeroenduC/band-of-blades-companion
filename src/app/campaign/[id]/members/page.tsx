@@ -45,7 +45,8 @@ export default async function MembersPage({ params }: Props) {
   const campaignName = campaign?.name ?? 'this campaign';
 
   return (
-    <main className="min-h-screen bg-legion-bg-base flex flex-col p-6 gap-6 max-w-2xl mx-auto">
+    <div className="min-h-screen bg-legion-bg-base max-w-[1240px] mx-auto border-x border-border/20">
+    <main className="flex flex-col gap-6 px-4 sm:px-6 lg:px-8 py-6 max-w-2xl mx-auto">
 
       {/* ── Page header ───────────────────────────────────────────────── */}
       <header className="pb-4 border-b border-border">
@@ -95,5 +96,6 @@ export default async function MembersPage({ params }: Props) {
         ← Back to dashboard
       </a>
     </main>
+    </div>
   );
 }

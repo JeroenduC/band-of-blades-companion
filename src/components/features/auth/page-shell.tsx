@@ -20,7 +20,8 @@ interface PageShellProps {
 
 export function PageShell({ overline, heading, description, children }: PageShellProps) {
   return (
-    <main className="min-h-screen bg-legion-bg-base flex flex-col items-center justify-center p-6 sm:p-8">
+    // Outer page frame — 1240px max-width with subtle border framing on wide screens.
+    <div className="min-h-screen bg-legion-bg-base max-w-[1240px] mx-auto border-x border-border/20 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-10">
       <div className="w-full max-w-sm space-y-6">
 
         {/* Page identity */}
@@ -47,6 +48,6 @@ export function PageShell({ overline, heading, description, children }: PageShel
         </div>
 
       </div>
-    </main>
+    </div>
   );
 }
