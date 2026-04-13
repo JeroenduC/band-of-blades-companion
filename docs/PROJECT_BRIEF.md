@@ -541,6 +541,21 @@ Work is organised into epics that will be broken into GitHub Issues. Detailed sp
 - Cross-group visibility for shared resources
 - Multi-GM support within a single campaign
 
+### Epic 13: System Administrator Role & Platform Management
+
+**Goal:** A platform-level admin role (separate from the GM role) that manages the entire application instance — all campaigns, all users, system health, and platform configuration. Required before the platform is shared with the wider community or multiple groups.
+
+*The System Admin is NOT a Legion role. It is a flag on the User/profiles table (`is_system_admin: boolean`) granting access to `/admin/*` routes, completely separate from the campaign UI. All System Admin actions are audit-logged.*
+
+- `is_system_admin` flag on the User table; RLS policies allow read access across all campaigns
+- **User Management:** view all users, disable/enable accounts, reset passwords, view campaign memberships, impersonate with audit log
+- **Campaign Management:** view all campaigns, see status/member count/phase, archive/delete, transfer GM ownership, view activity logs
+- **Platform Monitoring:** dashboard (users, campaigns, recent sign-ups), error logs, database health, deployment status
+- **Platform Configuration:** feature flags, system announcements banner, maintenance mode
+- **Data Management:** export/import campaign data, database cleanup tools (orphaned records, unused accounts)
+
+*Depends on: core game features (Epics 3–10) stable; benefits from Security Hardening (Epic 10.5); connects to Shared Universe model (Epic 12).*
+
 ---
 
 ## 8. Sprint Plan
