@@ -3,7 +3,8 @@ import { DashboardShell } from '@/components/features/campaign/dashboard-shell';
 import { PhaseProgressIndicator } from '@/components/features/campaign/phase-progress-indicator';
 import { MissionResolutionForm } from '@/components/features/campaign/mission-resolution-form';
 import { PlaceholderStep } from '@/components/features/campaign/placeholder-step';
-import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle } from '@/components/legion';
+import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle, LegionCardAction } from '@/components/legion';
+import { CopyInviteButton } from '@/components/features/campaign/copy-invite-button';
 import { startCampaignPhase } from '@/server/actions/campaign-phase';
 import type { CampaignPhaseState } from '@/lib/types';
 
@@ -23,6 +24,9 @@ export default async function GmDashboardPage() {
           <LegionCardTitle className="text-sm font-medium text-legion-text-muted uppercase tracking-widest">
             Invite code
           </LegionCardTitle>
+          <LegionCardAction>
+            <CopyInviteButton code={campaign.invite_code} />
+          </LegionCardAction>
         </LegionCardHeader>
         <LegionCardContent className="flex items-center gap-4">
           <span className="font-mono text-2xl tracking-[0.3em] text-legion-amber">
