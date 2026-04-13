@@ -94,6 +94,12 @@ async function deleteAllData() {
   const tables = [
     'campaign_phase_log',
     'back_at_camp_scenes',
+    'recruit_pool',
+    'laborers',
+    'long_term_projects',
+    'alchemists',
+    'mercies',
+    'siege_weapons',
     'campaign_memberships',
     'campaigns',
     'profiles',
@@ -269,6 +275,59 @@ async function seedScenes(campaignId: string) {
   log(`✓ Back at Camp scenes seeded`);
 }
 
+// ── Step 8: Seed QM materiel ──────────────────────────────────────────────────
+
+async function seedMateriel(campaignId: string) {
+  section('Seeding QM materiel');
+
+  // Laborers (one row per campaign)
+  const { error: laborerError } = await db
+    .from('laborers')
+    .insert({ campaign_id: campaignId, count: 2 });
+  if (laborerError) {
+    console.error(`  Failed to seed laborers: ${laborerError.message}`);
+    process.exit(1);
+  }
+  log(`✓ Laborers: 2`);
+
+  // Alchemists
+  const alchemists = [
+    { campaign_id: campaignId, name: 'Sister Vantia', corruption: 3 },
+    { campaign_id: campaignId, name: 'Aldric the Grey', corruption: 0 },
+  ];
+  const { error: alchemistError } = await db.from('alchemists').insert(alchemists);
+  if (alchemistError) {
+    console.error(`  Failed to seed alchemists: ${alchemistError.message}`);
+    process.exit(1);
+  }
+  log(`✓ Alchemists: Sister Vantia (3 corruption), Aldric the Grey (0 corruption)`);
+
+  // Mercies
+  const mercies = [
+    { campaign_id: campaignId, name: 'Healer Maren', wounded: false },
+  ];
+  const { error: mercyError } = await db.from('mercies').insert(mercies);
+  if (mercyError) {
+    console.error(`  Failed to seed mercies: ${mercyError.message}`);
+    process.exit(1);
+  }
+  log(`✓ Mercies: Healer Maren (healthy)`);
+
+  // A sample long-term project
+  const { error: projectError } = await db.from('long_term_projects').insert({
+    campaign_id: campaignId,
+    name: 'Field Fortifications',
+    description: 'Construct defensive earthworks at the next advance position. When complete: -1 pressure on advance.',
+    clock_size: 8,
+    segments_filled: 3,
+  });
+  if (projectError) {
+    console.error(`  Failed to seed long-term project: ${projectError.message}`);
+    process.exit(1);
+  }
+  log(`✓ Long-term project: "Field Fortifications" (3/8 segments)`);
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -283,6 +342,7 @@ async function main() {
   const { id: campaignId, inviteCode } = await createCampaign();
   await assignMemberships(campaignId, userIds);
   await seedScenes(campaignId);
+  await seedMateriel(campaignId);
 
   console.log('\n╔═══════════════════════════════════════════╗');
   console.log('║   Done! Test environment ready.           ║');

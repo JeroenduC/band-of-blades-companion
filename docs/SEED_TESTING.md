@@ -5,13 +5,14 @@
 Resets the entire database to a clean, known state for local testing. Safe to run as many times as you like.
 
 **What it does:**
-1. Deletes all rows from every table (FK order: `campaign_phase_log` → `back_at_camp_scenes` → `campaign_memberships` → `campaigns` → `profiles`)
+1. Deletes all rows from every table (FK order: `campaign_phase_log` → `back_at_camp_scenes` → `recruit_pool` → `laborers` → `long_term_projects` → `alchemists` → `mercies` → `siege_weapons` → `campaign_memberships` → `campaigns` → `profiles`)
 2. Deletes all auth users via the Supabase Admin API
 3. Creates 8 test users (pre-confirmed, no email required)
 4. Creates a campaign called **"Test Campaign"**
 5. Assigns 7 users to the campaign with their matching role (all PRIMARY)
 6. Seeds the Back at Camp scene pool
-7. Prints the campaign **invite code** — use it to test the join flow with `newplayer@test.nl`
+7. Seeds QM materiel: 2 Laborers, 2 Alchemists (Sister Vantia with 3 corruption, Aldric the Grey clean), 1 Mercy (Healer Maren), and a sample long-term project "Field Fortifications" (3/8 segments)
+8. Prints the campaign **invite code** — use it to test the join flow with `newplayer@test.nl`
 
 ---
 
