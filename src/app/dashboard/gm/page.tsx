@@ -20,22 +20,24 @@ export default async function GmDashboardPage() {
 
       {/* Invite code + manage roles */}
       <LegionCard>
-        <LegionCardHeader className="flex flex-row items-center justify-between">
-          <LegionCardTitle className="text-sm font-medium text-legion-text-muted uppercase tracking-widest">
-            Invite code
-          </LegionCardTitle>
-          <CopyInviteButton code={campaign.invite_code} />
-        </LegionCardHeader>
-        <LegionCardContent className="flex items-center gap-4">
-          <span className="font-mono text-2xl tracking-[0.3em] text-legion-amber">
-            {campaign.invite_code}
-          </span>
-          <a
-            href={`/campaign/${membership.campaign_id}/members`}
-            className="text-sm text-legion-text-muted underline underline-offset-4 hover:text-legion-text-primary transition-colors"
-          >
-            Manage roles →
-          </a>
+        <LegionCardContent className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-legion-text-muted uppercase tracking-widest">
+              Invite code
+            </p>
+            <CopyInviteButton code={campaign.invite_code} />
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="font-mono text-2xl tracking-[0.3em] text-legion-amber">
+              {campaign.invite_code}
+            </span>
+            <a
+              href={`/campaign/${membership.campaign_id}/members`}
+              className="text-sm text-legion-text-muted underline underline-offset-4 hover:text-legion-text-primary transition-colors"
+            >
+              Manage roles →
+            </a>
+          </div>
         </LegionCardContent>
       </LegionCard>
 
