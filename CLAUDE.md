@@ -46,7 +46,12 @@ These rules come from the Project Brief section 1.3 and are non-negotiable.
 
 3. **Informed decisions, not blind clicks.** Always show the player what *kind* of resource is at stake and what *area* of the Legion is affected. Never show exact outcomes — preserve uncertainty and drama.
 
-4. **Mobile first.** Every interaction must work on a 375px screen. Build mobile layout first, then adapt up.
+4. **Mobile first, responsive always, purposeful use of space.**
+   - Build mobile layout first (375px). Everything must work smoothly on mobile — this is the primary device.
+   - All layouts must be responsive. Use Tailwind's responsive prefixes (`sm:`, `md:`, `lg:`) so the app works on any screen size.
+   - On larger screens, use the extra space IF it improves clarity: better spacing between information blocks, side-by-side layouts where it helps comprehension, more breathing room around content. Don't stretch things just to fill space.
+   - Maximum content width is 1240px. Beyond that, the content is centred with subtle light grey borders on either side to frame it.
+   - Never build a desktop-only layout and "fix mobile later." Never build a narrow mobile layout and leave it narrow on desktop when extra space would help the user.
 
 5. **Accessible by default.** WCAG 2.1 AA compliance is mandatory, not optional:
    - All text: 4.5:1 contrast ratio (3:1 for large text)
@@ -125,6 +130,12 @@ src/
   server/                 # Server actions, API logic, dice rolling
   styles/                 # Global styles, theme, design tokens
 ```
+
+### Layout
+- All page layouts use a max-width container: `max-w-[1240px] mx-auto`
+- Content areas use responsive padding: `px-4 sm:px-6 lg:px-8`
+- Use Tailwind responsive grid/flex where wider screens benefit from multi-column layouts (e.g. `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3`)
+- The outer page wrapper beyond 1240px should have a subtle border: `border-x border-legion-border/20`
 
 ### Comments
 - Write comments in English.
