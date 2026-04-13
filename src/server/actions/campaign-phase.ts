@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { assertValidTransition } from '@/lib/state-machine';
@@ -205,4 +206,180 @@ export async function seedBackAtCampScenes(campaignId: string): Promise<void> {
     p_campaign_id: campaignId,
   });
   if (error) throw new Error(`Failed to seed Back at Camp scenes: ${error.message}`);
+}
+
+// ─── Mission Resolution ───────────────────────────────────────────────────────
+
+export type MissionOutcome = 'SUCCESS' | 'PARTIAL' | 'FAILURE';
+export type SecondaryOutcome = 'SUCCESS' | 'PARTIAL' | 'FAILURE' | 'NOT_ATTEMPTED';
+
+export interface ResolveMissionState {
+  errors?: {
+    campaign_id?: string[];
+    primary_outcome?: string[];
+    secondary_outcome?: string[];
+    legionnaires_killed?: string[];
+    supply_gain?: string[];
+    intel_gain?: string[];
+    morale_gain?: string[];
+    notes?: string[];
+    _form?: string[];
+  };
+}
+
+const ResolveMissionSchema = z.object({
+  campaign_id: z.string().uuid('Invalid campaign'),
+  primary_outcome: z.enum(['SUCCESS', 'PARTIAL', 'FAILURE'], {
+    error: 'Select a primary mission outcome',
+  }),
+  secondary_outcome: z.enum(['SUCCESS', 'PARTIAL', 'FAILURE', 'NOT_ATTEMPTED'], {
+    error: 'Select a secondary mission outcome',
+  }),
+  // BoB rulebook: -1 morale per Legionnaire killed (p.73)
+  legionnaires_killed: z.coerce
+    .number()
+    .int('Must be a whole number')
+    .min(0, 'Cannot be negative')
+    .max(20, 'Maximum 20'),
+  supply_gain: z.coerce
+    .number()
+    .int('Must be a whole number')
+    .min(-10)
+    .max(10)
+    .default(0),
+  intel_gain: z.coerce
+    .number()
+    .int('Must be a whole number')
+    .min(-10)
+    .max(10)
+    .default(0),
+  morale_gain: z.coerce
+    .number()
+    .int('Must be a whole number')
+    .min(-10)
+    .max(10)
+    .default(0),
+  notes: z.string().max(1000, 'Notes must be under 1000 characters').optional(),
+});
+
+/**
+ * GM action: resolve the mission outcomes for the current phase.
+ *
+ * Applies resource changes (morale, supply, intel), logs the resolution,
+ * and transitions state to AWAITING_BACK_AT_CAMP.
+ *
+ * Morale floor is 0 — the Legion cannot be in negative morale.
+ */
+export async function resolveMission(
+  _prevState: ResolveMissionState | null,
+  formData: FormData,
+): Promise<ResolveMissionState> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) redirect('/sign-in');
+
+  const raw = {
+    campaign_id: formData.get('campaign_id'),
+    primary_outcome: formData.get('primary_outcome'),
+    secondary_outcome: formData.get('secondary_outcome'),
+    legionnaires_killed: formData.get('legionnaires_killed'),
+    supply_gain: formData.get('supply_gain') || '0',
+    intel_gain: formData.get('intel_gain') || '0',
+    morale_gain: formData.get('morale_gain') || '0',
+    notes: formData.get('notes'),
+  };
+
+  const parsed = ResolveMissionSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { errors: parsed.error.flatten().fieldErrors };
+  }
+
+  const {
+    campaign_id,
+    primary_outcome,
+    secondary_outcome,
+    legionnaires_killed,
+    supply_gain,
+    intel_gain,
+    morale_gain,
+    notes,
+  } = parsed.data;
+
+  // Verify caller is the GM
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaign_id)
+    .eq('user_id', user.id)
+    .eq('role', 'GM')
+    .maybeSingle();
+
+  if (!membership) {
+    return { errors: { _form: ['Only the GM can resolve missions'] } };
+  }
+
+  // Fetch current state and resources
+  const { data: campaign, error: fetchError } = await db
+    .from('campaigns')
+    .select('campaign_phase_state, phase_number, morale, supply, intel')
+    .eq('id', campaign_id)
+    .single();
+
+  if (fetchError || !campaign) {
+    return { errors: { _form: ['Campaign not found'] } };
+  }
+
+  const currentState = campaign.campaign_phase_state as CampaignPhaseState | null;
+
+  try {
+    assertValidTransition(currentState, 'AWAITING_BACK_AT_CAMP');
+  } catch {
+    return { errors: { _form: ['Cannot resolve mission in the current phase state'] } };
+  }
+
+  // Apply resource changes; morale has a floor of 0
+  const moraleChange = morale_gain - legionnaires_killed;
+  const newMorale = Math.max(0, (campaign.morale ?? 0) + moraleChange);
+  const newSupply = Math.max(0, (campaign.supply ?? 0) + supply_gain);
+  const newIntel = Math.max(0, (campaign.intel ?? 0) + intel_gain);
+
+  const { error: updateError } = await db
+    .from('campaigns')
+    .update({
+      campaign_phase_state: 'AWAITING_BACK_AT_CAMP',
+      morale: newMorale,
+      supply: newSupply,
+      intel: newIntel,
+    })
+    .eq('id', campaign_id);
+
+  if (updateError) {
+    return { errors: { _form: [updateError.message] } };
+  }
+
+  await logCampaignAction({
+    campaignId: campaign_id,
+    phaseNumber: campaign.phase_number,
+    step: 'AWAITING_MISSION_RESOLUTION',
+    role: 'GM',
+    actionType: 'MISSION_RESOLVED',
+    details: {
+      primary_outcome,
+      secondary_outcome,
+      legionnaires_killed,
+      morale_change: moraleChange,
+      supply_gain,
+      intel_gain,
+      morale_after: newMorale,
+      supply_after: newSupply,
+      intel_after: newIntel,
+      notes: notes ?? null,
+    },
+  });
+
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/gm');
+  redirect('/dashboard/gm');
 }

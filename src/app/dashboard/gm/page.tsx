@@ -1,6 +1,7 @@
 import { loadGmDashboard } from '@/server/loaders/dashboard';
 import { DashboardShell } from '@/components/features/campaign/dashboard-shell';
 import { PhaseProgressIndicator } from '@/components/features/campaign/phase-progress-indicator';
+import { MissionResolutionForm } from '@/components/features/campaign/mission-resolution-form';
 import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle } from '@/components/legion';
 import { startCampaignPhase } from '@/server/actions/campaign-phase';
 import type { CampaignPhaseState } from '@/lib/types';
@@ -49,7 +50,7 @@ export default async function GmDashboardPage() {
               <input type="hidden" name="campaign_id" value={campaign.id} />
               <button
                 type="submit"
-                className="rounded-md bg-legion-amber px-5 py-2.5 font-heading text-sm font-semibold tracking-wide text-[var(--bob-amber-fg)] hover:opacity-90 transition-opacity"
+                className="rounded-md bg-legion-amber px-5 py-2.5 font-heading text-sm font-semibold tracking-wide text-[var(--bob-amber-fg)] hover:opacity-90 transition-opacity min-h-[44px]"
               >
                 Start Campaign Phase
               </button>
@@ -57,7 +58,9 @@ export default async function GmDashboardPage() {
           </LegionCardContent>
         </LegionCard>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-6">
+
+          {/* Phase header with live resources */}
           <div className="flex items-center justify-between">
             <p className="font-heading text-sm uppercase tracking-widest text-legion-text-muted">
               Phase {campaign.phase_number} in progress
@@ -67,7 +70,27 @@ export default async function GmDashboardPage() {
               <span>Pressure <span className="text-legion-text-primary">{campaign.pressure}</span></span>
             </div>
           </div>
+
+          {/* Phase progress */}
           <PhaseProgressIndicator currentState={phaseState} />
+
+          {/* Step-specific GM action */}
+          {phaseState === 'AWAITING_MISSION_RESOLUTION' && (
+            <LegionCard>
+              <LegionCardHeader>
+                <LegionCardTitle className="text-sm font-medium text-legion-text-muted uppercase tracking-widest">
+                  Step 1 — Mission Resolution
+                </LegionCardTitle>
+              </LegionCardHeader>
+              <LegionCardContent>
+                <MissionResolutionForm
+                  campaignId={campaign.id}
+                  phaseNumber={campaign.phase_number}
+                />
+              </LegionCardContent>
+            </LegionCard>
+          )}
+
         </div>
       )}
 
