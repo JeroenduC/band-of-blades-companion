@@ -1,26 +1,28 @@
 import Link from 'next/link';
 import { JoinCampaignForm } from '@/components/features/campaign/join-campaign-form';
+import { PageShell } from '@/components/features/auth/page-shell';
 
 export const metadata = { title: 'Join campaign — Band of Blades' };
 
 export default function JoinCampaignPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold">Join a campaign</h1>
-          <p className="text-sm text-muted-foreground">
-            Enter the invite code your GM shared with you.
-          </p>
-        </div>
+    <PageShell
+      overline="338th Legion · Setup"
+      heading="Join a Campaign"
+      description="Enter the invite code your GM shared with you."
+    >
+      <div className="space-y-5">
         <JoinCampaignForm />
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-center text-sm text-legion-text-muted">
           Are you the GM?{' '}
-          <Link href="/campaign/new" className="underline underline-offset-4">
+          <Link
+            href="/campaign/new"
+            className="text-legion-amber underline underline-offset-4 hover:text-legion-amber-muted transition-colors"
+          >
             Create a campaign
           </Link>
         </p>
       </div>
-    </main>
+    </PageShell>
   );
 }

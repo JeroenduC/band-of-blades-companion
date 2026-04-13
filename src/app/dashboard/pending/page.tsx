@@ -28,29 +28,49 @@ export default async function PendingDashboardPage() {
   const campaignName = (membership.campaigns as unknown as { name: string } | null)?.name;
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-6">
-      <div className="w-full max-w-sm space-y-6 text-center">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-bold">Welcome to the Legion!</h1>
-          {campaignName && (
-            <p className="text-sm text-muted-foreground">
-              Campaign: <span className="font-medium text-foreground">{campaignName}</span>
-            </p>
-          )}
+    <main className="min-h-screen bg-legion-bg-base flex flex-col items-center justify-center p-6 sm:p-8">
+      <div className="w-full max-w-sm text-center space-y-6">
+
+        {/* Identity */}
+        <div>
+          <p className="font-mono text-xs uppercase tracking-[0.22em] text-legion-text-muted mb-3">
+            338th Legion · Pending
+          </p>
+          <h1 className="font-heading text-3xl font-bold uppercase tracking-[0.05em] text-legion-amber leading-none">
+            Welcome to<br />the Legion
+          </h1>
+          <div className="h-0.5 w-10 bg-legion-amber mx-auto mt-4" />
         </div>
 
-        <p className="text-muted-foreground">
-          Your GM hasn&apos;t assigned your role yet. Once they do, you&apos;ll see your dashboard here.
+        {/* Campaign badge */}
+        {campaignName && (
+          <div className="rounded-md border border-border bg-legion-bg-surface px-4 py-3 inline-block">
+            <p className="font-mono text-xs uppercase tracking-widest text-legion-text-muted mb-0.5">
+              Campaign
+            </p>
+            <p className="font-heading text-sm tracking-wide text-legion-text-primary">
+              {campaignName}
+            </p>
+          </div>
+        )}
+
+        {/* Status message */}
+        <p className="text-sm text-legion-text-muted leading-relaxed">
+          Your GM hasn&apos;t assigned your role yet. Once they do,
+          you&apos;ll see your dashboard here. You can safely close this tab
+          and come back later.
         </p>
 
+        {/* Sign out */}
         <form action={signOut}>
           <button
             type="submit"
-            className="text-sm text-muted-foreground underline underline-offset-4"
+            className="text-sm text-legion-text-muted underline underline-offset-4 hover:text-legion-text-primary transition-colors min-h-[44px] px-2"
           >
             Sign out
           </button>
         </form>
+
       </div>
     </main>
   );
