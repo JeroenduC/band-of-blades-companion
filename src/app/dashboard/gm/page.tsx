@@ -18,28 +18,28 @@ export default async function GmDashboardPage() {
   return (
     <DashboardShell role="GM" campaignName={campaign.name}>
 
-      {/* Invite code + manage roles */}
+      {/* Invite code */}
       <LegionCard>
-        <LegionCardContent className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-legion-text-muted uppercase tracking-widest">
-              Invite code
-            </p>
-            <CopyInviteButton code={campaign.invite_code} />
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="font-mono text-2xl tracking-[0.3em] text-legion-amber">
-              {campaign.invite_code}
-            </span>
-            <a
-              href={`/campaign/${membership.campaign_id}/members`}
-              className="text-sm text-legion-text-muted underline underline-offset-4 hover:text-legion-text-primary transition-colors"
-            >
-              Manage roles →
-            </a>
-          </div>
+        <LegionCardHeader>
+          <LegionCardTitle className="text-sm font-medium text-legion-text-muted uppercase tracking-widest">
+            Invite code
+          </LegionCardTitle>
+        </LegionCardHeader>
+        <LegionCardContent className="flex items-center gap-2">
+          <span className="font-mono text-2xl tracking-[0.3em] text-legion-amber">
+            {campaign.invite_code}
+          </span>
+          <CopyInviteButton code={campaign.invite_code} />
         </LegionCardContent>
       </LegionCard>
+
+      {/* Manage roles */}
+      <a
+        href={`/campaign/${membership.campaign_id}/members`}
+        className="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm text-legion-text-muted hover:text-legion-text-primary hover:border-legion-text-muted transition-colors min-h-[44px]"
+      >
+        Manage roles
+      </a>
 
       {/* Phase state */}
       {!phaseActive ? (
