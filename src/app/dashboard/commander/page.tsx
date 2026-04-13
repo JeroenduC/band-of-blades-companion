@@ -1,7 +1,8 @@
 import { loadDashboard } from '@/server/loaders/dashboard';
 import { DashboardShell } from '@/components/features/campaign/dashboard-shell';
 import { WaitingForOthers } from '@/components/features/campaign/waiting-for-others';
-import { PhaseProgressIndicator } from '@/components/features/campaign/phase-progress-indicator';
+import { TimePassesSummary } from '@/components/features/campaign/time-passes-summary';
+import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle } from '@/components/legion';
 import { isRoleActive } from '@/lib/state-machine';
 import type { CampaignPhaseState } from '@/lib/types';
 
@@ -21,12 +22,25 @@ export default async function CommanderDashboardPage() {
           </p>
         </div>
       ) : isMyTurn ? (
-        <div className="rounded-lg border border-[var(--bob-amber)] bg-legion-bg-elevated p-6 text-center">
-          <p className="font-heading text-lg text-legion-amber mb-1">It&apos;s your turn, Commander</p>
-          <p className="text-sm text-legion-text-muted">
-            Action UI coming in the next sprint.
-          </p>
-        </div>
+        phaseState === 'TIME_PASSING' ? (
+          <LegionCard>
+            <LegionCardHeader>
+              <LegionCardTitle className="text-sm font-medium text-legion-text-muted uppercase tracking-widest">
+                Step 3 — Time Passes
+              </LegionCardTitle>
+            </LegionCardHeader>
+            <LegionCardContent>
+              <TimePassesSummary campaign={campaign} />
+            </LegionCardContent>
+          </LegionCard>
+        ) : (
+          <div className="rounded-lg border border-[var(--bob-amber)] bg-legion-bg-elevated p-6 text-center">
+            <p className="font-heading text-lg text-legion-amber mb-1">It&apos;s your turn, Commander</p>
+            <p className="text-sm text-legion-text-muted">
+              Commander action for this step coming soon.
+            </p>
+          </div>
+        )
       ) : (
         <WaitingForOthers currentState={phaseState} viewerRole="COMMANDER" />
       )}

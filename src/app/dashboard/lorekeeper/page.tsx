@@ -1,6 +1,8 @@
 import { loadDashboard } from '@/server/loaders/dashboard';
 import { DashboardShell } from '@/components/features/campaign/dashboard-shell';
 import { WaitingForOthers } from '@/components/features/campaign/waiting-for-others';
+import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle } from '@/components/legion';
+import { completeBackAtCamp } from '@/server/actions/campaign-phase';
 import { isRoleActive } from '@/lib/state-machine';
 import type { CampaignPhaseState } from '@/lib/types';
 
@@ -20,12 +22,39 @@ export default async function LorekeeperDashboardPage() {
           </p>
         </div>
       ) : isMyTurn ? (
-        <div className="rounded-lg border border-[var(--bob-amber)] bg-legion-bg-elevated p-6 text-center">
-          <p className="font-heading text-lg text-legion-amber mb-1">It&apos;s your turn, Lorekeeper</p>
-          <p className="text-sm text-legion-text-muted">
-            Back at Camp scene selection coming in the next sprint.
-          </p>
-        </div>
+        phaseState === 'AWAITING_BACK_AT_CAMP' ? (
+          <LegionCard>
+            <LegionCardHeader>
+              <LegionCardTitle className="text-sm font-medium text-legion-text-muted uppercase tracking-widest">
+                Step 2 — Back at Camp
+              </LegionCardTitle>
+            </LegionCardHeader>
+            <LegionCardContent className="flex flex-col gap-4">
+              <p className="text-sm text-legion-text-muted">
+                The Legion rests and takes stock. Scene selection is coming in a later sprint.
+              </p>
+              <p className="text-sm text-legion-text-muted">
+                When the group has finished their Back at Camp roleplay, advance to Time Passes.
+              </p>
+              <form action={completeBackAtCamp}>
+                <input type="hidden" name="campaign_id" value={campaign.id} />
+                <button
+                  type="submit"
+                  className="rounded-md bg-legion-amber px-5 py-2.5 font-heading text-sm font-semibold tracking-wide text-[var(--bob-amber-fg)] hover:opacity-90 transition-opacity min-h-[44px]"
+                >
+                  Back at Camp Complete — Advance
+                </button>
+              </form>
+            </LegionCardContent>
+          </LegionCard>
+        ) : (
+          <div className="rounded-lg border border-[var(--bob-amber)] bg-legion-bg-elevated p-6 text-center">
+            <p className="font-heading text-lg text-legion-amber mb-1">It&apos;s your turn, Lorekeeper</p>
+            <p className="text-sm text-legion-text-muted">
+              Lorekeeper action for this step coming soon.
+            </p>
+          </div>
+        )
       ) : (
         <WaitingForOthers currentState={phaseState} viewerRole="LOREKEEPER" />
       )}

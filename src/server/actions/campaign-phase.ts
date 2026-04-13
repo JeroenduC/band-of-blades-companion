@@ -383,3 +383,182 @@ export async function resolveMission(
   revalidatePath('/dashboard/gm');
   redirect('/dashboard/gm');
 }
+
+// ─── Time Passes ──────────────────────────────────────────────────────────────
+
+/**
+ * Lorekeeper action: mark Back at Camp as complete and apply Time Passes.
+ *
+ * This is the bridge between AWAITING_BACK_AT_CAMP and TIME_PASSING.
+ * The system automatically:
+ *  - Advances the earliest unfilled Time clock by 1 tick (BoB rulebook p.44)
+ *  - Increases pressure by 1
+ *  - Spends 1 Food use, or deducts 2 morale if none remain
+ *
+ * The Commander then reviews the changes and confirms (see confirmTimePasses).
+ */
+export async function completeBackAtCamp(formData: FormData): Promise<void> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) redirect('/sign-in');
+
+  const campaignId = formData.get('campaign_id') as string;
+  if (!campaignId) throw new Error('Campaign ID is required');
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .eq('role', 'LOREKEEPER')
+    .maybeSingle();
+
+  if (!membership) throw new Error('Only the Lorekeeper can advance from Back at Camp');
+
+  const { data: campaign, error: fetchError } = await db
+    .from('campaigns')
+    .select('campaign_phase_state, phase_number, morale, pressure, food_uses, time_clock_1, time_clock_2, time_clock_3')
+    .eq('id', campaignId)
+    .single();
+
+  if (fetchError || !campaign) throw new Error('Campaign not found');
+
+  assertValidTransition(
+    campaign.campaign_phase_state as CampaignPhaseState | null,
+    'TIME_PASSING',
+  );
+
+  // Advance the earliest unfilled Time clock (10 segments each)
+  let newClock1 = campaign.time_clock_1;
+  let newClock2 = campaign.time_clock_2;
+  let newClock3 = campaign.time_clock_3;
+  let clockTickedLabel = '';
+  let brokenAdvance = false;
+
+  if (newClock1 < 10) {
+    newClock1 += 1;
+    clockTickedLabel = `Clock 1: ${newClock1}/10`;
+    if (newClock1 === 10) brokenAdvance = true;
+  } else if (newClock2 < 10) {
+    newClock2 += 1;
+    clockTickedLabel = `Clock 2: ${newClock2}/10`;
+    if (newClock2 === 10) brokenAdvance = true;
+  } else if (newClock3 < 10) {
+    newClock3 += 1;
+    clockTickedLabel = `Clock 3: ${newClock3}/10`;
+    if (newClock3 === 10) brokenAdvance = true;
+  }
+
+  // Pressure always increases by 1 (BoB rulebook p.44)
+  const newPressure = campaign.pressure + 1;
+
+  // Food: spend 1 use, or lose 2 morale if depleted (BoB rulebook p.45)
+  let newFoodUses = campaign.food_uses;
+  let newMorale = campaign.morale;
+  let foodNote: string;
+
+  if (newFoodUses > 0) {
+    newFoodUses -= 1;
+    foodNote = '1 Food use consumed';
+  } else {
+    newMorale = Math.max(0, newMorale - 2);
+    foodNote = 'No Food available — morale -2';
+  }
+
+  const { error: updateError } = await db
+    .from('campaigns')
+    .update({
+      campaign_phase_state: 'TIME_PASSING',
+      time_clock_1: newClock1,
+      time_clock_2: newClock2,
+      time_clock_3: newClock3,
+      pressure: newPressure,
+      food_uses: newFoodUses,
+      morale: newMorale,
+    })
+    .eq('id', campaignId);
+
+  if (updateError) throw new Error(updateError.message);
+
+  await logCampaignAction({
+    campaignId,
+    phaseNumber: campaign.phase_number,
+    step: 'AWAITING_BACK_AT_CAMP',
+    role: 'LOREKEEPER',
+    actionType: 'TIME_PASSED',
+    details: {
+      clock_ticked: clockTickedLabel,
+      broken_advance: brokenAdvance,
+      pressure_after: newPressure,
+      food_note: foodNote,
+      morale_after: newMorale,
+    },
+  });
+
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/lorekeeper');
+  revalidatePath('/dashboard/commander');
+  redirect('/dashboard/lorekeeper');
+}
+
+/**
+ * Commander action: confirm the Time Passes summary and advance to Campaign Actions.
+ *
+ * No calculations happen here — changes were applied when entering TIME_PASSING.
+ * This is a pure acknowledgement that transitions the phase forward.
+ */
+export async function confirmTimePasses(formData: FormData): Promise<void> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) redirect('/sign-in');
+
+  const campaignId = formData.get('campaign_id') as string;
+  if (!campaignId) throw new Error('Campaign ID is required');
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .eq('role', 'COMMANDER')
+    .maybeSingle();
+
+  if (!membership) throw new Error('Only the Commander can confirm Time Passes');
+
+  const { data: campaign, error: fetchError } = await db
+    .from('campaigns')
+    .select('campaign_phase_state, phase_number')
+    .eq('id', campaignId)
+    .single();
+
+  if (fetchError || !campaign) throw new Error('Campaign not found');
+
+  assertValidTransition(
+    campaign.campaign_phase_state as CampaignPhaseState | null,
+    'CAMPAIGN_ACTIONS',
+  );
+
+  const { error: updateError } = await db
+    .from('campaigns')
+    .update({ campaign_phase_state: 'CAMPAIGN_ACTIONS' })
+    .eq('id', campaignId);
+
+  if (updateError) throw new Error(updateError.message);
+
+  await logCampaignAction({
+    campaignId,
+    phaseNumber: campaign.phase_number,
+    step: 'TIME_PASSING',
+    role: 'COMMANDER',
+    actionType: 'TIME_PASSED',
+    details: { confirmed: true },
+  });
+
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/commander');
+  redirect('/dashboard/commander');
+}
