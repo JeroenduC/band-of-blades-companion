@@ -36,7 +36,7 @@ export default async function GmDashboardPage() {
       {/* Manage roles */}
       <a
         href={`/campaign/${membership.campaign_id}/members`}
-        className="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm text-legion-text-muted hover:text-legion-text-primary hover:border-legion-text-muted transition-colors min-h-[44px]"
+        className="self-start rounded-md bg-legion-amber px-5 py-2.5 font-heading text-sm font-semibold tracking-wide text-[var(--bob-amber-fg)] hover:opacity-90 transition-opacity min-h-[44px] inline-flex items-center"
       >
         Manage roles
       </a>
