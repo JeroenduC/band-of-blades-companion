@@ -9,7 +9,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
-import type { Campaign, CampaignMembership, LegionRole } from '@/lib/types';
+import type { Campaign, CampaignMembership, LegionRole, BackAtCampScene, MoraleLevel } from '@/lib/types';
 
 export interface DashboardData {
   userId: string;
@@ -65,6 +65,56 @@ export async function loadDashboard(role: LegionRole): Promise<DashboardData> {
     campaign: membership.campaigns as unknown as Campaign,
     membership: membership as unknown as CampaignMembership & { role: LegionRole },
   };
+}
+
+/**
+ * Returns the morale level bucket for Back at Camp scene filtering.
+ * BoB rulebook: High 8+, Medium 4–7, Low 0–3
+ */
+function moraleToLevel(morale: number): MoraleLevel {
+  if (morale >= 8) return 'HIGH';
+  if (morale >= 4) return 'MEDIUM';
+  return 'LOW';
+}
+
+/**
+ * Fetches Back at Camp scenes for a campaign, filtered by morale level.
+ *
+ * Returns scenes at the current morale level first. If none are available
+ * (all used), falls back to the next level down. Used scenes are included
+ * in the result so they can be shown as crossed off.
+ */
+export async function loadBackAtCampScenes(
+  campaignId: string,
+  morale: number,
+): Promise<{ scenes: BackAtCampScene[]; activeLevel: MoraleLevel; fallback: boolean }> {
+  const db = createServiceClient();
+  const level = moraleToLevel(morale);
+
+  const { data: allScenes } = await db
+    .from('back_at_camp_scenes')
+    .select('*')
+    .eq('campaign_id', campaignId)
+    .order('id'); // stable order
+
+  const scenes = (allScenes ?? []) as BackAtCampScene[];
+
+  // Try current morale level — if all used, fall back to lower levels
+  const levelOrder: MoraleLevel[] =
+    level === 'HIGH' ? ['HIGH', 'MEDIUM', 'LOW']
+    : level === 'MEDIUM' ? ['MEDIUM', 'LOW']
+    : ['LOW'];
+
+  for (const l of levelOrder) {
+    const available = scenes.filter((s) => s.morale_level === l && !s.used);
+    if (available.length > 0) {
+      const levelScenes = scenes.filter((s) => s.morale_level === l);
+      return { scenes: levelScenes, activeLevel: l, fallback: l !== level };
+    }
+  }
+
+  // All scenes exhausted — return whatever level we have
+  return { scenes: scenes.filter((s) => s.morale_level === level), activeLevel: level, fallback: false };
 }
 
 /**

@@ -1,8 +1,8 @@
-import { loadDashboard } from '@/server/loaders/dashboard';
+import { loadDashboard, loadBackAtCampScenes } from '@/server/loaders/dashboard';
 import { DashboardShell } from '@/components/features/campaign/dashboard-shell';
 import { WaitingForOthers } from '@/components/features/campaign/waiting-for-others';
+import { BackAtCampForm } from '@/components/features/campaign/back-at-camp-form';
 import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle } from '@/components/legion';
-import { completeBackAtCamp } from '@/server/actions/campaign-phase';
 import { isRoleActive } from '@/lib/state-machine';
 import type { CampaignPhaseState } from '@/lib/types';
 
@@ -13,6 +13,12 @@ export default async function LorekeeperDashboardPage() {
   const phaseState = campaign.campaign_phase_state as CampaignPhaseState | null;
   const isMyTurn = phaseState !== null && isRoleActive('LOREKEEPER', phaseState);
 
+  // Only fetch scenes when it's actually needed
+  const scenesData =
+    phaseState === 'AWAITING_BACK_AT_CAMP' && isMyTurn
+      ? await loadBackAtCampScenes(campaign.id, campaign.morale)
+      : null;
+
   return (
     <DashboardShell role="LOREKEEPER" campaignName={campaign.name}>
       {phaseState === null ? (
@@ -22,29 +28,21 @@ export default async function LorekeeperDashboardPage() {
           </p>
         </div>
       ) : isMyTurn ? (
-        phaseState === 'AWAITING_BACK_AT_CAMP' ? (
+        phaseState === 'AWAITING_BACK_AT_CAMP' && scenesData ? (
           <LegionCard>
             <LegionCardHeader>
               <LegionCardTitle className="text-sm font-medium text-legion-text-muted uppercase tracking-widest">
                 Step 2 — Back at Camp
               </LegionCardTitle>
             </LegionCardHeader>
-            <LegionCardContent className="flex flex-col gap-4">
-              <p className="text-sm text-legion-text-muted">
-                The Legion rests and takes stock. Scene selection is coming in a later sprint.
-              </p>
-              <p className="text-sm text-legion-text-muted">
-                When the group has finished their Back at Camp roleplay, advance to Time Passes.
-              </p>
-              <form action={completeBackAtCamp}>
-                <input type="hidden" name="campaign_id" value={campaign.id} />
-                <button
-                  type="submit"
-                  className="rounded-md bg-legion-amber px-5 py-2.5 font-heading text-sm font-semibold tracking-wide text-[var(--bob-amber-fg)] hover:opacity-90 transition-opacity min-h-[44px]"
-                >
-                  Back at Camp Complete — Advance
-                </button>
-              </form>
+            <LegionCardContent>
+              <BackAtCampForm
+                campaignId={campaign.id}
+                morale={campaign.morale}
+                scenes={scenesData.scenes}
+                activeLevel={scenesData.activeLevel}
+                fallback={scenesData.fallback}
+              />
             </LegionCardContent>
           </LegionCard>
         ) : (

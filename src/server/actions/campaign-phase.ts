@@ -386,18 +386,31 @@ export async function resolveMission(
 
 // ─── Time Passes ──────────────────────────────────────────────────────────────
 
+export interface BackAtCampState {
+  errors?: {
+    campaign_id?: string[];
+    scene_id?: string[];
+    notes?: string[];
+    _form?: string[];
+  };
+}
+
 /**
- * Lorekeeper action: mark Back at Camp as complete and apply Time Passes.
+ * Lorekeeper action: select a Back at Camp scene and apply Time Passes.
  *
  * This is the bridge between AWAITING_BACK_AT_CAMP and TIME_PASSING.
- * The system automatically:
+ * On submit:
+ *  - Marks the selected scene as used (tracked per campaign)
  *  - Advances the earliest unfilled Time clock by 1 tick (BoB rulebook p.44)
  *  - Increases pressure by 1
  *  - Spends 1 Food use, or deducts 2 morale if none remain
  *
- * The Commander then reviews the changes and confirms (see confirmTimePasses).
+ * The Commander then reviews the Time Passes changes and confirms.
  */
-export async function completeBackAtCamp(formData: FormData): Promise<void> {
+export async function completeBackAtCamp(
+  _prevState: BackAtCampState | null,
+  formData: FormData,
+): Promise<BackAtCampState> {
   const supabase = await createClient();
   const db = createServiceClient();
 
@@ -405,17 +418,22 @@ export async function completeBackAtCamp(formData: FormData): Promise<void> {
   if (authError || !user) redirect('/sign-in');
 
   const campaignId = formData.get('campaign_id') as string;
-  if (!campaignId) throw new Error('Campaign ID is required');
+  const sceneId = formData.get('scene_id') as string;
+  const notes = (formData.get('notes') as string) || null;
 
+  if (!campaignId) return { errors: { _form: ['Campaign ID is required'] } };
+  if (!sceneId) return { errors: { scene_id: ['Select a scene before continuing'] } };
+
+  // Verify role (Lorekeeper or GM)
   const { data: membership } = await db
     .from('campaign_memberships')
-    .select('id')
+    .select('role')
     .eq('campaign_id', campaignId)
     .eq('user_id', user.id)
-    .eq('role', 'LOREKEEPER')
+    .in('role', ['LOREKEEPER', 'GM'])
     .maybeSingle();
 
-  if (!membership) throw new Error('Only the Lorekeeper can advance from Back at Camp');
+  if (!membership) return { errors: { _form: ['Only the Lorekeeper or GM can set the Back at Camp scene'] } };
 
   const { data: campaign, error: fetchError } = await db
     .from('campaigns')
@@ -423,12 +441,25 @@ export async function completeBackAtCamp(formData: FormData): Promise<void> {
     .eq('id', campaignId)
     .single();
 
-  if (fetchError || !campaign) throw new Error('Campaign not found');
+  if (fetchError || !campaign) return { errors: { _form: ['Campaign not found'] } };
 
-  assertValidTransition(
-    campaign.campaign_phase_state as CampaignPhaseState | null,
-    'TIME_PASSING',
-  );
+  try {
+    assertValidTransition(
+      campaign.campaign_phase_state as CampaignPhaseState | null,
+      'TIME_PASSING',
+    );
+  } catch {
+    return { errors: { _form: ['Cannot advance from Back at Camp in the current phase state'] } };
+  }
+
+  // Mark the selected scene as used
+  const { error: sceneError } = await db
+    .from('back_at_camp_scenes')
+    .update({ used: true, used_in_phase: campaign.phase_number })
+    .eq('id', sceneId)
+    .eq('campaign_id', campaignId);
+
+  if (sceneError) return { errors: { _form: [sceneError.message] } };
 
   // Advance the earliest unfilled Time clock (10 segments each)
   let newClock1 = campaign.time_clock_1;
@@ -480,15 +511,17 @@ export async function completeBackAtCamp(formData: FormData): Promise<void> {
     })
     .eq('id', campaignId);
 
-  if (updateError) throw new Error(updateError.message);
+  if (updateError) return { errors: { _form: [updateError.message] } };
 
   await logCampaignAction({
     campaignId,
     phaseNumber: campaign.phase_number,
     step: 'AWAITING_BACK_AT_CAMP',
-    role: 'LOREKEEPER',
-    actionType: 'TIME_PASSED',
+    role: (membership.role as 'LOREKEEPER' | 'GM'),
+    actionType: 'BACK_AT_CAMP_SCENE_SELECTED',
     details: {
+      scene_id: sceneId,
+      notes,
       clock_ticked: clockTickedLabel,
       broken_advance: brokenAdvance,
       pressure_after: newPressure,
