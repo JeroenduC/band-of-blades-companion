@@ -562,3 +562,525 @@ export async function confirmTimePasses(formData: FormData): Promise<void> {
   revalidatePath('/dashboard/commander');
   redirect('/dashboard/commander');
 }
+
+// ─── Advance Decision (Step 6) ───────────────────────────────────────────────
+
+export interface AdvanceDecisionState {
+  errors?: {
+    campaign_id?: string[];
+    decision?: string[];
+    horses_spent?: string[];
+    _form?: string[];
+  };
+  /** Populated after a successful Advance roll so the UI can show the result */
+  result?: {
+    decision: 'ADVANCE' | 'STAY';
+    horses_spent: number;
+    pressure_before: number;
+    pressure_after_horses: number;
+    dice: number[];
+    worst_die: number;
+    time_ticks_added: number;
+  };
+}
+
+const AdvanceDecisionSchema = z.object({
+  campaign_id: z.string().uuid('Invalid campaign'),
+  decision: z.enum(['ADVANCE', 'STAY'], {
+    error: 'Select Advance or Stay',
+  }),
+  // Horses spent to reduce pressure before the roll (BoB rulebook p.119)
+  horses_spent: z.coerce
+    .number()
+    .int()
+    .min(0, 'Cannot be negative')
+    .default(0),
+});
+
+/**
+ * Rolls a pool of d6s using server-side crypto.getRandomValues.
+ * Returns the individual die results.
+ *
+ * BoB uses "fortune dice" — roll a pool, take the worst single die.
+ * If pressure was reduced to 0, roll 2 dice and take worst.
+ *
+ * Time ticks from worst die (BoB rulebook p.120):
+ *   1–3 → 1 tick
+ *   4–5 → 2 ticks
+ *   6   → 3 ticks
+ *   Two 6s (critical) → 5 ticks
+ */
+function rollDice(count: number): number[] {
+  const buf = new Uint8Array(count);
+  crypto.getRandomValues(buf);
+  return Array.from(buf).map((n) => (n % 6) + 1);
+}
+
+function ticksFromDice(dice: number[]): number {
+  const allSixes = dice.every((d) => d === 6);
+  if (allSixes && dice.length >= 2) return 5; // critical
+  const worst = Math.min(...dice);
+  if (worst <= 3) return 1;
+  if (worst <= 5) return 2;
+  return 3; // 6
+}
+
+/**
+ * Tick the earliest unfilled Time clock by n ticks, returning updated values.
+ * Returns the new clock values and whether a Broken Advance occurred.
+ */
+function applyTimeClockTicks(
+  clock1: number,
+  clock2: number,
+  clock3: number,
+  ticks: number,
+): { clock1: number; clock2: number; clock3: number; brokenAdvance: boolean } {
+  let c1 = clock1;
+  let c2 = clock2;
+  let c3 = clock3;
+  let remaining = ticks;
+  let brokenAdvance = false;
+
+  while (remaining > 0) {
+    if (c1 < 10) {
+      c1 = Math.min(10, c1 + remaining);
+      remaining -= (c1 - clock1);
+      if (c1 === 10) brokenAdvance = true;
+    } else if (c2 < 10) {
+      const added = Math.min(10 - c2, remaining);
+      c2 += added;
+      remaining -= added;
+      if (c2 === 10) brokenAdvance = true;
+    } else if (c3 < 10) {
+      const added = Math.min(10 - c3, remaining);
+      c3 += added;
+      remaining -= added;
+      if (c3 === 10) brokenAdvance = true;
+    } else {
+      break; // all clocks full
+    }
+  }
+
+  return { clock1: c1, clock2: c2, clock3: c3, brokenAdvance };
+}
+
+/**
+ * Commander action: decide whether the Legion advances to the next location.
+ *
+ * Advance path:
+ *   1. Commander optionally spends Horse uses to reduce pressure (1:1)
+ *   2. System rolls dice equal to remaining pressure (min 2 if reduced to 0)
+ *   3. Worst die determines time ticks added to the earliest unfilled clock
+ *   4. Pressure resets to 0 after the roll
+ *   5. State → AWAITING_MISSION_FOCUS
+ *
+ * Stay path: state → AWAITING_MISSION_FOCUS, no changes to clocks or pressure
+ */
+export async function makeAdvanceDecision(
+  _prevState: AdvanceDecisionState | null,
+  formData: FormData,
+): Promise<AdvanceDecisionState> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) redirect('/sign-in');
+
+  const raw = {
+    campaign_id: formData.get('campaign_id'),
+    decision: formData.get('decision'),
+    horses_spent: formData.get('horses_spent') || '0',
+  };
+
+  const parsed = AdvanceDecisionSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { errors: parsed.error.flatten().fieldErrors };
+  }
+
+  const { campaign_id, decision, horses_spent } = parsed.data;
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaign_id)
+    .eq('user_id', user.id)
+    .eq('role', 'COMMANDER')
+    .maybeSingle();
+
+  if (!membership) {
+    return { errors: { _form: ['Only the Commander can make the Advance decision'] } };
+  }
+
+  const { data: campaign, error: fetchError } = await db
+    .from('campaigns')
+    .select('campaign_phase_state, phase_number, pressure, horse_uses, time_clock_1, time_clock_2, time_clock_3')
+    .eq('id', campaign_id)
+    .single();
+
+  if (fetchError || !campaign) {
+    return { errors: { _form: ['Campaign not found'] } };
+  }
+
+  try {
+    assertValidTransition(
+      campaign.campaign_phase_state as CampaignPhaseState | null,
+      'AWAITING_MISSION_FOCUS',
+    );
+  } catch {
+    return { errors: { _form: ['Cannot make advance decision in the current phase state'] } };
+  }
+
+  if (horses_spent > campaign.horse_uses) {
+    return { errors: { horses_spent: [`Only ${campaign.horse_uses} Horse uses available`] } };
+  }
+
+  let logDetails: Record<string, unknown>;
+  let updates: Record<string, unknown> = { campaign_phase_state: 'AWAITING_MISSION_FOCUS' };
+
+  if (decision === 'STAY') {
+    logDetails = { decision: 'STAY' };
+  } else {
+    // Advance: reduce pressure by horses spent, then roll
+    const pressureAfterHorses = Math.max(0, campaign.pressure - horses_spent);
+    const diceCount = pressureAfterHorses === 0 ? 2 : pressureAfterHorses;
+    const dice = rollDice(diceCount);
+    const timeTicks = ticksFromDice(dice);
+
+    const { clock1, clock2, clock3, brokenAdvance } = applyTimeClockTicks(
+      campaign.time_clock_1,
+      campaign.time_clock_2,
+      campaign.time_clock_3,
+      timeTicks,
+    );
+
+    updates = {
+      ...updates,
+      pressure: 0, // pressure resets after advance roll
+      horse_uses: campaign.horse_uses - horses_spent,
+      time_clock_1: clock1,
+      time_clock_2: clock2,
+      time_clock_3: clock3,
+    };
+
+    logDetails = {
+      decision: 'ADVANCE',
+      horses_spent,
+      pressure_before: campaign.pressure,
+      pressure_after_horses: pressureAfterHorses,
+      dice,
+      worst_die: Math.min(...dice),
+      time_ticks_added: timeTicks,
+      broken_advance: brokenAdvance,
+    };
+  }
+
+  const { error: updateError } = await db
+    .from('campaigns')
+    .update(updates)
+    .eq('id', campaign_id);
+
+  if (updateError) {
+    return { errors: { _form: [updateError.message] } };
+  }
+
+  await logCampaignAction({
+    campaignId: campaign_id,
+    phaseNumber: campaign.phase_number,
+    step: 'AWAITING_ADVANCE',
+    role: 'COMMANDER',
+    actionType: decision === 'ADVANCE' ? 'ADVANCE' : 'STAY',
+    details: logDetails,
+  });
+
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/commander');
+  redirect('/dashboard/commander');
+}
+
+// ─── QM Campaign Actions ──────────────────────────────────────────────────────
+
+export interface LibertyState {
+  errors?: {
+    campaign_id?: string[];
+    boosted?: string[];
+    _form?: string[];
+  };
+}
+
+/**
+ * QM action: Liberty — give Legionnaires leave.
+ *
+ * Normal:  morale +2. (Stress reduction tracked when Roster is implemented.)
+ * Boosted: morale +4, costs 1 supply. (All stress cleared when Roster is implemented.)
+ *
+ * BoB rulebook p.137
+ */
+export async function performLiberty(
+  _prevState: LibertyState | null,
+  formData: FormData,
+): Promise<LibertyState> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) redirect('/sign-in');
+
+  const campaignId = formData.get('campaign_id') as string;
+  if (!campaignId) return { errors: { _form: ['Campaign ID is required'] } };
+
+  const boosted = formData.get('boosted') === 'true';
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .eq('role', 'QUARTERMASTER')
+    .maybeSingle();
+
+  if (!membership) return { errors: { _form: ['Only the Quartermaster can perform Liberty'] } };
+
+  const { data: campaign, error: fetchError } = await db
+    .from('campaigns')
+    .select('campaign_phase_state, phase_number, morale, supply')
+    .eq('id', campaignId)
+    .single();
+
+  if (fetchError || !campaign) return { errors: { _form: ['Campaign not found'] } };
+
+  if (campaign.campaign_phase_state !== 'CAMPAIGN_ACTIONS') {
+    return { errors: { _form: ['Liberty can only be performed during Campaign Actions'] } };
+  }
+
+  if (boosted && campaign.supply < 1) {
+    return { errors: { _form: ['Not enough supply to boost Liberty (need 1)'] } };
+  }
+
+  const moraleGain = boosted ? 4 : 2;
+  const supplySpent = boosted ? 1 : 0;
+  const newMorale = campaign.morale + moraleGain;
+  const newSupply = campaign.supply - supplySpent;
+
+  const { error: updateError } = await db
+    .from('campaigns')
+    .update({ morale: newMorale, supply: newSupply })
+    .eq('id', campaignId);
+
+  if (updateError) return { errors: { _form: [updateError.message] } };
+
+  await logCampaignAction({
+    campaignId,
+    phaseNumber: campaign.phase_number,
+    step: 'CAMPAIGN_ACTIONS',
+    role: 'QUARTERMASTER',
+    actionType: 'LIBERTY',
+    details: {
+      boosted,
+      morale_gain: moraleGain,
+      supply_spent: supplySpent,
+      morale_after: newMorale,
+      note: 'Stress reduction deferred until Roster is implemented',
+    },
+  });
+
+  revalidatePath('/dashboard/quartermaster');
+  return {};
+}
+
+/**
+ * QM action: mark all Campaign Actions as complete.
+ *
+ * Sets qm_actions_complete = true. If spymaster_actions_complete is also true,
+ * the state advances to AWAITING_LABORERS_ALCHEMISTS.
+ */
+export async function completeQmActions(formData: FormData): Promise<void> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) redirect('/sign-in');
+
+  const campaignId = formData.get('campaign_id') as string;
+  if (!campaignId) throw new Error('Campaign ID is required');
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .eq('role', 'QUARTERMASTER')
+    .maybeSingle();
+
+  if (!membership) throw new Error('Only the Quartermaster can complete QM actions');
+
+  const { data: campaign, error: fetchError } = await db
+    .from('campaigns')
+    .select('campaign_phase_state, phase_number, spymaster_actions_complete')
+    .eq('id', campaignId)
+    .single();
+
+  if (fetchError || !campaign) throw new Error('Campaign not found');
+
+  if (campaign.campaign_phase_state !== 'CAMPAIGN_ACTIONS') {
+    throw new Error('Not in CAMPAIGN_ACTIONS state');
+  }
+
+  const bothDone = campaign.spymaster_actions_complete;
+  const newState = bothDone
+    ? ('AWAITING_LABORERS_ALCHEMISTS' as CampaignPhaseState)
+    : ('CAMPAIGN_ACTIONS' as CampaignPhaseState);
+
+  await db
+    .from('campaigns')
+    .update({ qm_actions_complete: true, campaign_phase_state: newState })
+    .eq('id', campaignId);
+
+  await logCampaignAction({
+    campaignId,
+    phaseNumber: campaign.phase_number,
+    step: 'CAMPAIGN_ACTIONS',
+    role: 'QUARTERMASTER',
+    actionType: 'QM_ACTIONS_COMPLETE',
+    details: { advanced_state: bothDone },
+  });
+
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/quartermaster');
+  if (bothDone) revalidatePath('/dashboard/spymaster');
+  redirect('/dashboard/quartermaster');
+}
+
+// ─── Placeholder pass-throughs ────────────────────────────────────────────────
+
+/**
+ * Spymaster action: mark spy dispatch complete (placeholder until Epic 7).
+ * Sets spymaster_actions_complete = true; advances state if QM is also done.
+ */
+export async function completeSpymasterActions(formData: FormData): Promise<void> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) redirect('/sign-in');
+
+  const campaignId = formData.get('campaign_id') as string;
+  if (!campaignId) throw new Error('Campaign ID is required');
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .eq('role', 'SPYMASTER')
+    .maybeSingle();
+
+  if (!membership) throw new Error('Only the Spymaster can complete spy dispatch');
+
+  const { data: campaign, error: fetchError } = await db
+    .from('campaigns')
+    .select('campaign_phase_state, phase_number, qm_actions_complete')
+    .eq('id', campaignId)
+    .single();
+
+  if (fetchError || !campaign) throw new Error('Campaign not found');
+
+  const bothDone = campaign.qm_actions_complete;
+  const newState = bothDone
+    ? ('AWAITING_LABORERS_ALCHEMISTS' as CampaignPhaseState)
+    : ('CAMPAIGN_ACTIONS' as CampaignPhaseState);
+
+  await db
+    .from('campaigns')
+    .update({ spymaster_actions_complete: true, campaign_phase_state: newState })
+    .eq('id', campaignId);
+
+  await logCampaignAction({
+    campaignId,
+    phaseNumber: campaign.phase_number,
+    step: 'CAMPAIGN_ACTIONS',
+    role: 'SPYMASTER',
+    actionType: 'SPYMASTER_ACTIONS_COMPLETE',
+    details: { advanced_state: bothDone },
+  });
+
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/spymaster');
+  redirect('/dashboard/spymaster');
+}
+
+/**
+ * Generic placeholder pass-through for steps with no full implementation yet.
+ *
+ * Reads the target state, role, and action type from hidden form fields so the
+ * same server action can power all placeholder screens without duplication.
+ */
+export async function advancePlaceholderStep(formData: FormData): Promise<void> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) redirect('/sign-in');
+
+  const campaignId = formData.get('campaign_id') as string;
+  const nextState = formData.get('next_state') as CampaignPhaseState;
+  const role = formData.get('role') as LegionRole;
+  const actionType = formData.get('action_type') as CampaignPhaseLogActionType;
+  const dashboardPath = formData.get('dashboard_path') as string;
+
+  if (!campaignId || !nextState || !role || !actionType || !dashboardPath) {
+    throw new Error('Missing required fields for placeholder advance');
+  }
+
+  const { data: roleMembership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .eq('role', role)
+    .maybeSingle();
+
+  if (!roleMembership) {
+    const { data: gmMembership } = await db
+      .from('campaign_memberships')
+      .select('id')
+      .eq('campaign_id', campaignId)
+      .eq('user_id', user.id)
+      .eq('role', 'GM')
+      .maybeSingle();
+
+    if (!gmMembership) throw new Error(`Only the ${role} or GM can advance this step`);
+  }
+
+  const { data: campaign, error: fetchError } = await db
+    .from('campaigns')
+    .select('campaign_phase_state, phase_number')
+    .eq('id', campaignId)
+    .single();
+
+  if (fetchError || !campaign) throw new Error('Campaign not found');
+
+  assertValidTransition(
+    campaign.campaign_phase_state as CampaignPhaseState | null,
+    nextState,
+  );
+
+  const { error: updateError } = await db
+    .from('campaigns')
+    .update({ campaign_phase_state: nextState })
+    .eq('id', campaignId);
+
+  if (updateError) throw new Error(updateError.message);
+
+  await logCampaignAction({
+    campaignId,
+    phaseNumber: campaign.phase_number,
+    step: campaign.campaign_phase_state as CampaignPhaseState,
+    role,
+    actionType,
+    details: { placeholder: true, next_state: nextState },
+  });
+
+  revalidatePath('/dashboard');
+  revalidatePath(dashboardPath);
+  redirect(dashboardPath);
+}

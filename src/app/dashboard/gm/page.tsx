@@ -2,6 +2,7 @@ import { loadGmDashboard } from '@/server/loaders/dashboard';
 import { DashboardShell } from '@/components/features/campaign/dashboard-shell';
 import { PhaseProgressIndicator } from '@/components/features/campaign/phase-progress-indicator';
 import { MissionResolutionForm } from '@/components/features/campaign/mission-resolution-form';
+import { PlaceholderStep } from '@/components/features/campaign/placeholder-step';
 import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle } from '@/components/legion';
 import { startCampaignPhase } from '@/server/actions/campaign-phase';
 import type { CampaignPhaseState } from '@/lib/types';
@@ -86,6 +87,28 @@ export default async function GmDashboardPage() {
                 <MissionResolutionForm
                   campaignId={campaign.id}
                   phaseNumber={campaign.phase_number}
+                />
+              </LegionCardContent>
+            </LegionCard>
+          )}
+
+          {phaseState === 'AWAITING_MISSION_GENERATION' && (
+            <LegionCard>
+              <LegionCardHeader>
+                <LegionCardTitle className="text-sm font-medium text-legion-text-muted uppercase tracking-widest">
+                  Step 8 — Mission Generation
+                </LegionCardTitle>
+              </LegionCardHeader>
+              <LegionCardContent>
+                <PlaceholderStep
+                  campaignId={campaign.id}
+                  title="Mission Generation"
+                  message="Full mission generation will be implemented in Epic 9. For now, click Continue to advance to Mission Selection."
+                  buttonLabel="Continue to Mission Selection"
+                  nextState="AWAITING_MISSION_SELECTION"
+                  role="GM"
+                  actionType="MISSION_GENERATION_COMPLETE"
+                  dashboardPath="/dashboard/gm"
                 />
               </LegionCardContent>
             </LegionCard>

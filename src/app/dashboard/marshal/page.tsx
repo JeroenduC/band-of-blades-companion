@@ -1,6 +1,8 @@
 import { loadDashboard } from '@/server/loaders/dashboard';
 import { DashboardShell } from '@/components/features/campaign/dashboard-shell';
 import { WaitingForOthers } from '@/components/features/campaign/waiting-for-others';
+import { PlaceholderStep } from '@/components/features/campaign/placeholder-step';
+import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle } from '@/components/legion';
 import { isRoleActive } from '@/lib/state-machine';
 import type { CampaignPhaseState } from '@/lib/types';
 
@@ -20,12 +22,30 @@ export default async function MarshalDashboardPage() {
           </p>
         </div>
       ) : isMyTurn ? (
-        <div className="rounded-lg border border-[var(--bob-amber)] bg-legion-bg-elevated p-6 text-center">
-          <p className="font-heading text-lg text-legion-amber mb-1">It&apos;s your turn, Marshal</p>
-          <p className="text-sm text-legion-text-muted">
-            Action UI coming in the next sprint.
-          </p>
-        </div>
+        phaseState === 'AWAITING_MISSION_SELECTION' ? (
+          <LegionCard>
+            <LegionCardHeader>
+              <LegionCardTitle className="text-sm font-medium text-legion-text-muted uppercase tracking-widest">
+                Step 9 — Mission Selection
+              </LegionCardTitle>
+            </LegionCardHeader>
+            <LegionCardContent>
+              <p className="text-sm text-legion-text-muted mb-2">
+                Full mission selection will be implemented in Epic 5/6. The Commander will complete this step.
+              </p>
+              <p className="text-sm text-legion-text-muted">
+                Once the Commander has selected the mission, the phase will be complete.
+              </p>
+            </LegionCardContent>
+          </LegionCard>
+        ) : (
+          <div className="rounded-lg border border-[var(--bob-amber)] bg-legion-bg-elevated p-6 text-center">
+            <p className="font-heading text-lg text-legion-amber mb-1">It&apos;s your turn, Marshal</p>
+            <p className="text-sm text-legion-text-muted">
+              Marshal action for this step coming soon.
+            </p>
+          </div>
+        )
       ) : (
         <WaitingForOthers currentState={phaseState} viewerRole="MARSHAL" />
       )}
