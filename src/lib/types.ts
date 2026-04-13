@@ -36,7 +36,7 @@ export interface Campaign {
   name: string;
   invite_code: string;
   current_phase: CampaignPhase;
-  campaign_phase_state: CampaignPhaseState;
+  campaign_phase_state: CampaignPhaseState | null;
   phase_number: number;
   morale: number;
   pressure: number;
@@ -50,7 +50,51 @@ export interface Campaign {
   black_shot_uses: number;
   religious_supply_uses: number;
   supply_carts: number;
+  // Sprint 3: parallel action completion flags (reset each phase)
+  qm_actions_complete: boolean;
+  spymaster_actions_complete: boolean;
+  // Sprint 3: current location on the campaign map
+  current_location: string;
   created_at: string;
+}
+
+export type CampaignPhaseLogActionType =
+  | 'PHASE_START'
+  | 'MISSION_RESOLVED'
+  | 'BACK_AT_CAMP_SCENE_SELECTED'
+  | 'TIME_PASSED'
+  | 'LIBERTY'
+  | 'QM_ACTIONS_COMPLETE'
+  | 'SPYMASTER_ACTIONS_COMPLETE'
+  | 'LABORERS_ALCHEMISTS_COMPLETE'
+  | 'ADVANCE'
+  | 'STAY'
+  | 'MISSION_FOCUS_SELECTED'
+  | 'MISSION_GENERATION_COMPLETE'
+  | 'MISSION_SELECTED'
+  | 'PHASE_COMPLETE'
+  | 'MEMBER_REMOVED';
+
+export interface CampaignPhaseLog {
+  id: string;
+  campaign_id: string;
+  phase_number: number;
+  step: CampaignPhaseState;
+  role: LegionRole | 'SYSTEM';
+  action_type: CampaignPhaseLogActionType;
+  details: Record<string, unknown>;
+  created_at: string;
+}
+
+export type MoraleLevel = 'HIGH' | 'MEDIUM' | 'LOW';
+
+export interface BackAtCampScene {
+  id: string;
+  campaign_id: string;
+  scene_text: string;
+  morale_level: MoraleLevel;
+  used: boolean;
+  used_in_phase: number | null;
 }
 
 export interface CampaignMembership {

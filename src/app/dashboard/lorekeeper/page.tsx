@@ -1,43 +1,61 @@
-import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import { createServiceClient } from '@/lib/supabase/service';
-import { signOut } from '@/server/actions/auth';
+import { loadDashboard, loadBackAtCampScenes } from '@/server/loaders/dashboard';
+import { DashboardShell } from '@/components/features/campaign/dashboard-shell';
+import { WaitingForOthers } from '@/components/features/campaign/waiting-for-others';
+import { BackAtCampForm } from '@/components/features/campaign/back-at-camp-form';
+import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle } from '@/components/legion';
+import { isRoleActive } from '@/lib/state-machine';
+import type { CampaignPhaseState } from '@/lib/types';
 
 export const metadata = { title: 'Lorekeeper — Band of Blades' };
 
 export default async function LorekeeperDashboardPage() {
-  const supabase = await createClient();
-  const db = createServiceClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/sign-in');
+  const { campaign } = await loadDashboard('LOREKEEPER');
+  const phaseState = campaign.campaign_phase_state as CampaignPhaseState | null;
+  const isMyTurn = phaseState !== null && isRoleActive('LOREKEEPER', phaseState);
 
-  const { data: membership } = await db
-    .from('campaign_memberships')
-    .select('campaigns(name)')
-    .eq('user_id', user.id)
-    .order('assigned_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const campaign = membership?.campaigns as unknown as { name: string } | null;
+  // Only fetch scenes when it's actually needed
+  const scenesData =
+    phaseState === 'AWAITING_BACK_AT_CAMP' && isMyTurn
+      ? await loadBackAtCampScenes(campaign.id, campaign.morale)
+      : null;
 
   return (
-    <main className="flex min-h-screen flex-col p-6 gap-6 max-w-2xl mx-auto">
-      <header className="flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Lorekeeper</p>
-          <h1 className="text-xl font-bold">{campaign?.name ?? 'No campaign'}</h1>
+    <DashboardShell role="LOREKEEPER" campaignName={campaign.name}>
+      {phaseState === null ? (
+        <div className="rounded-lg border border-dashed border-border p-8 text-center">
+          <p className="text-sm text-legion-text-muted">
+            No campaign phase in progress. Waiting for the GM to start one.
+          </p>
         </div>
-        <form action={signOut}>
-          <button type="submit" className="text-sm text-muted-foreground underline underline-offset-4">
-            Sign out
-          </button>
-        </form>
-      </header>
-
-      <section className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-        Lorekeeper tools coming in Epic 8. You'll track the dead, tell Tales, set Back at Camp scenes, and keep the Annals here.
-      </section>
-    </main>
+      ) : isMyTurn ? (
+        phaseState === 'AWAITING_BACK_AT_CAMP' && scenesData ? (
+          <LegionCard>
+            <LegionCardHeader>
+              <LegionCardTitle className="text-sm font-medium text-legion-text-muted uppercase tracking-widest">
+                Step 2 — Back at Camp
+              </LegionCardTitle>
+            </LegionCardHeader>
+            <LegionCardContent>
+              <BackAtCampForm
+                campaignId={campaign.id}
+                morale={campaign.morale}
+                scenes={scenesData.scenes}
+                activeLevel={scenesData.activeLevel}
+                fallback={scenesData.fallback}
+              />
+            </LegionCardContent>
+          </LegionCard>
+        ) : (
+          <div className="rounded-lg border border-[var(--bob-amber)] bg-legion-bg-elevated p-6 text-center">
+            <p className="font-heading text-lg text-legion-amber mb-1">It&apos;s your turn, Lorekeeper</p>
+            <p className="text-sm text-legion-text-muted">
+              Lorekeeper action for this step coming soon.
+            </p>
+          </div>
+        )
+      ) : (
+        <WaitingForOthers currentState={phaseState} viewerRole="LOREKEEPER" />
+      )}
+    </DashboardShell>
   );
 }

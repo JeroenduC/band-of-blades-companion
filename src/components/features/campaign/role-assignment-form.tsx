@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState, useEffect } from 'react';
 import { assignRole } from '@/server/actions/campaign';
 import type { LegionRole, MemberRank, CampaignMembershipWithProfile } from '@/lib/types';
 import { LegionButton } from '@/components/legion';
@@ -26,14 +26,25 @@ interface RoleAssignmentFormProps {
 export function RoleAssignmentForm({ membership, campaignId }: RoleAssignmentFormProps) {
   const [state, action, pending] = useActionState(assignRole, null);
 
+  // Controlled state so the selects reflect server-updated values after revalidation.
+  // defaultValue only applies on mount — these sync whenever the parent re-renders
+  // with fresh membership props after a successful assignRole action.
+  const [role, setRole] = useState(membership.role ?? '');
+  const [rank, setRank] = useState(membership.rank ?? '');
+
+  useEffect(() => {
+    setRole(membership.role ?? '');
+    setRank(membership.rank ?? '');
+  }, [membership.role, membership.rank]);
+
   // GMs are shown as read-only — their role is set at campaign creation.
   if (membership.role === 'GM') {
     return (
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-medium min-w-[8rem]">
+        <span className="text-sm font-medium text-legion-text-primary min-w-[8rem]">
           {membership.profiles.display_name}
         </span>
-        <span className="text-sm text-muted-foreground">GM</span>
+        <span className="font-mono text-xs uppercase tracking-widest text-legion-amber">GM</span>
       </div>
     );
   }
@@ -43,16 +54,16 @@ export function RoleAssignmentForm({ membership, campaignId }: RoleAssignmentFor
       <input type="hidden" name="membership_id" value={membership.id} />
       <input type="hidden" name="campaign_id" value={campaignId} />
 
-      <span className="text-sm font-medium min-w-[8rem]">
+      <span className="text-sm font-medium text-legion-text-primary min-w-[8rem]">
         {membership.profiles.display_name}
       </span>
 
       <select
         name="role"
-        defaultValue={membership.role ?? ''}
-        className="rounded-md border border-input bg-background px-2 py-1 text-sm"
+        value={role}
+        onChange={(e) => setRole(e.target.value)}
+        className="rounded-md border border-border bg-legion-bg-base px-2 py-1 text-sm text-legion-text-primary focus:outline-none focus:ring-2 focus:ring-legion-border-focus min-h-[36px]"
       >
-        {/* Shown when role is null — prevents browser from defaulting to first option */}
         <option value="" disabled>— Pending —</option>
         {ASSIGNABLE_ROLES.map((r) => (
           <option key={r} value={r}>
@@ -63,10 +74,10 @@ export function RoleAssignmentForm({ membership, campaignId }: RoleAssignmentFor
 
       <select
         name="rank"
-        defaultValue={membership.rank ?? ''}
-        className="rounded-md border border-input bg-background px-2 py-1 text-sm"
+        value={rank}
+        onChange={(e) => setRank(e.target.value)}
+        className="rounded-md border border-border bg-legion-bg-base px-2 py-1 text-sm text-legion-text-primary focus:outline-none focus:ring-2 focus:ring-legion-border-focus min-h-[36px]"
       >
-        {/* Shown when rank is null */}
         <option value="" disabled>— Pick rank —</option>
         {RANKS.map((r) => (
           <option key={r} value={r}>

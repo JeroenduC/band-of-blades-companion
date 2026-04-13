@@ -1,43 +1,60 @@
-import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import { createServiceClient } from '@/lib/supabase/service';
-import { signOut } from '@/server/actions/auth';
+import { loadDashboard } from '@/server/loaders/dashboard';
+import { DashboardShell } from '@/components/features/campaign/dashboard-shell';
+import { WaitingForOthers } from '@/components/features/campaign/waiting-for-others';
+import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle } from '@/components/legion';
+import { completeSpymasterActions } from '@/server/actions/campaign-phase';
+import { isRoleActive } from '@/lib/state-machine';
+import type { CampaignPhaseState } from '@/lib/types';
 
 export const metadata = { title: 'Spymaster — Band of Blades' };
 
 export default async function SpymasterDashboardPage() {
-  const supabase = await createClient();
-  const db = createServiceClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/sign-in');
-
-  const { data: membership } = await db
-    .from('campaign_memberships')
-    .select('campaigns(name)')
-    .eq('user_id', user.id)
-    .order('assigned_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const campaign = membership?.campaigns as unknown as { name: string } | null;
+  const { campaign } = await loadDashboard('SPYMASTER');
+  const phaseState = campaign.campaign_phase_state as CampaignPhaseState | null;
+  const isMyTurn = phaseState !== null && isRoleActive('SPYMASTER', phaseState);
 
   return (
-    <main className="flex min-h-screen flex-col p-6 gap-6 max-w-2xl mx-auto">
-      <header className="flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Spymaster</p>
-          <h1 className="text-xl font-bold">{campaign?.name ?? 'No campaign'}</h1>
+    <DashboardShell role="SPYMASTER" campaignName={campaign.name}>
+      {phaseState === null ? (
+        <div className="rounded-lg border border-dashed border-border p-8 text-center">
+          <p className="text-sm text-legion-text-muted">
+            No campaign phase in progress. Waiting for the GM to start one.
+          </p>
         </div>
-        <form action={signOut}>
-          <button type="submit" className="text-sm text-muted-foreground underline underline-offset-4">
-            Sign out
-          </button>
-        </form>
-      </header>
-
-      <section className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-        Spymaster tools coming in Epic 7. You'll dispatch spies, manage assignments, and grow your network here.
-      </section>
-    </main>
+      ) : isMyTurn ? (
+        phaseState === 'CAMPAIGN_ACTIONS' ? (
+          <LegionCard>
+            <LegionCardHeader>
+              <LegionCardTitle className="text-sm font-medium text-legion-text-muted uppercase tracking-widest">
+                Step 4 — Spy Dispatch
+              </LegionCardTitle>
+            </LegionCardHeader>
+            <LegionCardContent className="flex flex-col gap-4">
+              <p className="text-sm text-legion-text-muted">
+                Spy dispatch will be fully implemented in Epic 7. When your group has resolved spy dispatch at the table, mark it complete here to allow the phase to advance.
+              </p>
+              <form action={completeSpymasterActions}>
+                <input type="hidden" name="campaign_id" value={campaign.id} />
+                <button
+                  type="submit"
+                  className="rounded-md bg-legion-amber px-5 py-2.5 font-heading text-sm font-semibold tracking-wide text-[var(--bob-amber-fg)] hover:opacity-90 transition-opacity min-h-[44px]"
+                >
+                  Mark Spy Dispatch Complete
+                </button>
+              </form>
+            </LegionCardContent>
+          </LegionCard>
+        ) : (
+          <div className="rounded-lg border border-[var(--bob-amber)] bg-legion-bg-elevated p-6 text-center">
+            <p className="font-heading text-lg text-legion-amber mb-1">It&apos;s your turn, Spymaster</p>
+            <p className="text-sm text-legion-text-muted">
+              Spymaster action for this step coming soon.
+            </p>
+          </div>
+        )
+      ) : (
+        <WaitingForOthers currentState={phaseState} viewerRole="SPYMASTER" />
+      )}
+    </DashboardShell>
   );
 }

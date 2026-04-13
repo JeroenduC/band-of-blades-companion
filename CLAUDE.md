@@ -46,7 +46,12 @@ These rules come from the Project Brief section 1.3 and are non-negotiable.
 
 3. **Informed decisions, not blind clicks.** Always show the player what *kind* of resource is at stake and what *area* of the Legion is affected. Never show exact outcomes — preserve uncertainty and drama.
 
-4. **Mobile first.** Every interaction must work on a 375px screen. Build mobile layout first, then adapt up.
+4. **Mobile first, responsive always, purposeful use of space.**
+   - Build mobile layout first (375px). Everything must work smoothly on mobile — this is the primary device.
+   - All layouts must be responsive. Use Tailwind's responsive prefixes (`sm:`, `md:`, `lg:`) so the app works on any screen size.
+   - On larger screens, use the extra space IF it improves clarity: better spacing between information blocks, side-by-side layouts where it helps comprehension, more breathing room around content. Don't stretch things just to fill space.
+   - Maximum content width is 1240px. Beyond that, the content is centred with subtle light grey borders on either side to frame it.
+   - Never build a desktop-only layout and "fix mobile later." Never build a narrow mobile layout and leave it narrow on desktop when extra space would help the user.
 
 5. **Accessible by default.** WCAG 2.1 AA compliance is mandatory, not optional:
    - All text: 4.5:1 contrast ratio (3:1 for large text)
@@ -79,6 +84,22 @@ These rules come from the Project Brief section 1.3 and are non-negotiable.
 - The campaign phase is a finite state machine. States and transitions are defined in `src/lib/state-machine.ts`.
 - **Never** allow a state transition that isn't explicitly defined in the state machine.
 - All state transitions are logged in the `CampaignPhaseLog`.
+
+### Extensibility by Default
+- New states, roles, actions, or game mechanics must be addable by modifying data/configuration, not by rewriting logic. If adding a new campaign action requires changing more than 3 files, the architecture needs refactoring.
+- Use data-driven patterns: arrays of states, maps of transitions, registries of actions. Avoid long if/else or switch chains that need editing every time something is added.
+- When building any feature, ask: "What if the game rules change?" Band of Blades has community houserules and the owner may want to customise the workflow. Build for that.
+
+### Server Actions and Client Component State
+- **`revalidatePath` does not re-render already-mounted Client Components.** When a server action calls `revalidatePath`, Server Components above the Client Component will re-render and pass fresh props down — but only if the Client Component is a direct child of a Server Component that receives the new data as props. If the component receives no new props, the displayed state will be stale.
+- **Fix pattern:** In a Client Component that uses `useActionState`, watch the returned state in a `useEffect`. When the action succeeds, call `router.refresh()` to force a full re-fetch:
+  ```tsx
+  const router = useRouter();
+  useEffect(() => {
+    if (state?.success) router.refresh();
+  }, [state]);
+  ```
+- **base-ui Dialog differs from Radix:** base-ui uses a `render` prop pattern (`render={<button />}`), not Radix's `asChild`. Never pass `asChild` to base-ui components — it will silently break.
 
 ### Server-Side Dice
 - **All** dice rolls happen on the server using `crypto.getRandomValues()`.
@@ -120,6 +141,12 @@ src/
   server/                 # Server actions, API logic, dice rolling
   styles/                 # Global styles, theme, design tokens
 ```
+
+### Layout
+- All page layouts use a max-width container: `max-w-[1240px] mx-auto`
+- Content areas use responsive padding: `px-4 sm:px-6 lg:px-8`
+- Use Tailwind responsive grid/flex where wider screens benefit from multi-column layouts (e.g. `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3`)
+- The outer page wrapper beyond 1240px should have a subtle border: `border-x border-legion-border/20`
 
 ### Comments
 - Write comments in English.

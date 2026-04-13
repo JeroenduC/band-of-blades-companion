@@ -10,9 +10,9 @@ A web application that digitises the campaign phase of [Band of Blades](https://
 
 ## 🚀 Current Status
 
-**Epic 2 — Visual Identity & Design System** ⏳
+**Epic 4 — Quartermaster Campaign Actions** ⏳
 
-The app is deployed and functional. Next up: making it look and feel like Band of Blades — design tokens, dark theme, component wrappers, and visual identity.
+The core campaign loop is live. The state machine runs all 10 steps, every role has a dashboard, and the GM can start and advance phases end-to-end. Next up: full dice resolution UX, pressure mechanics, and campaign action consequences.
 
 ---
 
@@ -56,11 +56,11 @@ The app is deployed and functional. Next up: making it look and feel like Band o
 ### ✅ Epic 1: Project Foundation
 Next.js 15 app deployed to Vercel. Email/password auth, campaign creation with invite codes, player join flow, GM role assignment, placeholder dashboards for all six roles.
 
-### ⏳ Epic 2: Visual Identity & Design System
-The app looks and feels like Band of Blades. Design tokens, themed components, component wrapper layer.
+### ✅ Epic 2: Visual Identity & Design System
+The app looks and feels like Band of Blades. Design tokens, dark military theme, Cinzel/Crimson Pro typography, Shadcn component wrappers, clock and card patterns, CI accessibility audits.
 
-### ⏳ Epic 3: Campaign Phase State Machine
-State machine tracks which step of the campaign phase we're in and shows the correct view per role.
+### ✅ Epic 3: Campaign Phase State Machine
+Full 10-step campaign loop with role-aware dashboards, FSM, phase logging, mission resolution, Back at Camp, Time Passes, QM actions (Liberty), Commander Advance, and placeholder steps to complete the circuit.
 
 ### ⏳ Epic 4: Quartermaster Campaign Actions
 Liberty, Acquire Assets, R&R, Recruit, Long-Term Projects — with dice rolls and contextual information.
@@ -151,6 +151,8 @@ The development process is documented sprint by sprint in [`docs/journal/`](docs
 Each entry covers what was built, decisions made, and lessons learned — written as the project progresses.
 
 - [Sprint 1 — Foundation](docs/journal/sprint-01-foundation.md)
+- [Sprint 2 — Visual Identity](docs/journal/sprint-02-visual-identity.md)
+- [Sprint 3 — Core Campaign Loop](docs/journal/sprint-03-core-loop.md)
 
 ---
 
