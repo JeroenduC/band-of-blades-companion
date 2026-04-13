@@ -1,0 +1,63 @@
+name: Accessibility Audit
+
+on:
+  push:
+    branches:
+      - 'feature/**'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  a11y:
+    name: WCAG 2.1 AA audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          # Dummy Supabase values — build only, no live DB connection needed
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: placeholder-service-key
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Start production server
+        run: npm start &
+        env:
+          PORT: 3000
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: placeholder-service-key
+
+      - name: Wait for server to be ready
+        run: |
+          for i in $(seq 1 20); do
+            if curl -sf http://localhost:3000/sign-in > /dev/null; then
+              echo "Server ready"
+              break
+            fi
+            echo "Waiting ($i/20)..."
+            sleep 2
+          done
+
+      - name: Run axe-core accessibility audit
+        run: npm run a11y
+        env:
+          BASE_URL: http://localhost:3000
