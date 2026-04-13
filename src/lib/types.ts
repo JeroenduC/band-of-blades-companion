@@ -72,7 +72,8 @@ export type CampaignPhaseLogActionType =
   | 'MISSION_FOCUS_SELECTED'
   | 'MISSION_GENERATION_COMPLETE'
   | 'MISSION_SELECTED'
-  | 'PHASE_COMPLETE';
+  | 'PHASE_COMPLETE'
+  | 'MEMBER_REMOVED';
 
 export interface CampaignPhaseLog {
   id: string;

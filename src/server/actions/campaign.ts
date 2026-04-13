@@ -186,3 +186,74 @@ export async function assignRole(
   revalidatePath(`/campaign/${campaignId}/members`);
   return null;
 }
+
+export async function removePlayer(
+  _prevState: { error: string } | null,
+  formData: FormData,
+) {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) redirect('/sign-in');
+
+  const membershipId = formData.get('membership_id') as string;
+  const campaignId = formData.get('campaign_id') as string;
+
+  if (!membershipId || !campaignId) return { error: 'Invalid request' };
+
+  // Verify the caller is the GM
+  const { data: gmMembership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .eq('role', 'GM')
+    .maybeSingle();
+
+  if (!gmMembership) return { error: 'Only the GM can remove players' };
+
+  // Fetch the target membership to get display name and verify it's not the GM themselves
+  const { data: target } = await db
+    .from('campaign_memberships')
+    .select('id, user_id, role, profiles(display_name)')
+    .eq('id', membershipId)
+    .eq('campaign_id', campaignId)
+    .maybeSingle();
+
+  if (!target) return { error: 'Player not found in this campaign' };
+
+  if (target.user_id === user.id) return { error: 'You cannot remove yourself from the campaign' };
+
+  // Delete the membership — cascades on the DB side
+  const { error: deleteError } = await db
+    .from('campaign_memberships')
+    .delete()
+    .eq('id', membershipId);
+
+  if (deleteError) return { error: deleteError.message };
+
+  // Log the removal (best-effort — don't block on this)
+  const { data: campaign } = await db
+    .from('campaigns')
+    .select('phase_number')
+    .eq('id', campaignId)
+    .single();
+
+  if (campaign) {
+    const displayName =
+      (target.profiles as unknown as { display_name: string } | null)?.display_name ?? 'Unknown player';
+
+    await db.from('campaign_phase_log').insert({
+      campaign_id: campaignId,
+      phase_number: campaign.phase_number,
+      step: 'AWAITING_MISSION_RESOLUTION',
+      role: 'GM',
+      action_type: 'MEMBER_REMOVED',
+      details: { removed_display_name: displayName, removed_role: target.role },
+    });
+  }
+
+  revalidatePath(`/campaign/${campaignId}/members`);
+  return null;
+}
