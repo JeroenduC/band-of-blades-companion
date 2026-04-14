@@ -90,6 +90,11 @@ These rules come from the Project Brief section 1.3 and are non-negotiable.
 - Use data-driven patterns: arrays of states, maps of transitions, registries of actions. Avoid long if/else or switch chains that need editing every time something is added.
 - When building any feature, ask: "What if the game rules change?" Band of Blades has community houserules and the owner may want to customise the workflow. Build for that.
 
+### Supabase String-Selector Helpers
+- When a helper function uses a string column selector (e.g. `db.from('x').select('a, b, c')`), TypeScript cannot infer column types. The return type of `campaign` will be inferred as `GenericStringError` unless you add an explicit return type annotation.
+- **Fix pattern:** Annotate the helper's return type explicitly (e.g. `Promise<{ campaign: Record<string, unknown> | null }>`), then cast at each call site with `const campaign = _raw as unknown as MyRowInterface`. The double-cast through `unknown` is required when TypeScript considers the source and target types "insufficiently overlapping" — `as SomeType` alone will fail with "may be a mistake."
+- Never cast directly with `as Record<string, unknown>` when the source is a typed interface. Always go through `unknown` first.
+
 ### Server Actions and Client Component State
 - **`revalidatePath` does not re-render already-mounted Client Components.** When a server action calls `revalidatePath`, Server Components above the Client Component will re-render and pass fresh props down — but only if the Client Component is a direct child of a Server Component that receives the new data as props. If the component receives no new props, the displayed state will be stale.
 - **Fix pattern:** In a Client Component that uses `useActionState`, watch the returned state in a `useEffect`. When the action succeeds, call `router.refresh()` to force a full re-fetch:
