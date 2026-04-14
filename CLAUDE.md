@@ -228,7 +228,7 @@ Claude Code must manage GitHub Issues and the Project Board actively during deve
    - Move the issue to "Review" on the Project board
    - Assign the issue to the project owner (JeroenduC)
    - Add a comment on the issue explaining how to test it: what to look at, what URLs to visit, what to click, what the expected result is
-   - Do NOT close the issue — the owner closes it after review
+   - **NEVER close an issue. NEVER move an issue to "Done".** Only the owner (JeroenduC) does that, after review. This applies to every issue without exception — including DB migrations, data files, documentation, and retrospectives.
 4. **Bugs:** Follow the same lifecycle, even for quick fixes. Create an issue, move it through In Progress → Review.
 
 ### Sprint Closure
