@@ -9,7 +9,10 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
-import type { Campaign, CampaignMembership, LegionRole, BackAtCampScene, MoraleLevel } from '@/lib/types';
+import type {
+  Campaign, CampaignMembership, LegionRole, BackAtCampScene, MoraleLevel,
+  Alchemist, Mercy, Laborers, LongTermProject, SiegeWeapon, RecruitPool,
+} from '@/lib/types';
 
 export interface DashboardData {
   userId: string;
@@ -115,6 +118,59 @@ export async function loadBackAtCampScenes(
 
   // All scenes exhausted — return whatever level we have
   return { scenes: scenes.filter((s) => s.morale_level === level), activeLevel: level, fallback: false };
+}
+
+// ─── QM Materiel ─────────────────────────────────────────────────────────────
+
+export interface QmMaterielData {
+  alchemists: Alchemist[];
+  mercies: Mercy[];
+  laborers: Laborers | null;
+  longTermProjects: LongTermProject[];
+  siegeWeapons: SiegeWeapon[];
+  recruitPool: RecruitPool[];
+  /** Asset types already acquired this phase (to grey out duplicates) */
+  acquiredAssetTypes: string[];
+}
+
+/**
+ * Load all QM materiel for a campaign.
+ * Called from the Quartermaster dashboard page alongside loadDashboard.
+ */
+export async function loadQmMateriel(campaignId: string, phaseNumber: number): Promise<QmMaterielData> {
+  const db = createServiceClient();
+
+  const [
+    { data: alchemists },
+    { data: mercies },
+    { data: laborers },
+    { data: longTermProjects },
+    { data: siegeWeapons },
+    { data: recruitPool },
+    { data: acquiredLog },
+  ] = await Promise.all([
+    db.from('alchemists').select('*').eq('campaign_id', campaignId).order('created_at'),
+    db.from('mercies').select('*').eq('campaign_id', campaignId).order('created_at'),
+    db.from('laborers').select('*').eq('campaign_id', campaignId).maybeSingle(),
+    db.from('long_term_projects').select('*').eq('campaign_id', campaignId).order('created_at'),
+    db.from('siege_weapons').select('*').eq('campaign_id', campaignId).order('created_at'),
+    db.from('recruit_pool').select('*').eq('campaign_id', campaignId).eq('phase_number', phaseNumber).order('created_at'),
+    db.from('campaign_phase_log').select('details').eq('campaign_id', campaignId).eq('phase_number', phaseNumber).eq('action_type', 'ACQUIRE_ASSETS'),
+  ]);
+
+  const acquiredAssetTypes = (acquiredLog ?? []).map(
+    (row) => (row.details as Record<string, unknown>).asset_type as string,
+  );
+
+  return {
+    alchemists: (alchemists ?? []) as Alchemist[],
+    mercies: (mercies ?? []) as Mercy[],
+    laborers: laborers as Laborers | null,
+    longTermProjects: (longTermProjects ?? []) as LongTermProject[],
+    siegeWeapons: (siegeWeapons ?? []) as SiegeWeapon[],
+    recruitPool: (recruitPool ?? []) as RecruitPool[],
+    acquiredAssetTypes,
+  };
 }
 
 /**
