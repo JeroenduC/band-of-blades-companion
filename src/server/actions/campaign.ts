@@ -171,7 +171,8 @@ export async function assignRole(
   const { error } = await db
     .from('campaign_memberships')
     .update({ role, rank })
-    .eq('id', membershipId);
+    .eq('id', membershipId)
+    .eq('campaign_id', campaignId);
 
   if (error) {
     // Unique constraint violation — a PRIMARY for this role already exists.
