@@ -201,11 +201,15 @@ src/
 
 ## 9. Communication
 
+### 9.1 General
 - Respond in **English** unless the user explicitly asks for another language.
 - Code variables, function names, and comments in English.
 - Be concise — no unnecessary summaries at the end of a response.
 - When unsure about a game mechanic, reference the Band of Blades rulebook (the PDF is available in the project context) rather than guessing.
 - When facing an architectural choice, check if there's a relevant ADR before making a decision. If not, flag it as a potential new ADR.
+
+### 9.2 Your Workflow With Claude
+For the full two-agent workflow using Claude Code (senior) and Gemini CLI (junior), see [docs/Two_Agent_Sprint_Protocol.md](docs/Two_Agent_Sprint_Protocol.md).
 
 ---
 
