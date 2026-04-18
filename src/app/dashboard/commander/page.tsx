@@ -1,6 +1,7 @@
 import { loadDashboard } from '@/server/loaders/dashboard';
 import { DashboardShell } from '@/components/features/campaign/dashboard-shell';
 import { CommanderWarTable } from '@/components/features/campaign/commander-war-table';
+import { MissionFocusForm } from '@/components/features/campaign/mission-focus-form';
 import { WaitingForOthers } from '@/components/features/campaign/waiting-for-others';
 import { TimePassesSummary } from '@/components/features/campaign/time-passes-summary';
 import { AdvanceDecisionForm } from '@/components/features/campaign/advance-decision-form';
@@ -57,16 +58,7 @@ export default async function CommanderDashboardPage() {
               </LegionCardTitle>
             </LegionCardHeader>
             <LegionCardContent>
-              <PlaceholderStep
-                campaignId={campaign.id}
-                title="Mission Focus"
-                message="Full mission type selection (Assault, Recon, Religious, Supply) will be implemented in Epic 9. For now, click Continue to advance."
-                buttonLabel="Continue to Mission Generation"
-                nextState="AWAITING_MISSION_GENERATION"
-                role="COMMANDER"
-                actionType="MISSION_FOCUS_SELECTED"
-                dashboardPath="/dashboard/commander"
-              />
+              <MissionFocusForm campaign={campaign} />
             </LegionCardContent>
           </LegionCard>
         ) : phaseState === 'AWAITING_MISSION_SELECTION' ? (

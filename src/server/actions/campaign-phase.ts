@@ -18,6 +18,7 @@ import type {
   CampaignPhaseState,
   CampaignPhaseLogActionType,
   LegionRole,
+  MissionType,
 } from '@/lib/types';
 
 // ─── Logging ──────────────────────────────────────────────────────────────────
@@ -1961,4 +1962,71 @@ export async function completeLaborersAlchemists(formData: FormData): Promise<vo
   revalidatePath('/dashboard/quartermaster');
   revalidatePath('/dashboard/commander');
   redirect('/dashboard/quartermaster');
+}
+
+// ─── Mission Focus (Step 8) ───────────────────────────────────────────────────
+
+/**
+ * Commander action: select the mission focus for the next operation.
+ * 
+ * Records the focus in the log and transitions to AWAITING_MISSION_GENERATION.
+ * BoB rulebook p.121
+ */
+export async function selectMissionFocus(formData: FormData): Promise<void> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) redirect('/sign-in');
+
+  const campaignId = formData.get('campaign_id') as string;
+  const focus = formData.get('focus') as MissionType;
+
+  if (!campaignId || !focus) throw new Error('Campaign ID and focus are required');
+
+  // Verify role (Commander or GM)
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .in('role', ['COMMANDER', 'GM'])
+    .maybeSingle();
+
+  if (!membership) throw new Error('Only the Commander or GM can select mission focus');
+
+  const { data: campaign, error: fetchError } = await db
+    .from('campaigns')
+    .select('campaign_phase_state, phase_number')
+    .eq('id', campaignId)
+    .single();
+
+  if (fetchError || !campaign) throw new Error('Campaign not found');
+
+  const currentState = campaign.campaign_phase_state as CampaignPhaseState | null;
+
+  assertValidTransition(
+    currentState,
+    'AWAITING_MISSION_GENERATION',
+  );
+
+  const { error: updateError } = await db
+    .from('campaigns')
+    .update({ campaign_phase_state: 'AWAITING_MISSION_GENERATION' })
+    .eq('id', campaignId);
+
+  if (updateError) throw new Error(updateError.message);
+
+  await logCampaignAction({
+    campaignId,
+    phaseNumber: campaign.phase_number,
+    step: 'AWAITING_MISSION_FOCUS',
+    role: 'COMMANDER',
+    actionType: 'MISSION_FOCUS_SELECTED',
+    details: { focus },
+  });
+
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/commander');
+  redirect('/dashboard/commander');
 }
