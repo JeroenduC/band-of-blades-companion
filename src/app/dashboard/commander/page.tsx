@@ -7,6 +7,7 @@ import { TimePassesSummary } from '@/components/features/campaign/time-passes-su
 import { AdvanceDecisionForm } from '@/components/features/campaign/advance-decision-form';
 import { PlaceholderStep } from '@/components/features/campaign/placeholder-step';
 import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle } from '@/components/legion';
+import { LocationMap } from '@/components/features/campaign/location-map';
 import { isRoleActive } from '@/lib/state-machine';
 import type { CampaignPhaseState } from '@/lib/types';
 
@@ -20,6 +21,17 @@ export default async function CommanderDashboardPage() {
   return (
     <DashboardShell role="COMMANDER" campaignName={campaign.name}>
       <CommanderWarTable campaign={campaign} />
+
+      <LegionCard>
+        <LegionCardHeader>
+          <LegionCardTitle className="text-sm font-medium text-legion-text-muted uppercase tracking-widest">
+            Campaign Map
+          </LegionCardTitle>
+        </LegionCardHeader>
+        <LegionCardContent>
+          <LocationMap currentLocationId={campaign.current_location} />
+        </LegionCardContent>
+      </LegionCard>
 
       {phaseState === null ? (
         <div className="rounded-lg border border-dashed border-border p-8 text-center">
