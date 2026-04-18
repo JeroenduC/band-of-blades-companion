@@ -4,10 +4,17 @@ import { useActionState } from 'react';
 import { performLiberty, completeQmActions } from '@/server/actions/campaign-phase';
 import { freeActionsFromMorale } from '@/lib/campaign-utils';
 import type { LibertyState } from '@/server/actions/campaign-phase';
-import type { Campaign } from '@/lib/types';
+import type { Campaign, Mercy, LongTermProject } from '@/lib/types';
+import { RecruitActionCard } from './recruit-action-card';
+import { AcquireAssetsActionCard } from './acquire-assets-action-card';
+import { RnRActionCard } from './rnr-action-card';
+import { LongTermProjectActionCard } from './long-term-project-action-card';
 
 interface QmCampaignActionsProps {
   campaign: Campaign;
+  mercies: Mercy[];
+  longTermProjects: LongTermProject[];
+  acquiredAssetTypes: string[];
 }
 
 /**
@@ -17,11 +24,14 @@ interface QmCampaignActionsProps {
  * lists available actions as decision cards, and lets the QM mark complete
  * when done.
  */
-export function QmCampaignActions({ campaign }: QmCampaignActionsProps) {
+export function QmCampaignActions({
+  campaign,
+  mercies,
+  longTermProjects,
+  acquiredAssetTypes,
+}: QmCampaignActionsProps) {
   const freeActions = freeActionsFromMorale(campaign.morale);
-
-  const moraleLabel =
-    campaign.morale >= 8 ? 'High' : campaign.morale >= 4 ? 'Medium' : 'Low';
+  const moraleLabel = campaign.morale >= 8 ? 'High' : campaign.morale >= 4 ? 'Medium' : 'Low';
 
   return (
     <div className="flex flex-col gap-6">
@@ -54,49 +64,10 @@ export function QmCampaignActions({ campaign }: QmCampaignActionsProps) {
         </h3>
         <div className="flex flex-col gap-3">
           <LibertyActionCard campaign={campaign} />
-
-          {/* Remaining actions — placeholders for later epics */}
-          {([
-            {
-              name: 'Acquire Assets',
-              description: 'Gather supplies, food, and other resources.',
-              affects: 'Supply, Food, Intel',
-              epic: 'Epic 4',
-            },
-            {
-              name: 'Rest & Recuperation',
-              description: 'Allow Legionnaires to recover from injuries.',
-              affects: 'Legionnaire health',
-              epic: 'Epic 5',
-            },
-            {
-              name: 'Recruit',
-              description: 'Add new Legionnaires to the roster.',
-              affects: 'Roster size',
-              epic: 'Epic 5',
-            },
-            {
-              name: 'Long-Term Project',
-              description: 'Work on an ongoing project for the Legion.',
-              affects: 'Variable',
-              epic: 'Epic 4',
-            },
-          ] as const).map(({ name, description, affects, epic }) => (
-            <div
-              key={name}
-              className="rounded-md border border-border bg-legion-bg-elevated/50 p-4 opacity-60"
-              aria-label={`${name} — coming in ${epic}`}
-            >
-              <div className="flex items-start justify-between gap-2 mb-1">
-                <span className="text-sm font-medium text-legion-text-primary">{name}</span>
-                <span className="text-xs font-mono text-legion-text-muted shrink-0">{epic}</span>
-              </div>
-              <p className="text-xs text-legion-text-muted mb-1">{description}</p>
-              <p className="text-xs text-legion-text-muted">
-                Affects: <span className="text-legion-text-primary">{affects}</span>
-              </p>
-            </div>
-          ))}
+          <AcquireAssetsActionCard campaign={campaign} acquiredAssetTypes={acquiredAssetTypes} />
+          <RnRActionCard campaign={campaign} mercies={mercies} />
+          <RecruitActionCard campaign={campaign} />
+          <LongTermProjectActionCard campaign={campaign} longTermProjects={longTermProjects} />
         </div>
       </section>
 

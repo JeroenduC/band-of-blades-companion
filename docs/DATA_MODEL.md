@@ -1,7 +1,7 @@
 # Data Model
 
 Living document. Updated whenever a migration changes the schema.
-Last updated: Sprint 3 (2026-04-12)
+Last updated: Sprint 4 (2026-04-14)
 
 ---
 
@@ -135,11 +135,114 @@ Pool of Back at Camp scenes for a campaign. Seeded with 18 scenes on campaign cr
 
 ---
 
+### `long_term_projects`
+
+Custom campaign clocks. QM works on these via the Long-Term Project action; Laborers auto-tick them in Step 6.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | `uuid` | PK |
+| `campaign_id` | `uuid` | FK → `campaigns.id` ON DELETE CASCADE |
+| `name` | `text` | Project name |
+| `description` | `text` | What completing this project does |
+| `clock_size` | `integer` | 4–12 segments |
+| `segments_filled` | `integer` | 0 to clock_size |
+| `phase_last_worked` | `integer` | Prevents working the same project twice per phase |
+| `completed_at` | `timestamptz` | Nullable — set when segments_filled reaches clock_size |
+| `created_at` | `timestamptz` | |
+
+**RLS:** Campaign members can read. Service role only for writes.
+
+---
+
+### `alchemists`
+
+Non-Legion personnel. Roll for effect and corruption in Step 6.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | `uuid` | PK |
+| `campaign_id` | `uuid` | FK → `campaigns.id` ON DELETE CASCADE |
+| `name` | `text` | |
+| `corruption` | `integer` | 0–8. At 8: status becomes CORRUPTED |
+| `status` | `text` | `ACTIVE`, `CORRUPTED`, or `DEAD` |
+| `created_at` | `timestamptz` | |
+
+**RLS:** Campaign members can read. Service role only for writes.
+
+---
+
+### `mercies`
+
+Non-Legion healers. Used in R&R (Step 4) to give Specialists extra healing ticks.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | `uuid` | PK |
+| `campaign_id` | `uuid` | FK → `campaigns.id` ON DELETE CASCADE |
+| `name` | `text` | |
+| `wounded` | `boolean` | `true` if assigned during R&R. Heals automatically if unused. |
+| `created_at` | `timestamptz` | |
+
+**RLS:** Campaign members can read. Service role only for writes.
+
+---
+
+### `laborers`
+
+One row per campaign (unique constraint). Count + current project assignment for Step 6.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | `uuid` | PK |
+| `campaign_id` | `uuid` | FK → `campaigns.id` ON DELETE CASCADE. UNIQUE. |
+| `count` | `integer` | Number of Laborer units |
+| `current_project_id` | `uuid` | FK → `long_term_projects.id`. Nullable. Set during Step 6, reset after. |
+
+**RLS:** Campaign members can read. Service role only for writes.
+
+---
+
+### `siege_weapons`
+
+Siege weapons available to the Legion.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | `uuid` | PK |
+| `campaign_id` | `uuid` | FK → `campaigns.id` ON DELETE CASCADE |
+| `name` | `text` | |
+| `status` | `text` | `AVAILABLE`, `DEPLOYED`, or `DESTROYED` |
+| `created_at` | `timestamptz` | |
+
+**RLS:** Campaign members can read. Service role only for writes.
+
+---
+
+### `recruit_pool`
+
+Created by the QM Recruit action. One row per Recruit action taken per phase. The Marshal reads this to assign new soldiers to squads.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | `uuid` | PK |
+| `campaign_id` | `uuid` | FK → `campaigns.id` ON DELETE CASCADE |
+| `phase_number` | `integer` | Phase in which these recruits arrived |
+| `rookies` | `integer` | Count of Rookies in this batch |
+| `soldiers` | `integer` | Count of Soldiers (from boosted Recruit) |
+| `assigned` | `boolean` | Set to `true` once Marshal has placed them |
+| `created_at` | `timestamptz` | |
+
+**RLS:** Campaign members can read. Service role only for writes.
+
+---
+
 ## Migrations
 
 | File | Date | Description |
 |------|------|-------------|
 | `supabase/migrations/20260412000000_sprint3_campaign_phase.sql` | 2026-04-12 | Add `qm_actions_complete`, `spymaster_actions_complete`, `current_location` to campaigns; create `campaign_phase_log`; create `back_at_camp_scenes`; add `seed_back_at_camp_scenes` SQL function |
+| `supabase/migrations/20260414000000_sprint4_qm_materiel.sql` | 2026-04-14 | Create `long_term_projects`, `alchemists`, `mercies`, `laborers`, `siege_weapons`, `recruit_pool` with RLS |
 
 > **Note:** Sprint 1 schema changes (profiles, campaigns, campaign_memberships, sessions, RLS policies) were applied directly in the Supabase dashboard and are not captured in migration files. Future changes must be tracked here.
 

@@ -58,6 +58,65 @@ export interface Campaign {
   created_at: string;
 }
 
+// ─── Sprint 4: QM materiel and personnel ──────────────────────────────────────
+
+export type AlchemistStatus = 'ACTIVE' | 'CORRUPTED' | 'DEAD';
+export type SiegeWeaponStatus = 'AVAILABLE' | 'DEPLOYED' | 'DESTROYED';
+
+export interface LongTermProject {
+  id: string;
+  campaign_id: string;
+  name: string;
+  description: string;
+  clock_size: number;
+  segments_filled: number;
+  phase_last_worked: number | null;
+  completed_at: string | null;
+  created_at: string;
+}
+
+export interface Alchemist {
+  id: string;
+  campaign_id: string;
+  name: string;
+  corruption: number;
+  status: AlchemistStatus;
+  created_at: string;
+}
+
+export interface Mercy {
+  id: string;
+  campaign_id: string;
+  name: string;
+  wounded: boolean;
+  created_at: string;
+}
+
+export interface Laborers {
+  id: string;
+  campaign_id: string;
+  count: number;
+  current_project_id: string | null;
+}
+
+export interface SiegeWeapon {
+  id: string;
+  campaign_id: string;
+  name: string;
+  status: SiegeWeaponStatus;
+  created_at: string;
+}
+
+export interface RecruitPool {
+  id: string;
+  campaign_id: string;
+  phase_number: number;
+  rookies: number;
+  soldiers: number;
+  assigned: boolean;
+  created_at: string;
+}
+
 export type CampaignPhaseLogActionType =
   | 'PHASE_START'
   | 'MISSION_RESOLVED'
@@ -73,7 +132,13 @@ export type CampaignPhaseLogActionType =
   | 'MISSION_GENERATION_COMPLETE'
   | 'MISSION_SELECTED'
   | 'PHASE_COMPLETE'
-  | 'MEMBER_REMOVED';
+  | 'MEMBER_REMOVED'
+  | 'ACQUIRE_ASSETS'
+  | 'REST_AND_RECUPERATION'
+  | 'RECRUIT'
+  | 'LONG_TERM_PROJECT'
+  | 'ALCHEMIST_PROJECT'
+  | 'LABORER_TICK';
 
 export interface CampaignPhaseLog {
   id: string;

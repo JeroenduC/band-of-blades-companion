@@ -90,6 +90,11 @@ These rules come from the Project Brief section 1.3 and are non-negotiable.
 - Use data-driven patterns: arrays of states, maps of transitions, registries of actions. Avoid long if/else or switch chains that need editing every time something is added.
 - When building any feature, ask: "What if the game rules change?" Band of Blades has community houserules and the owner may want to customise the workflow. Build for that.
 
+### Supabase String-Selector Helpers
+- When a helper function uses a string column selector (e.g. `db.from('x').select('a, b, c')`), TypeScript cannot infer column types. The return type of `campaign` will be inferred as `GenericStringError` unless you add an explicit return type annotation.
+- **Fix pattern:** Annotate the helper's return type explicitly (e.g. `Promise<{ campaign: Record<string, unknown> | null }>`), then cast at each call site with `const campaign = _raw as unknown as MyRowInterface`. The double-cast through `unknown` is required when TypeScript considers the source and target types "insufficiently overlapping" — `as SomeType` alone will fail with "may be a mistake."
+- Never cast directly with `as Record<string, unknown>` when the source is a typed interface. Always go through `unknown` first.
+
 ### Server Actions and Client Component State
 - **`revalidatePath` does not re-render already-mounted Client Components.** When a server action calls `revalidatePath`, Server Components above the Client Component will re-render and pass fresh props down — but only if the Client Component is a direct child of a Server Component that receives the new data as props. If the component receives no new props, the displayed state will be stale.
 - **Fix pattern:** In a Client Component that uses `useActionState`, watch the returned state in a `useEffect`. When the action succeeds, call `router.refresh()` to force a full re-fetch:
@@ -223,7 +228,7 @@ Claude Code must manage GitHub Issues and the Project Board actively during deve
    - Move the issue to "Review" on the Project board
    - Assign the issue to the project owner (JeroenduC)
    - Add a comment on the issue explaining how to test it: what to look at, what URLs to visit, what to click, what the expected result is
-   - Do NOT close the issue — the owner closes it after review
+   - **NEVER close an issue. NEVER move an issue to "Done".** Only the owner (JeroenduC) does that, after review. This applies to every issue without exception — including DB migrations, data files, documentation, and retrospectives.
 4. **Bugs:** Follow the same lifecycle, even for quick fixes. Create an issue, move it through In Progress → Review.
 
 ### Sprint Closure
@@ -290,6 +295,11 @@ When adding a testing comment to a GitHub issue:
 - Always include the **exact URL** the user should visit (e.g. the full Vercel preview URL from the deployment status, or `http://localhost:3000/path`).
 - If the feature is only testable locally, say so and give the command to run.
 - Never write "visit the Vercel preview" without including the actual URL.
+- **If the issue requires a DB migration, make it step 1 of the testing comment.** Explicitly name the migration file and instruct the reviewer to run it in the Supabase SQL Editor before doing anything else. A reviewer hitting a missing-table error is a testing comment failure, not a code failure.
+
+### Seed and Utility Scripts
+- **Seed scripts must handle missing tables gracefully.** If a table doesn't exist (Supabase returns a schema cache error), log a warning and continue — don't crash. A partially-migrated environment should still allow the rest of the script to run.
+- Check for `error.message.includes('schema cache') || error.message.includes('does not exist')` to detect missing tables.
 
 ### Commit References
 - Always reference the issue number in commit messages: `feat(auth): implement sign-up flow (#3)`
