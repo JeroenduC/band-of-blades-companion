@@ -10,9 +10,9 @@ A web application that digitises the campaign phase of [Band of Blades](https://
 
 ## 🚀 Current Status
 
-**Epic 4 — Quartermaster Campaign Actions** 🔄
+**Epic 5 — Commander Tools** ⏳
 
-The Quartermaster's full action set is implemented. Server-side dice resolve Acquire Assets (location-aware), R&R, Recruit, Long-Term Projects, Alchemist Projects, and Laborer ticks. Next up: Commander tools (pressure, intel, mission selection).
+Epic 4 is complete. The Quartermaster's full action set is live. Next up: Commander tools — pressure tracking, intel, and mission selection.
 
 ---
 
@@ -62,7 +62,7 @@ The app looks and feels like Band of Blades. Design tokens, dark military theme,
 ### ✅ Epic 3: Campaign Phase State Machine
 Full 10-step campaign loop with role-aware dashboards, FSM, phase logging, mission resolution, Back at Camp, Time Passes, QM actions (Liberty), Commander Advance, and placeholder steps to complete the circuit.
 
-### 🔄 Epic 4: Quartermaster Campaign Actions
+### ✅ Epic 4: Quartermaster Campaign Actions
 All QM actions implemented: Acquire Assets (location-aware dice pool), R&R, Recruit, Long-Term Projects (create or work), Alchemist Projects (effect + corruption), Laborer ticks. QM Materiel Panel always visible. → [Sprint 4 Journal](docs/journal/sprint-04-quartermaster.md)
 
 ### ⏳ Epic 5: Commander Tools
