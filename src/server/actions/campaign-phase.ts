@@ -611,18 +611,22 @@ export interface AdvanceDecisionState {
   errors?: {
     campaign_id?: string[];
     decision?: string[];
+    path_id?: string[];
     horses_spent?: string[];
     _form?: string[];
   };
   /** Populated after a successful Advance roll so the UI can show the result */
   result?: {
     decision: 'ADVANCE' | 'STAY';
+    new_location_id?: string;
+    new_location_name?: string;
     horses_spent: number;
     pressure_before: number;
     pressure_after_horses: number;
     dice: number[];
     worst_die: number;
     time_ticks_added: number;
+    broken_advance: boolean;
   };
 }
 
@@ -631,6 +635,8 @@ const AdvanceDecisionSchema = z.object({
   decision: z.enum(['ADVANCE', 'STAY'], {
     error: 'Select Advance or Stay',
   }),
+  // ID of the destination location (required when advancing to a fork)
+  path_id: z.string().optional(),
   // Horses spent to reduce pressure before the roll (BoB rulebook p.119)
   horses_spent: z.coerce
     .number()
@@ -731,6 +737,7 @@ export async function makeAdvanceDecision(
   const raw = {
     campaign_id: formData.get('campaign_id'),
     decision: formData.get('decision'),
+    path_id: formData.get('path_id') || undefined,
     horses_spent: formData.get('horses_spent') || '0',
   };
 
@@ -739,7 +746,7 @@ export async function makeAdvanceDecision(
     return { errors: parsed.error.flatten().fieldErrors };
   }
 
-  const { campaign_id, decision, horses_spent } = parsed.data;
+  const { campaign_id, decision, path_id, horses_spent } = parsed.data;
 
   const { data: membership } = await db
     .from('campaign_memberships')
@@ -755,7 +762,7 @@ export async function makeAdvanceDecision(
 
   const { data: campaign, error: fetchError } = await db
     .from('campaigns')
-    .select('campaign_phase_state, phase_number, pressure, horse_uses, time_clock_1, time_clock_2, time_clock_3')
+    .select('campaign_phase_state, phase_number, pressure, horse_uses, time_clock_1, time_clock_2, time_clock_3, current_location')
     .eq('id', campaign_id)
     .single();
 
@@ -776,13 +783,48 @@ export async function makeAdvanceDecision(
     return { errors: { horses_spent: [`Only ${campaign.horse_uses} Horse uses available`] } };
   }
 
+  // Validate path selection when advancing
+  const { getConnections } = await import('@/lib/locations');
+  const connections = getConnections(campaign.current_location);
+
+  let resolvedPathId: string | undefined;
+  if (decision === 'ADVANCE') {
+    if (connections.length === 0) {
+      return { errors: { _form: ['No paths available from current location'] } };
+    }
+    if (connections.length === 1) {
+      resolvedPathId = connections[0].id;
+    } else {
+      if (!path_id) {
+        return { errors: { path_id: ['Select a path to advance to'] } };
+      }
+      if (!connections.find((c) => c.id === path_id)) {
+        return { errors: { path_id: ['Invalid path selection'] } };
+      }
+      resolvedPathId = path_id;
+    }
+  }
+
+  const newLocation = resolvedPathId ? connections.find((c) => c.id === resolvedPathId) : undefined;
+
   let logDetails: Record<string, unknown>;
   let updates: Record<string, unknown> = { campaign_phase_state: 'AWAITING_MISSION_FOCUS' };
+  let resultState: AdvanceDecisionState['result'];
 
   if (decision === 'STAY') {
     logDetails = { decision: 'STAY' };
+    resultState = {
+      decision: 'STAY',
+      horses_spent: 0,
+      pressure_before: campaign.pressure,
+      pressure_after_horses: campaign.pressure,
+      dice: [],
+      worst_die: 0,
+      time_ticks_added: 0,
+      broken_advance: false,
+    };
   } else {
-    // Advance: reduce pressure by horses spent, then roll
+    // Advance: reduce pressure by horses spent, roll, update location
     const pressureAfterHorses = Math.max(0, campaign.pressure - horses_spent);
     const diceCount = pressureAfterHorses === 0 ? 2 : pressureAfterHorses;
     const dice = rollDice(diceCount);
@@ -797,15 +839,31 @@ export async function makeAdvanceDecision(
 
     updates = {
       ...updates,
-      pressure: 0, // pressure resets after advance roll
+      pressure: 0,
       horse_uses: campaign.horse_uses - horses_spent,
       time_clock_1: clock1,
       time_clock_2: clock2,
       time_clock_3: clock3,
+      current_location: resolvedPathId,
     };
 
     logDetails = {
       decision: 'ADVANCE',
+      from_location: campaign.current_location,
+      to_location: resolvedPathId,
+      horses_spent,
+      pressure_before: campaign.pressure,
+      pressure_after_horses: pressureAfterHorses,
+      dice,
+      worst_die: Math.min(...dice),
+      time_ticks_added: timeTicks,
+      broken_advance: brokenAdvance,
+    };
+
+    resultState = {
+      decision: 'ADVANCE',
+      new_location_id: resolvedPathId,
+      new_location_name: newLocation?.name,
       horses_spent,
       pressure_before: campaign.pressure,
       pressure_after_horses: pressureAfterHorses,
@@ -836,7 +894,7 @@ export async function makeAdvanceDecision(
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/commander');
-  redirect('/dashboard/commander');
+  return { result: resultState };
 }
 
 // ─── QM Campaign Actions ──────────────────────────────────────────────────────

@@ -44,6 +44,11 @@ export interface Location {
   description: string;
   /** Extra notes — e.g. resource costs, special rules. */
   notes?: string;
+  /**
+   * IDs of locations the Legion can advance to from here.
+   * BoB rulebook pp. 120-121 (campaign map).
+   */
+  connections: string[];
 }
 
 export const LOCATIONS: Location[] = [
@@ -54,6 +59,7 @@ export const LOCATIONS: Location[] = [
     bonus_assets: {},
     available_mission_types: ['ASSAULT', 'RECON'],
     description: 'Open battlefield. Little to forage.',
+    connections: ['plainsworth'],
   },
   {
     id: 'plainsworth',
@@ -62,6 +68,7 @@ export const LOCATIONS: Location[] = [
     bonus_assets: { FOOD: 2, HORSES: 2 },
     available_mission_types: ['ASSAULT', 'RECON', 'SUPPLY', 'RELIGIOUS'],
     description: 'Fertile farming settlement. Rich in food and livestock.',
+    connections: ['sunstrider_camp', 'long_road'],
   },
   {
     id: 'long_road',
@@ -71,6 +78,7 @@ export const LOCATIONS: Location[] = [
     available_mission_types: ['ASSAULT', 'RECON'],
     description: 'A harsh march. Supplies consumed faster than usual.',
     notes: 'Extra Food cost while stationed here.',
+    connections: ['barrak_mines'],
   },
   {
     id: 'barrak_mines',
@@ -79,6 +87,7 @@ export const LOCATIONS: Location[] = [
     bonus_assets: { BLACK_SHOT: 2 },
     available_mission_types: ['ASSAULT', 'RECON', 'SUPPLY'],
     description: 'Mining complex. Black Shot is abundant.',
+    connections: ['gallows_pass'],
   },
   {
     id: 'gallows_pass',
@@ -87,6 +96,7 @@ export const LOCATIONS: Location[] = [
     bonus_assets: {},
     available_mission_types: ['ASSAULT', 'RECON', 'RELIGIOUS'],
     description: 'Mountain pass with a grim history. A place of old faith.',
+    connections: ['talgon_forest'],
   },
   {
     id: 'sunstrider_camp',
@@ -95,6 +105,7 @@ export const LOCATIONS: Location[] = [
     bonus_assets: { HORSES: 2 },
     available_mission_types: ['ASSAULT', 'RECON'],
     description: 'Former cavalry encampment. Horses still run wild here.',
+    connections: ['duresh_forest', 'westlake'],
   },
   {
     id: 'duresh_forest',
@@ -103,6 +114,7 @@ export const LOCATIONS: Location[] = [
     bonus_assets: {},
     available_mission_types: ['ASSAULT', 'RECON', 'RELIGIOUS'],
     description: 'Dense old-growth forest. Sacred to the old faiths.',
+    connections: ['talgon_forest'],
   },
   {
     id: 'talgon_forest',
@@ -111,6 +123,7 @@ export const LOCATIONS: Location[] = [
     bonus_assets: {},
     available_mission_types: ['RECON', 'RELIGIOUS'],
     description: 'Quiet and deep. Better for scouting than fighting.',
+    connections: ['fort_calisco'],
   },
   {
     id: 'westlake',
@@ -119,6 +132,7 @@ export const LOCATIONS: Location[] = [
     bonus_assets: {},
     available_mission_types: ['ASSAULT', 'RECON', 'SUPPLY', 'RELIGIOUS'],
     description: 'Prosperous lakeside town. Well-stocked and accessible.',
+    connections: ['eastlake'],
   },
   {
     id: 'eastlake',
@@ -127,6 +141,7 @@ export const LOCATIONS: Location[] = [
     bonus_assets: {},
     available_mission_types: ['ASSAULT', 'RECON', 'SUPPLY', 'RELIGIOUS'],
     description: 'Sister city to Westlake. Equal in resources.',
+    connections: ['fort_calisco'],
   },
   {
     id: 'fort_calisco',
@@ -135,6 +150,7 @@ export const LOCATIONS: Location[] = [
     bonus_assets: {},
     available_mission_types: ['ASSAULT', 'RECON', 'SUPPLY', 'RELIGIOUS'],
     description: 'A fortified position with solid supply lines.',
+    connections: ['high_road', 'the_maw'],
   },
   {
     id: 'high_road',
@@ -143,6 +159,7 @@ export const LOCATIONS: Location[] = [
     bonus_assets: {},
     available_mission_types: ['ASSAULT', 'RECON'],
     description: 'Exposed mountain road. No time to forage.',
+    connections: ['skydagger_keep'],
   },
   {
     id: 'the_maw',
@@ -151,6 +168,7 @@ export const LOCATIONS: Location[] = [
     bonus_assets: {},
     available_mission_types: ['ASSAULT', 'RELIGIOUS'],
     description: 'A blighted pass. Strange and terrible. Faith may help.',
+    connections: ['skydagger_keep'],
   },
   {
     id: 'skydagger_keep',
@@ -160,6 +178,7 @@ export const LOCATIONS: Location[] = [
     available_mission_types: [],
     description: 'The final destination. The last stand of the 338th.',
     notes: 'Endgame location — no missions available.',
+    connections: [],
   },
 ];
 
@@ -176,4 +195,11 @@ export function getLocation(id: string): Location | undefined {
  */
 export function getAssetsDicePool(location: Location, assetType: AssetType): number {
   return location.assets_rating + (location.bonus_assets[assetType] ?? 0);
+}
+
+/** Returns the Location objects reachable from a given location ID. */
+export function getConnections(locationId: string): Location[] {
+  const loc = getLocation(locationId);
+  if (!loc) return [];
+  return loc.connections.map((id) => getLocation(id)).filter((l): l is Location => l !== undefined);
 }
