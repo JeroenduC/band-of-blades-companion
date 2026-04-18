@@ -157,7 +157,8 @@ export type CampaignPhaseLogActionType =
   | 'RECRUIT'
   | 'LONG_TERM_PROJECT'
   | 'ALCHEMIST_PROJECT'
-  | 'LABORER_TICK';
+  | 'LABORER_TICK'
+  | 'INTEL_QUESTIONS_SUBMITTED';
 
 export interface CampaignPhaseLog {
   id: string;

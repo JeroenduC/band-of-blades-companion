@@ -5,7 +5,7 @@ import { MissionFocusForm } from '@/components/features/campaign/mission-focus-f
 import { WaitingForOthers } from '@/components/features/campaign/waiting-for-others';
 import { TimePassesSummary } from '@/components/features/campaign/time-passes-summary';
 import { AdvanceDecisionForm } from '@/components/features/campaign/advance-decision-form';
-import { PlaceholderStep } from '@/components/features/campaign/placeholder-step';
+import { MissionSelectionStep } from '@/components/features/campaign/mission-selection-step';
 import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle } from '@/components/legion';
 import { LocationMap } from '@/components/features/campaign/location-map';
 import { isRoleActive } from '@/lib/state-machine';
@@ -81,16 +81,7 @@ export default async function CommanderDashboardPage() {
               </LegionCardTitle>
             </LegionCardHeader>
             <LegionCardContent>
-              <PlaceholderStep
-                campaignId={campaign.id}
-                title="Mission Selection"
-                message="Full mission selection will be implemented in Epic 5/6. Click Continue to complete this phase."
-                buttonLabel="Complete Phase"
-                nextState="PHASE_COMPLETE"
-                role="COMMANDER"
-                actionType="MISSION_SELECTED"
-                dashboardPath="/dashboard/commander"
-              />
+              <MissionSelectionStep campaignId={campaign.id} intel={campaign.intel} />
             </LegionCardContent>
           </LegionCard>
         ) : (

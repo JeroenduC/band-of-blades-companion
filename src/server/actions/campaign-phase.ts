@@ -2088,3 +2088,96 @@ export async function selectMissionFocus(formData: FormData): Promise<void> {
   revalidatePath('/dashboard/commander');
   redirect('/dashboard/commander');
 }
+
+// ─── Intel Questions (Step 9 sub-step) ───────────────────────────────────────
+
+export interface IntelQuestionsState {
+  errors?: {
+    campaign_id?: string[];
+    _form?: string[];
+  };
+  success?: boolean;
+}
+
+const IntelQuestionsSchema = z.object({
+  campaign_id: z.string().uuid('Invalid campaign'),
+  // JSON array of selected question IDs, one per unlocked tier
+  questions: z.string().min(1, 'Select at least one question'),
+});
+
+/**
+ * Commander action: record selected intel questions in the phase log.
+ *
+ * Does NOT change campaign_phase_state — intel questions are asked as a
+ * sub-step of AWAITING_MISSION_SELECTION. The GM answers these questions
+ * verbally during the session.
+ *
+ * BoB rulebook pp.122-123 (Intel questions).
+ */
+export async function submitIntelQuestions(
+  _prevState: IntelQuestionsState | null,
+  formData: FormData,
+): Promise<IntelQuestionsState> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) redirect('/sign-in');
+
+  const raw = {
+    campaign_id: formData.get('campaign_id'),
+    questions: formData.get('questions'),
+  };
+
+  const parsed = IntelQuestionsSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { errors: parsed.error.flatten().fieldErrors };
+  }
+
+  const { campaign_id, questions: questionsJson } = parsed.data;
+
+  let selectedQuestions: unknown;
+  try {
+    selectedQuestions = JSON.parse(questionsJson);
+  } catch {
+    return { errors: { _form: ['Invalid questions data'] } };
+  }
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaign_id)
+    .eq('user_id', user.id)
+    .eq('role', 'COMMANDER')
+    .maybeSingle();
+
+  if (!membership) {
+    return { errors: { _form: ['Only the Commander can submit intel questions'] } };
+  }
+
+  const { data: campaign, error: fetchError } = await db
+    .from('campaigns')
+    .select('campaign_phase_state, phase_number')
+    .eq('id', campaign_id)
+    .single();
+
+  if (fetchError || !campaign) {
+    return { errors: { _form: ['Campaign not found'] } };
+  }
+
+  if (campaign.campaign_phase_state !== 'AWAITING_MISSION_SELECTION') {
+    return { errors: { _form: ['Intel questions can only be submitted during mission selection'] } };
+  }
+
+  await logCampaignAction({
+    campaignId: campaign_id,
+    phaseNumber: campaign.phase_number,
+    step: 'AWAITING_MISSION_SELECTION',
+    role: 'COMMANDER',
+    actionType: 'INTEL_QUESTIONS_SUBMITTED',
+    details: { questions: selectedQuestions },
+  });
+
+  revalidatePath('/dashboard/commander');
+  return { success: true };
+}
