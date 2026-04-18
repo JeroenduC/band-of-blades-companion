@@ -295,6 +295,11 @@ When adding a testing comment to a GitHub issue:
 - Always include the **exact URL** the user should visit (e.g. the full Vercel preview URL from the deployment status, or `http://localhost:3000/path`).
 - If the feature is only testable locally, say so and give the command to run.
 - Never write "visit the Vercel preview" without including the actual URL.
+- **If the issue requires a DB migration, make it step 1 of the testing comment.** Explicitly name the migration file and instruct the reviewer to run it in the Supabase SQL Editor before doing anything else. A reviewer hitting a missing-table error is a testing comment failure, not a code failure.
+
+### Seed and Utility Scripts
+- **Seed scripts must handle missing tables gracefully.** If a table doesn't exist (Supabase returns a schema cache error), log a warning and continue — don't crash. A partially-migrated environment should still allow the rest of the script to run.
+- Check for `error.message.includes('schema cache') || error.message.includes('does not exist')` to detect missing tables.
 
 ### Commit References
 - Always reference the issue number in commit messages: `feat(auth): implement sign-up flow (#3)`

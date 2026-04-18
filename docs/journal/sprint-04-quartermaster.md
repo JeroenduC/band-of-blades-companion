@@ -2,7 +2,7 @@
 
 **Branch:** `feature/epic-04-quartermaster`  
 **Epic:** #4 — Quartermaster Phase Actions  
-**Issues:** #54 Acquire Assets · #55 R&R · #56 Recruit · #57 Long-Term Project · #58 Materiel Dashboard · #59 Alchemists/Laborers · #60 DB Tables · #61 Location Data
+**Issues:** #54 Acquire Assets · #55 R&R · #56 Recruit · #57 Long-Term Project · #58 Materiel Dashboard · #59 Alchemists/Laborers · #60 DB Tables · #61 Location Data · #64 Seed Script · #65 Dev Login Helper
 
 ---
 
@@ -34,7 +34,19 @@
 
 **Repository ruleset blocking feature branch pushes**: The repo had a branch protection rule applying to `~ALL` branches, requiring PRs even for feature branches. User adjusted the ruleset to allow direct pushes to feature branches.
 
+## Late additions (#64 and #65)
+
+- **Expanded seed script** (`scripts/seed-test-users.ts`): now creates 3 campaigns (Alpha/Beta/Gamma) with 8 numbered users each. Idempotent — runs clean before seeding. Invite codes printed per campaign.
+- **`npm run seed:clean`** (`scripts/seed-clean.ts`): standalone full wipe of all data and auth users.
+- **Dev login helper** (`dev-login-helper.tsx`): accordion on the sign-in page listing all test accounts grouped by campaign. One-click fill and submit. Rendered only when `NODE_ENV !== 'production'` — tree-shaken out of production builds (sign-in bundle size unchanged).
+
 ## Retrospective findings
 
-See issue #62 for the full retrospective. Key additions to CLAUDE.md:
-- Added rule: when using Supabase string-selector helpers, always annotate the return type explicitly and use `as unknown as InterfaceName` at the call site.
+Key additions to CLAUDE.md from this sprint:
+
+**From #54–#59:**
+- Supabase string-selector helpers lose type inference — always annotate return type explicitly and cast with `as unknown as InterfaceName` at the call site.
+
+**From #64–#65:**
+- Seed scripts must detect missing tables (schema cache errors) and warn rather than crash — a partially-migrated environment should not block the rest of the script.
+- Testing comments for issues that depend on a DB migration must make applying that migration step 1, explicitly naming the file. A reviewer hitting a missing-table error is a testing comment failure.
