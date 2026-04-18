@@ -8,8 +8,9 @@ import { AdvanceDecisionForm } from '@/components/features/campaign/advance-deci
 import { MissionSelectionStep } from '@/components/features/campaign/mission-selection-step';
 import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle } from '@/components/legion';
 import { LocationMap } from '@/components/features/campaign/location-map';
+import { createServiceClient } from '@/lib/supabase/service';
 import { isRoleActive } from '@/lib/state-machine';
-import type { CampaignPhaseState } from '@/lib/types';
+import type { CampaignPhaseState, Mission } from '@/lib/types';
 
 export const metadata = { title: 'Commander — Band of Blades' };
 
@@ -17,6 +18,20 @@ export default async function CommanderDashboardPage() {
   const { campaign } = await loadDashboard('COMMANDER');
   const phaseState = campaign.campaign_phase_state as CampaignPhaseState | null;
   const isMyTurn = phaseState !== null && isRoleActive('COMMANDER', phaseState);
+
+  // Fetch missions for the selection step
+  let phaseMissions: Mission[] = [];
+  if (phaseState === 'AWAITING_MISSION_SELECTION') {
+    const db = createServiceClient();
+    const { data } = await db
+      .from('missions')
+      .select('*')
+      .eq('campaign_id', campaign.id)
+      .eq('phase_number', campaign.phase_number)
+      .eq('status', 'GENERATED')
+      .order('created_at', { ascending: true });
+    phaseMissions = (data ?? []) as unknown as Mission[];
+  }
 
   return (
     <DashboardShell role="COMMANDER" campaignName={campaign.name}>
@@ -81,7 +96,7 @@ export default async function CommanderDashboardPage() {
               </LegionCardTitle>
             </LegionCardHeader>
             <LegionCardContent>
-              <MissionSelectionStep campaignId={campaign.id} intel={campaign.intel} />
+              <MissionSelectionStep campaignId={campaign.id} intel={campaign.intel} missions={phaseMissions} />
             </LegionCardContent>
           </LegionCard>
         ) : (

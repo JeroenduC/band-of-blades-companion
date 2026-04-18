@@ -2,20 +2,22 @@
 
 import { useState } from 'react';
 import { IntelQuestionsForm } from './intel-questions-form';
-import { PlaceholderStep } from './placeholder-step';
+import { MissionSelectionCards } from './mission-selection-cards';
+import type { Mission } from '@/lib/types';
 
 interface MissionSelectionStepProps {
   campaignId: string;
   intel: number;
+  missions: Mission[];
 }
 
 /**
  * Two-sub-step wrapper for AWAITING_MISSION_SELECTION.
  *
  * Sub-step 1: Intel questions (skippable).
- * Sub-step 2: Mission cards — #74 will replace the placeholder.
+ * Sub-step 2: Mission designation (primary / secondary).
  */
-export function MissionSelectionStep({ campaignId, intel }: MissionSelectionStepProps) {
+export function MissionSelectionStep({ campaignId, intel, missions }: MissionSelectionStepProps) {
   const [intelDone, setIntelDone] = useState(false);
 
   if (!intelDone) {
@@ -29,15 +31,10 @@ export function MissionSelectionStep({ campaignId, intel }: MissionSelectionStep
   }
 
   return (
-    <PlaceholderStep
+    <MissionSelectionCards
       campaignId={campaignId}
-      title="Mission Selection"
-      message="Full mission selection will be implemented in Epic 5/6. Click Continue to complete this phase."
-      buttonLabel="Complete Phase"
-      nextState="PHASE_COMPLETE"
-      role="COMMANDER"
-      actionType="MISSION_SELECTED"
-      dashboardPath="/dashboard/commander"
+      intel={intel}
+      missions={missions}
     />
   );
 }
