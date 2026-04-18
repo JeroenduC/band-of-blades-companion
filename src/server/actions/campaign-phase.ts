@@ -2181,3 +2181,158 @@ export async function submitIntelQuestions(
   revalidatePath('/dashboard/commander');
   return { success: true };
 }
+
+// ─── GM Mission Generation (Step 8) ──────────────────────────────────────────
+
+export interface GenerateMissionsState {
+  errors?: {
+    campaign_id?: string[];
+    missions?: string[];
+    _form?: string[];
+  };
+  success?: boolean;
+}
+
+const MissionInputSchema = z.object({
+  name: z.string().min(1, 'Mission name required').max(80),
+  type: z.enum(['ASSAULT', 'RECON', 'RELIGIOUS', 'SUPPLY', 'SPECIAL'], {
+    error: 'Select a mission type',
+  }),
+  objective: z.string().min(1, 'Objective required').max(300),
+  threat_level: z.coerce.number().int().min(1).max(4),
+  reward_morale: z.coerce.number().int().min(0).default(0),
+  reward_intel: z.coerce.number().int().min(0).default(0),
+  reward_supply: z.coerce.number().int().min(0).default(0),
+  reward_time: z.coerce.number().int().min(0).default(0),
+  penalty_pressure: z.coerce.number().int().min(0).default(0),
+  penalty_morale: z.coerce.number().int().min(0).default(0),
+});
+
+type MissionInput = z.infer<typeof MissionInputSchema>;
+
+const GenerateMissionsSchema = z.object({
+  campaign_id: z.string().uuid('Invalid campaign'),
+  // JSON-encoded array of mission objects
+  missions_json: z.string().min(1),
+});
+
+/**
+ * GM action: save generated missions and present them to the Commander.
+ *
+ * Creates 2-3 Mission rows in GENERATED status, then transitions state
+ * to AWAITING_MISSION_SELECTION.
+ *
+ * BoB rulebook pp.314+ (mission generation tables).
+ */
+export async function generateMissions(
+  _prevState: GenerateMissionsState | null,
+  formData: FormData,
+): Promise<GenerateMissionsState> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) redirect('/sign-in');
+
+  const raw = {
+    campaign_id: formData.get('campaign_id'),
+    missions_json: formData.get('missions_json'),
+  };
+
+  const parsed = GenerateMissionsSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { errors: parsed.error.flatten().fieldErrors };
+  }
+
+  const { campaign_id, missions_json } = parsed.data;
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaign_id)
+    .eq('user_id', user.id)
+    .eq('role', 'GM')
+    .maybeSingle();
+
+  if (!membership) {
+    return { errors: { _form: ['Only the GM can generate missions'] } };
+  }
+
+  const { data: campaign, error: fetchError } = await db
+    .from('campaigns')
+    .select('campaign_phase_state, phase_number')
+    .eq('id', campaign_id)
+    .single();
+
+  if (fetchError || !campaign) {
+    return { errors: { _form: ['Campaign not found'] } };
+  }
+
+  try {
+    assertValidTransition(
+      campaign.campaign_phase_state as CampaignPhaseState | null,
+      'AWAITING_MISSION_SELECTION',
+    );
+  } catch {
+    return { errors: { _form: ['Cannot generate missions in the current phase state'] } };
+  }
+
+  let missionInputs: MissionInput[];
+  try {
+    const raw = JSON.parse(missions_json);
+    if (!Array.isArray(raw) || raw.length < 2 || raw.length > 3) {
+      return { errors: { missions: ['Provide 2 or 3 missions'] } };
+    }
+    missionInputs = raw.map((m) => MissionInputSchema.parse(m));
+  } catch {
+    return { errors: { missions: ['Invalid mission data'] } };
+  }
+
+  const missionRows = missionInputs.map((m) => ({
+    campaign_id,
+    phase_number: campaign.phase_number,
+    name: m.name,
+    type: m.type,
+    objective: m.objective,
+    threat_level: m.threat_level,
+    status: 'GENERATED' as const,
+    rewards: {
+      morale: m.reward_morale,
+      intel: m.reward_intel,
+      supply: m.reward_supply,
+      time: m.reward_time,
+    },
+    penalties: {
+      pressure: m.penalty_pressure,
+      morale: m.penalty_morale,
+    },
+  }));
+
+  const { error: insertError } = await db.from('missions').insert(missionRows);
+  if (insertError) {
+    return { errors: { _form: [insertError.message] } };
+  }
+
+  const { error: updateError } = await db
+    .from('campaigns')
+    .update({ campaign_phase_state: 'AWAITING_MISSION_SELECTION' })
+    .eq('id', campaign_id);
+
+  if (updateError) {
+    return { errors: { _form: [updateError.message] } };
+  }
+
+  await logCampaignAction({
+    campaignId: campaign_id,
+    phaseNumber: campaign.phase_number,
+    step: 'AWAITING_MISSION_GENERATION',
+    role: 'GM',
+    actionType: 'MISSION_GENERATION_COMPLETE',
+    details: { mission_count: missionRows.length, mission_names: missionRows.map((m) => m.name) },
+  });
+
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/gm');
+  revalidatePath('/dashboard/commander');
+  return { success: true };
+}
