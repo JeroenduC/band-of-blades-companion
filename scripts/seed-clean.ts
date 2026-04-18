@@ -66,9 +66,15 @@ async function deleteAllData() {
 
   for (const table of tables) {
     const { error } = await db.from(table).delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    if (error && !error.message.includes('0 rows')) {
-      console.error(`  Failed to delete ${table}: ${error.message}`);
-      process.exit(1);
+    if (error) {
+      if (error.message.includes('schema cache') || error.message.includes('does not exist')) {
+        log(`⚠ ${table} skipped (table not found — migration not applied yet)`);
+        continue;
+      }
+      if (!error.message.includes('0 rows')) {
+        console.error(`  Failed to delete ${table}: ${error.message}`);
+        process.exit(1);
+      }
     }
     log(`✓ ${table} cleared`);
   }
