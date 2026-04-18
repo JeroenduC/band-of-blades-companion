@@ -1,5 +1,6 @@
 import { loadDashboard } from '@/server/loaders/dashboard';
 import { DashboardShell } from '@/components/features/campaign/dashboard-shell';
+import { CommanderWarTable } from '@/components/features/campaign/commander-war-table';
 import { WaitingForOthers } from '@/components/features/campaign/waiting-for-others';
 import { TimePassesSummary } from '@/components/features/campaign/time-passes-summary';
 import { AdvanceDecisionForm } from '@/components/features/campaign/advance-decision-form';
@@ -17,6 +18,8 @@ export default async function CommanderDashboardPage() {
 
   return (
     <DashboardShell role="COMMANDER" campaignName={campaign.name}>
+      <CommanderWarTable campaign={campaign} />
+
       {phaseState === null ? (
         <div className="rounded-lg border border-dashed border-border p-8 text-center">
           <p className="text-sm text-legion-text-muted">
