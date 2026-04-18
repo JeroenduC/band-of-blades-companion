@@ -58,6 +58,25 @@ export interface Campaign {
   created_at: string;
 }
 
+// ─── Sprint 5: Commander and Missions ────────────────────────────────────────
+
+export type MissionType = 'ASSAULT' | 'RECON' | 'RELIGIOUS' | 'SUPPLY' | 'SPECIAL';
+export type MissionStatus = 'GENERATED' | 'PRIMARY' | 'SECONDARY' | 'FAILED';
+
+export interface Mission {
+  id: string;
+  campaign_id: string;
+  phase_number: number;
+  name: string;
+  type: MissionType;
+  objective: string;
+  rewards: Record<string, unknown>;
+  penalties: Record<string, unknown>;
+  threat_level: number;
+  status: MissionStatus;
+  created_at: string;
+}
+
 // ─── Sprint 4: QM materiel and personnel ──────────────────────────────────────
 
 export type AlchemistStatus = 'ACTIVE' | 'CORRUPTED' | 'DEAD';
