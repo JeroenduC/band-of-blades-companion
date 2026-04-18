@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { signIn } from '@/server/actions/auth';
 import { LegionButton, LegionInput } from '@/components/legion';
 import { AuthShell } from './auth-shell';
+import { DevLoginHelper } from './dev-login-helper';
 
 export function SignInForm() {
   const [state, action, pending] = useActionState(signIn, null);
@@ -76,6 +77,8 @@ export function SignInForm() {
             Create one
           </Link>
         </p>
+
+        {process.env.NODE_ENV !== 'production' && <DevLoginHelper />}
       </div>
     </AuthShell>
   );
