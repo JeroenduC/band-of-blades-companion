@@ -2,7 +2,7 @@ import { loadDashboard } from '@/server/loaders/dashboard';
 import { DashboardShell } from '@/components/features/campaign/dashboard-shell';
 import { WaitingForOthers } from '@/components/features/campaign/waiting-for-others';
 import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle } from '@/components/legion';
-import { completeSpymasterActions } from '@/server/actions/campaign-phase';
+import { completeSpymasterActions } from '@/server/actions/phase';
 import { isRoleActive } from '@/lib/state-machine';
 import type { CampaignPhaseState } from '@/lib/types';
 

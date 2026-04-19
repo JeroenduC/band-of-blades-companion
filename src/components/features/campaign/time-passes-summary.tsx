@@ -1,5 +1,5 @@
 import { LegionClock } from '@/components/legion';
-import { confirmTimePasses } from '@/server/actions/campaign-phase';
+import { confirmTimePasses } from '@/server/actions/phase';
 import type { Campaign } from '@/lib/types';
 
 interface TimePassesSummaryProps {

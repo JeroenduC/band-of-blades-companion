@@ -5,7 +5,7 @@ import { Campaign, MissionType } from '@/lib/types';
 import { getLocation } from '@/lib/locations';
 import { ActionCard } from '@/components/features/campaign/action-card';
 import { LegionButton } from '@/components/legion/legion-button';
-import { selectMissionFocus, type MissionFocusState } from '@/server/actions/campaign-phase';
+import { selectMissionFocus, type MissionFocusState } from '@/server/actions/phase';
 import { useRouter } from 'next/navigation';
 
 interface MissionFocusFormProps {

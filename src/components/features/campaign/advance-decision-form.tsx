@@ -2,8 +2,8 @@
 
 import { useActionState, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { makeAdvanceDecision } from '@/server/actions/campaign-phase';
-import type { AdvanceDecisionState } from '@/server/actions/campaign-phase';
+import { makeAdvanceDecision } from '@/server/actions/phase';
+import type { AdvanceDecisionState } from '@/server/actions/phase';
 import type { Campaign } from '@/lib/types';
 import { getConnections } from '@/lib/locations';
 

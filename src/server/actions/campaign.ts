@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import type { LegionRole, MemberRank } from '@/lib/types';
-import { seedBackAtCampScenes } from './campaign-phase';
+import { seedBackAtCampScenes } from './phase';
 
 function generateInviteCode(): string {
   // Exclude visually ambiguous characters (0/O, 1/I/L) to reduce join errors.

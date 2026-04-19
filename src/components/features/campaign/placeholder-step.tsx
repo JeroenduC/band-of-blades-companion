@@ -1,4 +1,4 @@
-import { advancePlaceholderStep } from '@/server/actions/campaign-phase';
+import { advancePlaceholderStep } from '@/server/actions/phase';
 import type { CampaignPhaseState, LegionRole, CampaignPhaseLogActionType } from '@/lib/types';
 
 interface PlaceholderStepProps {

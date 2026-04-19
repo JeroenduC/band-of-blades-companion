@@ -1,8 +1,8 @@
 'use client';
 
 import { useActionState } from 'react';
-import { completeBackAtCamp } from '@/server/actions/campaign-phase';
-import type { BackAtCampState } from '@/server/actions/campaign-phase';
+import { completeBackAtCamp } from '@/server/actions/phase';
+import type { BackAtCampState } from '@/server/actions/phase';
 import type { BackAtCampScene, MoraleLevel } from '@/lib/types';
 
 interface BackAtCampFormProps {

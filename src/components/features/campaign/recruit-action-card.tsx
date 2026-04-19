@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { performRecruit, type RecruitState } from '@/server/actions/campaign-phase';
+import { performRecruit, type RecruitState } from '@/server/actions/phase';
 import type { Campaign } from '@/lib/types';
 
 interface RecruitActionCardProps {

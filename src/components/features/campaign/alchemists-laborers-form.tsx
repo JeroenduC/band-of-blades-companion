@@ -8,7 +8,7 @@ import {
   completeLaborersAlchemists,
   type AlchemistProjectState,
   type AssignLaborerState,
-} from '@/server/actions/campaign-phase';
+} from '@/server/actions/phase';
 import type { Alchemist, Laborers, LongTermProject } from '@/lib/types';
 import type { ActionQuality } from '@/lib/campaign-utils';
 

@@ -7,7 +7,7 @@ import { MissionGenerationForm } from '@/components/features/campaign/mission-ge
 import { PlaceholderStep } from '@/components/features/campaign/placeholder-step';
 import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle } from '@/components/legion';
 import { CopyInviteButton } from '@/components/features/campaign/copy-invite-button';
-import { startCampaignPhase } from '@/server/actions/campaign-phase';
+import { startCampaignPhase } from '@/server/actions/phase';
 import { getLocation } from '@/lib/locations';
 import type { CampaignPhaseState, MissionType } from '@/lib/types';
 
