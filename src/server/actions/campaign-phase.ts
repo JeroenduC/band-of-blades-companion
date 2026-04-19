@@ -12,6 +12,8 @@ import {
   QUALITY_RESOURCE_USES,
   QUALITY_LTP_SEGMENTS,
   corruptionFromDice,
+  ticksFromDice,
+  applyTimeClockTicks,
   type ActionQuality,
 } from '@/lib/campaign-utils';
 import type {
@@ -662,54 +664,6 @@ function rollDice(count: number): number[] {
   const buf = new Uint8Array(count);
   crypto.getRandomValues(buf);
   return Array.from(buf).map((n) => (n % 6) + 1);
-}
-
-function ticksFromDice(dice: number[]): number {
-  const allSixes = dice.every((d) => d === 6);
-  if (allSixes && dice.length >= 2) return 5; // critical
-  const worst = Math.min(...dice);
-  if (worst <= 3) return 1;
-  if (worst <= 5) return 2;
-  return 3; // 6
-}
-
-/**
- * Tick the earliest unfilled Time clock by n ticks, returning updated values.
- * Returns the new clock values and whether a Broken Advance occurred.
- */
-function applyTimeClockTicks(
-  clock1: number,
-  clock2: number,
-  clock3: number,
-  ticks: number,
-): { clock1: number; clock2: number; clock3: number; brokenAdvance: boolean } {
-  let c1 = clock1;
-  let c2 = clock2;
-  let c3 = clock3;
-  let remaining = ticks;
-  let brokenAdvance = false;
-
-  while (remaining > 0) {
-    if (c1 < 10) {
-      c1 = Math.min(10, c1 + remaining);
-      remaining -= (c1 - clock1);
-      if (c1 === 10) brokenAdvance = true;
-    } else if (c2 < 10) {
-      const added = Math.min(10 - c2, remaining);
-      c2 += added;
-      remaining -= added;
-      if (c2 === 10) brokenAdvance = true;
-    } else if (c3 < 10) {
-      const added = Math.min(10 - c3, remaining);
-      c3 += added;
-      remaining -= added;
-      if (c3 === 10) brokenAdvance = true;
-    } else {
-      break; // all clocks full
-    }
-  }
-
-  return { clock1: c1, clock2: c2, clock3: c3, brokenAdvance };
 }
 
 /**
@@ -2030,62 +1984,100 @@ export async function completeLaborersAlchemists(formData: FormData): Promise<vo
  * Records the focus in the log and transitions to AWAITING_MISSION_GENERATION.
  * BoB rulebook p.121
  */
-export async function selectMissionFocus(formData: FormData): Promise<void> {
+export interface MissionFocusState {
+  errors?: {
+    campaign_id?: string[];
+    focus?: string[];
+    _form?: string[];
+  };
+  success?: boolean;
+}
+
+const MissionFocusSchema = z.object({
+  campaign_id: z.string().uuid('Invalid campaign'),
+  focus: z.string().min(1, 'Select at least one focus'),
+});
+
+export async function selectMissionFocus(
+  _prevState: MissionFocusState | null,
+  formData: FormData
+): Promise<MissionFocusState> {
   const supabase = await createClient();
   const db = createServiceClient();
 
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) redirect('/sign-in');
 
-  const campaignId = formData.get('campaign_id') as string;
-  const focus = formData.get('focus') as MissionType;
-
-  if (!campaignId || !focus) throw new Error('Campaign ID and focus are required');
-
-  // Verify role (Commander or GM)
-  const { data: membership } = await db
-    .from('campaign_memberships')
-    .select('id')
-    .eq('campaign_id', campaignId)
-    .eq('user_id', user.id)
-    .in('role', ['COMMANDER', 'GM'])
-    .maybeSingle();
-
-  if (!membership) throw new Error('Only the Commander or GM can select mission focus');
-
-  const { data: campaign, error: fetchError } = await db
-    .from('campaigns')
-    .select('campaign_phase_state, phase_number')
-    .eq('id', campaignId)
-    .single();
-
-  if (fetchError || !campaign) throw new Error('Campaign not found');
-
-  const currentState = campaign.campaign_phase_state as CampaignPhaseState | null;
-
-  assertValidTransition(
-    currentState,
-    'AWAITING_MISSION_GENERATION',
-  );
-
-  const { error: updateError } = await db
-    .from('campaigns')
-    .update({ campaign_phase_state: 'AWAITING_MISSION_GENERATION' })
-    .eq('id', campaignId);
-
-  if (updateError) throw new Error(updateError.message);
-
-  await logCampaignAction({
-    campaignId,
-    phaseNumber: campaign.phase_number,
-    step: 'AWAITING_MISSION_FOCUS',
-    role: 'COMMANDER',
-    actionType: 'MISSION_FOCUS_SELECTED',
-    details: { focus },
+  const validatedFields = MissionFocusSchema.safeParse({
+    campaign_id: formData.get('campaign_id'),
+    focus: formData.get('focus'),
   });
 
-  revalidatePath('/dashboard');
-  revalidatePath('/dashboard/commander');
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+    };
+  }
+
+  const { campaign_id: campaignId, focus } = validatedFields.data;
+
+  try {
+    // Verify role (Commander or GM)
+    const { data: membership } = await db
+      .from('campaign_memberships')
+      .select('id')
+      .eq('campaign_id', campaignId)
+      .eq('user_id', user.id)
+      .in('role', ['COMMANDER', 'GM'])
+      .maybeSingle();
+
+    if (!membership) {
+      return { errors: { _form: ['Only the Commander or GM can select mission focus'] } };
+    }
+
+    const { data: campaign, error: fetchError } = await db
+      .from('campaigns')
+      .select('campaign_phase_state, phase_number')
+      .eq('id', campaignId)
+      .single();
+
+    if (fetchError || !campaign) {
+      return { errors: { _form: ['Campaign not found'] } };
+    }
+
+    const currentState = campaign.campaign_phase_state as CampaignPhaseState | null;
+
+    assertValidTransition(
+      currentState,
+      'AWAITING_MISSION_GENERATION',
+    );
+
+    const { error: updateError } = await db
+      .from('campaigns')
+      .update({ campaign_phase_state: 'AWAITING_MISSION_GENERATION' })
+      .eq('id', campaignId);
+
+    if (updateError) {
+      return { errors: { _form: [updateError.message] } };
+    }
+
+    await logCampaignAction({
+      campaignId,
+      phaseNumber: campaign.phase_number,
+      step: 'AWAITING_MISSION_FOCUS',
+      role: 'COMMANDER',
+      actionType: 'MISSION_FOCUS_SELECTED',
+      details: { focus },
+    });
+
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/commander');
+  } catch (error) {
+    return {
+      errors: { _form: [error instanceof Error ? error.message : 'An unexpected error occurred'] },
+    };
+  }
+
   redirect('/dashboard/commander');
 }
 

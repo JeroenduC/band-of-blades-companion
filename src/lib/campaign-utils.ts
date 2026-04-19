@@ -71,3 +71,61 @@ export function corruptionFromDice(dice: number[]): number {
   if (worst <= 5) return 2;
   return 1;
 }
+
+/**
+ * Time ticks from worst die in an Advance roll (BoB rulebook p.120):
+ *   1–3 → 1 tick
+ *   4–5 → 2 ticks
+ *   6   → 3 ticks
+ *   Two 6s (critical) → 5 ticks
+ */
+export function ticksFromDice(dice: number[]): number {
+  const allSixes = dice.every((d) => d === 6);
+  if (allSixes && dice.length >= 2) return 5; // critical
+  const worst = Math.min(...dice);
+  if (worst <= 3) return 1;
+  if (worst <= 5) return 2;
+  return 3; // 6
+}
+
+/**
+ * Tick the earliest unfilled Time clock by n ticks, returning updated values.
+ * Returns the new clock values and whether a Broken Advance occurred.
+ *
+ * Each clock has 10 segments.
+ */
+export function applyTimeClockTicks(
+  clock1: number,
+  clock2: number,
+  clock3: number,
+  ticks: number,
+): { clock1: number; clock2: number; clock3: number; brokenAdvance: boolean } {
+  let c1 = clock1;
+  let c2 = clock2;
+  let c3 = clock3;
+  let remaining = ticks;
+  let brokenAdvance = false;
+
+  while (remaining > 0) {
+    if (c1 < 10) {
+      const added = Math.min(10 - c1, remaining);
+      c1 += added;
+      remaining -= added;
+      if (c1 === 10) brokenAdvance = true;
+    } else if (c2 < 10) {
+      const added = Math.min(10 - c2, remaining);
+      c2 += added;
+      remaining -= added;
+      if (c2 === 10) brokenAdvance = true;
+    } else if (c3 < 10) {
+      const added = Math.min(10 - c3, remaining);
+      c3 += added;
+      remaining -= added;
+      if (c3 === 10) brokenAdvance = true;
+    } else {
+      break; // all clocks full
+    }
+  }
+
+  return { clock1: c1, clock2: c2, clock3: c3, brokenAdvance };
+}
