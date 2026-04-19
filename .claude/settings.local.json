@@ -1,8 +1,16 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install:*)",
-      "Bash(npx shadcn@latest init --defaults)"
+      "Bash(./node_modules/.bin/:*)",
+      "Bash(node_modules/.bin/:*)",
+      "Bash(cmd.exe:*)",
+      "Bash(powershell.exe:*)",
+      "Bash(kill:*)",
+      "Bash(pkill:*)",
+      "Bash(lsof:*)",
+      "Bash(find:*)",
+      "Bash(xargs:*)",
+      "Skill(update-config)"
     ]
   }
 }

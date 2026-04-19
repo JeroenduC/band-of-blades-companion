@@ -1,12 +1,15 @@
 import { loadGmDashboard } from '@/server/loaders/dashboard';
+import { createServiceClient } from '@/lib/supabase/service';
 import { DashboardShell } from '@/components/features/campaign/dashboard-shell';
 import { PhaseProgressIndicator } from '@/components/features/campaign/phase-progress-indicator';
 import { MissionResolutionForm } from '@/components/features/campaign/mission-resolution-form';
+import { MissionGenerationForm } from '@/components/features/campaign/mission-generation-form';
 import { PlaceholderStep } from '@/components/features/campaign/placeholder-step';
 import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle } from '@/components/legion';
 import { CopyInviteButton } from '@/components/features/campaign/copy-invite-button';
 import { startCampaignPhase } from '@/server/actions/campaign-phase';
-import type { CampaignPhaseState } from '@/lib/types';
+import { getLocation } from '@/lib/locations';
+import type { CampaignPhaseState, MissionType } from '@/lib/types';
 
 export const metadata = { title: 'GM Dashboard — Band of Blades' };
 
@@ -14,6 +17,27 @@ export default async function GmDashboardPage() {
   const { campaign, membership } = await loadGmDashboard();
   const phaseState = campaign.campaign_phase_state as CampaignPhaseState | null;
   const phaseActive = phaseState !== null && phaseState !== 'PHASE_COMPLETE';
+
+  // For mission generation: fetch the Commander's focus choice from the phase log
+  let commanderFocus: string | null = null;
+  if (phaseState === 'AWAITING_MISSION_GENERATION') {
+    const db = createServiceClient();
+    const { data: focusLog } = await db
+      .from('campaign_phase_log')
+      .select('details')
+      .eq('campaign_id', campaign.id)
+      .eq('phase_number', campaign.phase_number)
+      .eq('action_type', 'MISSION_FOCUS_SELECTED')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (focusLog?.details && typeof focusLog.details === 'object' && 'focus' in focusLog.details) {
+      commanderFocus = String(focusLog.details.focus);
+    }
+  }
+
+  const currentLoc = getLocation(campaign.current_location);
+  const availableMissionTypes = (currentLoc?.available_mission_types ?? []) as MissionType[];
 
   return (
     <DashboardShell role="GM" campaignName={campaign.name}>
@@ -104,15 +128,11 @@ export default async function GmDashboardPage() {
                 </LegionCardTitle>
               </LegionCardHeader>
               <LegionCardContent>
-                <PlaceholderStep
+                <MissionGenerationForm
                   campaignId={campaign.id}
-                  title="Mission Generation"
-                  message="Full mission generation will be implemented in Epic 9. For now, click Continue to advance to Mission Selection."
-                  buttonLabel="Continue to Mission Selection"
-                  nextState="AWAITING_MISSION_SELECTION"
-                  role="GM"
-                  actionType="MISSION_GENERATION_COMPLETE"
-                  dashboardPath="/dashboard/gm"
+                  currentLocation={campaign.current_location}
+                  availableMissionTypes={availableMissionTypes}
+                  commanderFocus={commanderFocus}
                 />
               </LegionCardContent>
             </LegionCard>

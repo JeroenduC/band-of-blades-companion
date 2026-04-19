@@ -116,6 +116,12 @@ These rules come from the Project Brief section 1.3 and are non-negotiable.
 - Row-Level Security (RLS) policies enforce this at the database level.
 - A user in Campaign A must never see data from Campaign B, even through the API.
 
+### Server Action File Size
+- `src/server/actions/campaign-phase.ts` is the single file for all campaign phase actions. When it exceeds ~2,500 lines, split it by role: `commander-actions.ts`, `gm-actions.ts`, `qm-actions.ts`, re-exported from an `index.ts`. Do not split prematurely — wait until one role's actions clearly dominate.
+
+### SVG Interactive Elements
+- SVG `<g>` elements do not support CSS `outline`. For focusable SVG nodes, include a sibling `<circle class="focus-ring" opacity={0} />` and add a global CSS rule: `g:focus-visible circle.focus-ring { opacity: 1; }` to make keyboard focus visible. Never ship interactive SVG elements without a visible focus indicator.
+
 ---
 
 ## 4. Database Rules
