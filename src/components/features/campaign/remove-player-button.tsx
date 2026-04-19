@@ -1,6 +1,7 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { removePlayer } from '@/server/actions/campaign';
 import {
   LegionDialog,
@@ -26,8 +27,16 @@ export function RemovePlayerButton({
   playerName,
   campaignName,
 }: RemovePlayerButtonProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState(removePlayer, null);
+
+  useEffect(() => {
+    if (state?.success) {
+      setOpen(false);
+      router.refresh();
+    }
+  }, [state, router]);
 
   return (
     <LegionDialog open={open} onOpenChange={setOpen}>

@@ -52,6 +52,7 @@ interface MissionGenerationFormProps {
   currentLocation: string;
   availableMissionTypes: MissionType[];
   commanderFocus: string | null;
+  intelQuestions?: string[];
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -61,6 +62,7 @@ export function MissionGenerationForm({
   currentLocation,
   availableMissionTypes,
   commanderFocus,
+  intelQuestions = [],
 }: MissionGenerationFormProps) {
   const router = useRouter();
   const [state, action, pending] = useActionState<GenerateMissionsState | null, FormData>(
@@ -128,6 +130,21 @@ export function MissionGenerationForm({
             <dd className="font-medium text-legion-text-primary">{availableMissionTypes.join(', ')}</dd>
           </div>
         </dl>
+
+        {/* Intel Questions */}
+        {intelQuestions.length > 0 && (
+          <div className="pt-2 border-t border-border mt-2">
+            <dt className="text-xs font-mono uppercase tracking-widest text-legion-text-muted mb-1">
+              Intel Questions (Answer these in missions)
+            </dt>
+            <ul className="list-disc list-inside text-sm text-legion-amber/90 space-y-0.5">
+              {intelQuestions.map((q, i) => (
+                <li key={i}>{q}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <p className="text-xs text-legion-text-muted">
           Generate 2–3 missions for the Commander to choose from. At least one should match the focus type.
         </p>

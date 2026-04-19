@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import { Campaign, MissionType } from '@/lib/types';
 import { getLocation } from '@/lib/locations';
 import { ActionCard } from '@/components/features/campaign/action-card';
 import { LegionButton } from '@/components/legion/legion-button';
-import { selectMissionFocus } from '@/server/actions/campaign-phase';
+import { selectMissionFocus, type MissionFocusState } from '@/server/actions/campaign-phase';
+import { useRouter } from 'next/navigation';
 
 interface MissionFocusFormProps {
   campaign: Campaign;
@@ -51,24 +52,28 @@ const FOCUS_OPTIONS: FocusOption[] = [
 ];
 
 export function MissionFocusForm({ campaign }: MissionFocusFormProps) {
+  const router = useRouter();
   const [selectedFocus, setSelectedFocus] = useState<MissionType | null>(null);
-  const [isPending, startTransition] = useTransition();
+  
+  const [state, formAction, isPending] = useActionState<MissionFocusState | null, FormData>(
+    selectMissionFocus,
+    null
+  );
+
+  useEffect(() => {
+    if (state?.success) {
+      router.refresh();
+    }
+  }, [state, router]);
+
   const location = getLocation(campaign.current_location);
   const availableTypes = (location?.available_mission_types ?? []) as string[];
 
-  async function handleSubmit() {
-    if (!selectedFocus) return;
-    
-    startTransition(async () => {
-      const formData = new FormData();
-      formData.append('campaign_id', campaign.id);
-      formData.append('focus', selectedFocus);
-      await selectMissionFocus(formData);
-    });
-  }
-
   return (
-    <div className="flex flex-col gap-6">
+    <form action={formAction} className="flex flex-col gap-6">
+      <input type="hidden" name="campaign_id" value={campaign.id} />
+      <input type="hidden" name="focus" value={selectedFocus ?? ''} />
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {FOCUS_OPTIONS.map((option) => {
           const isAvailable = availableTypes.includes(option.type);
@@ -87,15 +92,21 @@ export function MissionFocusForm({ campaign }: MissionFocusFormProps) {
         })}
       </div>
 
+      {state?.errors?._form && (
+        <p className="text-sm text-legion-danger font-mono bg-legion-danger-subtle px-3 py-2 rounded border border-legion-danger/20">
+          {state.errors._form[0]}
+        </p>
+      )}
+
       <div className="flex justify-end pt-4 border-t border-border">
         <LegionButton
+          type="submit"
           variant="default"
           disabled={!selectedFocus || isPending}
-          onClick={handleSubmit}
         >
           {isPending ? 'Confirming Focus...' : 'Select Mission Focus'}
         </LegionButton>
       </div>
-    </div>
+    </form>
   );
 }
