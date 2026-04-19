@@ -18,10 +18,13 @@ export default async function GmDashboardPage() {
   const phaseState = campaign.campaign_phase_state as CampaignPhaseState | null;
   const phaseActive = phaseState !== null && phaseState !== 'PHASE_COMPLETE';
 
-  // For mission generation: fetch the Commander's focus choice from the phase log
+  // For mission generation: fetch the Commander's focus choice and intel questions from the phase log
   let commanderFocus: string | null = null;
+  let intelQuestions: string[] = [];
   if (phaseState === 'AWAITING_MISSION_GENERATION') {
     const db = createServiceClient();
+
+    // Fetch focus
     const { data: focusLog } = await db
       .from('campaign_phase_log')
       .select('details')
@@ -31,8 +34,29 @@ export default async function GmDashboardPage() {
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
+
     if (focusLog?.details && typeof focusLog.details === 'object' && 'focus' in focusLog.details) {
       commanderFocus = String(focusLog.details.focus);
+    }
+
+    // Fetch intel questions
+    const { data: intelLog } = await db
+      .from('campaign_phase_log')
+      .select('details')
+      .eq('campaign_id', campaign.id)
+      .eq('phase_number', campaign.phase_number)
+      .eq('action_type', 'INTEL_QUESTIONS_SUBMITTED')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (intelLog?.details && typeof intelLog.details === 'object' && Array.isArray(intelLog.details.questions)) {
+      const questionIds = intelLog.details.questions as string[];
+      const { INTEL_TIERS } = await import('@/lib/intel-questions');
+      const allQuestions = INTEL_TIERS.flatMap((t) => t.questions);
+      intelQuestions = questionIds
+        .map((id) => allQuestions.find((q) => q.id === id)?.text)
+        .filter((text): text is string => !!text);
     }
   }
 
@@ -133,6 +157,7 @@ export default async function GmDashboardPage() {
                   currentLocation={campaign.current_location}
                   availableMissionTypes={availableMissionTypes}
                   commanderFocus={commanderFocus}
+                  intelQuestions={intelQuestions}
                 />
               </LegionCardContent>
             </LegionCard>
