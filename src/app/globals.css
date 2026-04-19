@@ -225,3 +225,8 @@
     background-size: 150px 150px;
   }
 }
+
+/* SVG interactive node focus ring — g:focus-visible shows the sibling circle.focus-ring */
+g:focus-visible circle.focus-ring {
+  opacity: 1;
+}

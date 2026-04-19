@@ -23,6 +23,9 @@ You handle routine tasks that follow clear patterns. You do NOT make architectur
 - If you're unsure whether something is EASY or HARD, mark it as HARD
 - Reference issue numbers in all commit messages: feat(scope): description (#NN)
 
+## Server Action Pattern
+When you create a Client Component that calls a server action, use `useActionState` — not `useTransition`. This is the project standard. `useActionState` handles loading state, error display, and result state in one hook. Only use `useTransition` + a direct action call if the action **always** ends with `redirect()` and **never** needs to surface errors or results to the UI. If in doubt, use `useActionState`.
+
 ## What NOT To Do
 - Don't modify the state machine (src/lib/state-machine.ts)
 - Don't modify database schemas or RLS policies
