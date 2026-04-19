@@ -186,6 +186,55 @@ export interface SquadMember {
   created_at: string;
 }
 
+// ─── Sprint 7: Spymaster Tools ───────────────────────────────────────────────
+
+export type SpyStatus = 'AVAILABLE' | 'ON_ASSIGNMENT' | 'WOUNDED' | 'DEAD';
+export type SpyRank = 'TRAINED' | 'MASTER';
+export type SpyAssignmentType =
+  | 'NONE'
+  | 'RECOVER'
+  | 'INTERROGATE'
+  | 'BLACKMAIL'
+  | 'HELP'
+  | 'AUGMENT'
+  | 'EXPAND'
+  | 'LAY_TRAP'
+  | 'RECRUIT'
+  | 'RESEARCH';
+
+export interface Spy {
+  id: string;
+  campaign_id: string;
+  name: string;
+  rank: SpyRank;
+  status: SpyStatus;
+  specialty: string | null;
+  current_assignment: SpyAssignmentType;
+  assignment_clock: number; // 0-8 (DEPRECATED, using SpyLongTermAssignment)
+  last_phase_worked: number;
+  long_term_assignment_id: string | null;
+  created_at: string;
+}
+
+export interface SpyLongTermAssignment {
+  id: string;
+  campaign_id: string;
+  type: 'AUGMENT' | 'EXPAND' | 'LAY_TRAP' | 'RECRUIT' | 'RESEARCH';
+  name: string;
+  description: string | null;
+  clock_segments: number;
+  clock_filled: number;
+  is_completed: boolean;
+  created_at: string;
+}
+
+export interface SpyNetwork {
+  id: string;
+  campaign_id: string;
+  upgrades: string[]; // List of unlocked upgrade names
+  created_at: string;
+}
+
 export type CampaignPhaseLogActionType =
   | 'PHASE_START'
   | 'MISSION_RESOLVED'
@@ -193,6 +242,7 @@ export type CampaignPhaseLogActionType =
   | 'TIME_PASSED'
   | 'LIBERTY'
   | 'QM_ACTIONS_COMPLETE'
+  | 'SPY_DISPATCHED'
   | 'SPYMASTER_ACTIONS_COMPLETE'
   | 'LABORERS_ALCHEMISTS_COMPLETE'
   | 'ADVANCE'
