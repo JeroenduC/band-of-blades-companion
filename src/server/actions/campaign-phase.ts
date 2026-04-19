@@ -18,6 +18,7 @@ import type {
   CampaignPhaseState,
   CampaignPhaseLogActionType,
   LegionRole,
+  MissionType,
 } from '@/lib/types';
 
 // ─── Logging ──────────────────────────────────────────────────────────────────
@@ -610,18 +611,22 @@ export interface AdvanceDecisionState {
   errors?: {
     campaign_id?: string[];
     decision?: string[];
+    path_id?: string[];
     horses_spent?: string[];
     _form?: string[];
   };
   /** Populated after a successful Advance roll so the UI can show the result */
   result?: {
     decision: 'ADVANCE' | 'STAY';
+    new_location_id?: string;
+    new_location_name?: string;
     horses_spent: number;
     pressure_before: number;
     pressure_after_horses: number;
     dice: number[];
     worst_die: number;
     time_ticks_added: number;
+    broken_advance: boolean;
   };
 }
 
@@ -630,6 +635,8 @@ const AdvanceDecisionSchema = z.object({
   decision: z.enum(['ADVANCE', 'STAY'], {
     error: 'Select Advance or Stay',
   }),
+  // ID of the destination location (required when advancing to a fork)
+  path_id: z.string().optional(),
   // Horses spent to reduce pressure before the roll (BoB rulebook p.119)
   horses_spent: z.coerce
     .number()
@@ -730,6 +737,7 @@ export async function makeAdvanceDecision(
   const raw = {
     campaign_id: formData.get('campaign_id'),
     decision: formData.get('decision'),
+    path_id: formData.get('path_id') || undefined,
     horses_spent: formData.get('horses_spent') || '0',
   };
 
@@ -738,7 +746,7 @@ export async function makeAdvanceDecision(
     return { errors: parsed.error.flatten().fieldErrors };
   }
 
-  const { campaign_id, decision, horses_spent } = parsed.data;
+  const { campaign_id, decision, path_id, horses_spent } = parsed.data;
 
   const { data: membership } = await db
     .from('campaign_memberships')
@@ -754,7 +762,7 @@ export async function makeAdvanceDecision(
 
   const { data: campaign, error: fetchError } = await db
     .from('campaigns')
-    .select('campaign_phase_state, phase_number, pressure, horse_uses, time_clock_1, time_clock_2, time_clock_3')
+    .select('campaign_phase_state, phase_number, pressure, horse_uses, time_clock_1, time_clock_2, time_clock_3, current_location')
     .eq('id', campaign_id)
     .single();
 
@@ -775,13 +783,48 @@ export async function makeAdvanceDecision(
     return { errors: { horses_spent: [`Only ${campaign.horse_uses} Horse uses available`] } };
   }
 
+  // Validate path selection when advancing
+  const { getConnections } = await import('@/lib/locations');
+  const connections = getConnections(campaign.current_location);
+
+  let resolvedPathId: string | undefined;
+  if (decision === 'ADVANCE') {
+    if (connections.length === 0) {
+      return { errors: { _form: ['No paths available from current location'] } };
+    }
+    if (connections.length === 1) {
+      resolvedPathId = connections[0].id;
+    } else {
+      if (!path_id) {
+        return { errors: { path_id: ['Select a path to advance to'] } };
+      }
+      if (!connections.find((c) => c.id === path_id)) {
+        return { errors: { path_id: ['Invalid path selection'] } };
+      }
+      resolvedPathId = path_id;
+    }
+  }
+
+  const newLocation = resolvedPathId ? connections.find((c) => c.id === resolvedPathId) : undefined;
+
   let logDetails: Record<string, unknown>;
   let updates: Record<string, unknown> = { campaign_phase_state: 'AWAITING_MISSION_FOCUS' };
+  let resultState: AdvanceDecisionState['result'];
 
   if (decision === 'STAY') {
     logDetails = { decision: 'STAY' };
+    resultState = {
+      decision: 'STAY',
+      horses_spent: 0,
+      pressure_before: campaign.pressure,
+      pressure_after_horses: campaign.pressure,
+      dice: [],
+      worst_die: 0,
+      time_ticks_added: 0,
+      broken_advance: false,
+    };
   } else {
-    // Advance: reduce pressure by horses spent, then roll
+    // Advance: reduce pressure by horses spent, roll, update location
     const pressureAfterHorses = Math.max(0, campaign.pressure - horses_spent);
     const diceCount = pressureAfterHorses === 0 ? 2 : pressureAfterHorses;
     const dice = rollDice(diceCount);
@@ -796,15 +839,31 @@ export async function makeAdvanceDecision(
 
     updates = {
       ...updates,
-      pressure: 0, // pressure resets after advance roll
+      pressure: 0,
       horse_uses: campaign.horse_uses - horses_spent,
       time_clock_1: clock1,
       time_clock_2: clock2,
       time_clock_3: clock3,
+      current_location: resolvedPathId,
     };
 
     logDetails = {
       decision: 'ADVANCE',
+      from_location: campaign.current_location,
+      to_location: resolvedPathId,
+      horses_spent,
+      pressure_before: campaign.pressure,
+      pressure_after_horses: pressureAfterHorses,
+      dice,
+      worst_die: Math.min(...dice),
+      time_ticks_added: timeTicks,
+      broken_advance: brokenAdvance,
+    };
+
+    resultState = {
+      decision: 'ADVANCE',
+      new_location_id: resolvedPathId,
+      new_location_name: newLocation?.name,
       horses_spent,
       pressure_before: campaign.pressure,
       pressure_after_horses: pressureAfterHorses,
@@ -835,7 +894,7 @@ export async function makeAdvanceDecision(
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/commander');
-  redirect('/dashboard/commander');
+  return { result: resultState };
 }
 
 // ─── QM Campaign Actions ──────────────────────────────────────────────────────
@@ -1961,4 +2020,484 @@ export async function completeLaborersAlchemists(formData: FormData): Promise<vo
   revalidatePath('/dashboard/quartermaster');
   revalidatePath('/dashboard/commander');
   redirect('/dashboard/quartermaster');
+}
+
+// ─── Mission Focus (Step 8) ───────────────────────────────────────────────────
+
+/**
+ * Commander action: select the mission focus for the next operation.
+ * 
+ * Records the focus in the log and transitions to AWAITING_MISSION_GENERATION.
+ * BoB rulebook p.121
+ */
+export async function selectMissionFocus(formData: FormData): Promise<void> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) redirect('/sign-in');
+
+  const campaignId = formData.get('campaign_id') as string;
+  const focus = formData.get('focus') as MissionType;
+
+  if (!campaignId || !focus) throw new Error('Campaign ID and focus are required');
+
+  // Verify role (Commander or GM)
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .in('role', ['COMMANDER', 'GM'])
+    .maybeSingle();
+
+  if (!membership) throw new Error('Only the Commander or GM can select mission focus');
+
+  const { data: campaign, error: fetchError } = await db
+    .from('campaigns')
+    .select('campaign_phase_state, phase_number')
+    .eq('id', campaignId)
+    .single();
+
+  if (fetchError || !campaign) throw new Error('Campaign not found');
+
+  const currentState = campaign.campaign_phase_state as CampaignPhaseState | null;
+
+  assertValidTransition(
+    currentState,
+    'AWAITING_MISSION_GENERATION',
+  );
+
+  const { error: updateError } = await db
+    .from('campaigns')
+    .update({ campaign_phase_state: 'AWAITING_MISSION_GENERATION' })
+    .eq('id', campaignId);
+
+  if (updateError) throw new Error(updateError.message);
+
+  await logCampaignAction({
+    campaignId,
+    phaseNumber: campaign.phase_number,
+    step: 'AWAITING_MISSION_FOCUS',
+    role: 'COMMANDER',
+    actionType: 'MISSION_FOCUS_SELECTED',
+    details: { focus },
+  });
+
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/commander');
+  redirect('/dashboard/commander');
+}
+
+// ─── Intel Questions (Step 9 sub-step) ───────────────────────────────────────
+
+export interface IntelQuestionsState {
+  errors?: {
+    campaign_id?: string[];
+    _form?: string[];
+  };
+  success?: boolean;
+}
+
+const IntelQuestionsSchema = z.object({
+  campaign_id: z.string().uuid('Invalid campaign'),
+  // JSON array of selected question IDs, one per unlocked tier
+  questions: z.string().min(1, 'Select at least one question'),
+});
+
+/**
+ * Commander action: record selected intel questions in the phase log.
+ *
+ * Does NOT change campaign_phase_state — intel questions are asked as a
+ * sub-step of AWAITING_MISSION_SELECTION. The GM answers these questions
+ * verbally during the session.
+ *
+ * BoB rulebook pp.122-123 (Intel questions).
+ */
+export async function submitIntelQuestions(
+  _prevState: IntelQuestionsState | null,
+  formData: FormData,
+): Promise<IntelQuestionsState> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) redirect('/sign-in');
+
+  const raw = {
+    campaign_id: formData.get('campaign_id'),
+    questions: formData.get('questions'),
+  };
+
+  const parsed = IntelQuestionsSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { errors: parsed.error.flatten().fieldErrors };
+  }
+
+  const { campaign_id, questions: questionsJson } = parsed.data;
+
+  let selectedQuestions: unknown;
+  try {
+    selectedQuestions = JSON.parse(questionsJson);
+  } catch {
+    return { errors: { _form: ['Invalid questions data'] } };
+  }
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaign_id)
+    .eq('user_id', user.id)
+    .eq('role', 'COMMANDER')
+    .maybeSingle();
+
+  if (!membership) {
+    return { errors: { _form: ['Only the Commander can submit intel questions'] } };
+  }
+
+  const { data: campaign, error: fetchError } = await db
+    .from('campaigns')
+    .select('campaign_phase_state, phase_number')
+    .eq('id', campaign_id)
+    .single();
+
+  if (fetchError || !campaign) {
+    return { errors: { _form: ['Campaign not found'] } };
+  }
+
+  if (campaign.campaign_phase_state !== 'AWAITING_MISSION_SELECTION') {
+    return { errors: { _form: ['Intel questions can only be submitted during mission selection'] } };
+  }
+
+  await logCampaignAction({
+    campaignId: campaign_id,
+    phaseNumber: campaign.phase_number,
+    step: 'AWAITING_MISSION_SELECTION',
+    role: 'COMMANDER',
+    actionType: 'INTEL_QUESTIONS_SUBMITTED',
+    details: { questions: selectedQuestions },
+  });
+
+  revalidatePath('/dashboard/commander');
+  return { success: true };
+}
+
+// ─── GM Mission Generation (Step 8) ──────────────────────────────────────────
+
+export interface GenerateMissionsState {
+  errors?: {
+    campaign_id?: string[];
+    missions?: string[];
+    _form?: string[];
+  };
+  success?: boolean;
+}
+
+const MissionInputSchema = z.object({
+  name: z.string().min(1, 'Mission name required').max(80),
+  type: z.enum(['ASSAULT', 'RECON', 'RELIGIOUS', 'SUPPLY', 'SPECIAL'], {
+    error: 'Select a mission type',
+  }),
+  objective: z.string().min(1, 'Objective required').max(300),
+  threat_level: z.coerce.number().int().min(1).max(4),
+  reward_morale: z.coerce.number().int().min(0).default(0),
+  reward_intel: z.coerce.number().int().min(0).default(0),
+  reward_supply: z.coerce.number().int().min(0).default(0),
+  reward_time: z.coerce.number().int().min(0).default(0),
+  penalty_pressure: z.coerce.number().int().min(0).default(0),
+  penalty_morale: z.coerce.number().int().min(0).default(0),
+});
+
+type MissionInput = z.infer<typeof MissionInputSchema>;
+
+const GenerateMissionsSchema = z.object({
+  campaign_id: z.string().uuid('Invalid campaign'),
+  // JSON-encoded array of mission objects
+  missions_json: z.string().min(1),
+});
+
+/**
+ * GM action: save generated missions and present them to the Commander.
+ *
+ * Creates 2-3 Mission rows in GENERATED status, then transitions state
+ * to AWAITING_MISSION_SELECTION.
+ *
+ * BoB rulebook pp.314+ (mission generation tables).
+ */
+export async function generateMissions(
+  _prevState: GenerateMissionsState | null,
+  formData: FormData,
+): Promise<GenerateMissionsState> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) redirect('/sign-in');
+
+  const raw = {
+    campaign_id: formData.get('campaign_id'),
+    missions_json: formData.get('missions_json'),
+  };
+
+  const parsed = GenerateMissionsSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { errors: parsed.error.flatten().fieldErrors };
+  }
+
+  const { campaign_id, missions_json } = parsed.data;
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaign_id)
+    .eq('user_id', user.id)
+    .eq('role', 'GM')
+    .maybeSingle();
+
+  if (!membership) {
+    return { errors: { _form: ['Only the GM can generate missions'] } };
+  }
+
+  const { data: campaign, error: fetchError } = await db
+    .from('campaigns')
+    .select('campaign_phase_state, phase_number')
+    .eq('id', campaign_id)
+    .single();
+
+  if (fetchError || !campaign) {
+    return { errors: { _form: ['Campaign not found'] } };
+  }
+
+  try {
+    assertValidTransition(
+      campaign.campaign_phase_state as CampaignPhaseState | null,
+      'AWAITING_MISSION_SELECTION',
+    );
+  } catch {
+    return { errors: { _form: ['Cannot generate missions in the current phase state'] } };
+  }
+
+  let missionInputs: MissionInput[];
+  try {
+    const raw = JSON.parse(missions_json);
+    if (!Array.isArray(raw) || raw.length < 2 || raw.length > 3) {
+      return { errors: { missions: ['Provide 2 or 3 missions'] } };
+    }
+    missionInputs = raw.map((m) => MissionInputSchema.parse(m));
+  } catch {
+    return { errors: { missions: ['Invalid mission data'] } };
+  }
+
+  const missionRows = missionInputs.map((m) => ({
+    campaign_id,
+    phase_number: campaign.phase_number,
+    name: m.name,
+    type: m.type,
+    objective: m.objective,
+    threat_level: m.threat_level,
+    status: 'GENERATED' as const,
+    rewards: {
+      morale: m.reward_morale,
+      intel: m.reward_intel,
+      supply: m.reward_supply,
+      time: m.reward_time,
+    },
+    penalties: {
+      pressure: m.penalty_pressure,
+      morale: m.penalty_morale,
+    },
+  }));
+
+  const { error: insertError } = await db.from('missions').insert(missionRows);
+  if (insertError) {
+    return { errors: { _form: [insertError.message] } };
+  }
+
+  const { error: updateError } = await db
+    .from('campaigns')
+    .update({ campaign_phase_state: 'AWAITING_MISSION_SELECTION' })
+    .eq('id', campaign_id);
+
+  if (updateError) {
+    return { errors: { _form: [updateError.message] } };
+  }
+
+  await logCampaignAction({
+    campaignId: campaign_id,
+    phaseNumber: campaign.phase_number,
+    step: 'AWAITING_MISSION_GENERATION',
+    role: 'GM',
+    actionType: 'MISSION_GENERATION_COMPLETE',
+    details: { mission_count: missionRows.length, mission_names: missionRows.map((m) => m.name) },
+  });
+
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/gm');
+  revalidatePath('/dashboard/commander');
+  return { success: true };
+}
+
+// ─── Mission Selection (Step 9 / AWAITING_MISSION_SELECTION) ─────────────────
+
+export interface SelectMissionsState {
+  errors?: {
+    campaign_id?: string[];
+    primary_mission_id?: string[];
+    secondary_mission_id?: string[];
+    intel_spent?: string[];
+    _form?: string[];
+  };
+  success?: boolean;
+}
+
+const SelectMissionsSchema = z.object({
+  campaign_id: z.string().uuid('Invalid campaign'),
+  primary_mission_id: z.string().uuid('Select a primary mission'),
+  secondary_mission_id: z.string().uuid('Select a secondary mission'),
+  // Optional: intel spent per mission for engagement bonus (+1d each)
+  intel_for_primary: z.coerce.number().int().min(0).default(0),
+  intel_for_secondary: z.coerce.number().int().min(0).default(0),
+});
+
+/**
+ * Commander action: designate primary and secondary missions.
+ *
+ * Primary mission: played at the table.
+ * Secondary mission: resolved with an engagement roll.
+ * Third mission (if any): automatically marked FAILED.
+ *
+ * Intel can be spent for +1d on engagement rolls — recorded for the GM.
+ *
+ * BoB rulebook pp.124-125 (Mission Selection).
+ */
+export async function selectMissions(
+  _prevState: SelectMissionsState | null,
+  formData: FormData,
+): Promise<SelectMissionsState> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) redirect('/sign-in');
+
+  const raw = {
+    campaign_id: formData.get('campaign_id'),
+    primary_mission_id: formData.get('primary_mission_id'),
+    secondary_mission_id: formData.get('secondary_mission_id'),
+    intel_for_primary: formData.get('intel_for_primary') || '0',
+    intel_for_secondary: formData.get('intel_for_secondary') || '0',
+  };
+
+  const parsed = SelectMissionsSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { errors: parsed.error.flatten().fieldErrors };
+  }
+
+  const { campaign_id, primary_mission_id, secondary_mission_id, intel_for_primary, intel_for_secondary } = parsed.data;
+
+  if (primary_mission_id === secondary_mission_id) {
+    return { errors: { secondary_mission_id: ['Primary and secondary missions must be different'] } };
+  }
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaign_id)
+    .eq('user_id', user.id)
+    .eq('role', 'COMMANDER')
+    .maybeSingle();
+
+  if (!membership) {
+    return { errors: { _form: ['Only the Commander can select missions'] } };
+  }
+
+  const { data: campaign, error: fetchError } = await db
+    .from('campaigns')
+    .select('campaign_phase_state, phase_number, intel')
+    .eq('id', campaign_id)
+    .single();
+
+  if (fetchError || !campaign) {
+    return { errors: { _form: ['Campaign not found'] } };
+  }
+
+  try {
+    assertValidTransition(
+      campaign.campaign_phase_state as CampaignPhaseState | null,
+      'PHASE_COMPLETE',
+    );
+  } catch {
+    return { errors: { _form: ['Cannot select missions in the current phase state'] } };
+  }
+
+  const totalIntelSpent = intel_for_primary + intel_for_secondary;
+  if (totalIntelSpent > campaign.intel) {
+    return { errors: { intel_spent: [`Only ${campaign.intel} Intel available`] } };
+  }
+
+  // Load all GENERATED missions for this phase
+  const { data: missions, error: missionsError } = await db
+    .from('missions')
+    .select('id')
+    .eq('campaign_id', campaign_id)
+    .eq('phase_number', campaign.phase_number)
+    .eq('status', 'GENERATED');
+
+  if (missionsError || !missions) {
+    return { errors: { _form: ['Could not load missions'] } };
+  }
+
+  const missionIds = missions.map((m) => m.id);
+
+  if (!missionIds.includes(primary_mission_id)) {
+    return { errors: { primary_mission_id: ['Invalid primary mission'] } };
+  }
+  if (!missionIds.includes(secondary_mission_id)) {
+    return { errors: { secondary_mission_id: ['Invalid secondary mission'] } };
+  }
+
+  // Update mission statuses
+  await db.from('missions').update({ status: 'PRIMARY' }).eq('id', primary_mission_id);
+  await db.from('missions').update({ status: 'SECONDARY' }).eq('id', secondary_mission_id);
+
+  // Third mission(s): auto-fail
+  const failedIds = missionIds.filter(
+    (id) => id !== primary_mission_id && id !== secondary_mission_id,
+  );
+  if (failedIds.length > 0) {
+    await db.from('missions').update({ status: 'FAILED' }).in('id', failedIds);
+  }
+
+  // Deduct intel
+  const { error: intelError } = await db
+    .from('campaigns')
+    .update({
+      intel: campaign.intel - totalIntelSpent,
+      campaign_phase_state: 'PHASE_COMPLETE',
+    })
+    .eq('id', campaign_id);
+
+  if (intelError) {
+    return { errors: { _form: [intelError.message] } };
+  }
+
+  await logCampaignAction({
+    campaignId: campaign_id,
+    phaseNumber: campaign.phase_number,
+    step: 'AWAITING_MISSION_SELECTION',
+    role: 'COMMANDER',
+    actionType: 'MISSION_SELECTED',
+    details: {
+      primary_mission_id,
+      secondary_mission_id,
+      failed_mission_ids: failedIds,
+      intel_for_primary,
+      intel_for_secondary,
+      intel_spent_total: totalIntelSpent,
+    },
+  });
+
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/commander');
+  return { success: true };
 }

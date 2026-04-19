@@ -110,6 +110,7 @@ async function deleteAllData() {
     'alchemists',
     'mercies',
     'siege_weapons',
+    'missions',
     'campaign_memberships',
     'campaigns',
     'profiles',
@@ -199,7 +200,7 @@ async function createUsersForCampaign(suffix: string): Promise<Map<string, strin
   return userIds;
 }
 
-async function createCampaign(name: string): Promise<{ id: string; inviteCode: string }> {
+async function createCampaign(name: string, isFirst: boolean): Promise<{ id: string; inviteCode: string }> {
   let inviteCode = generateInviteCode();
   for (let i = 0; i < 5; i++) {
     const { data: existing } = await db
@@ -211,9 +212,21 @@ async function createCampaign(name: string): Promise<{ id: string; inviteCode: s
     inviteCode = generateInviteCode();
   }
 
+  // First campaign starts at the very beginning (PHASE_COMPLETE).
+  // This allows the GM to start the first phase from the dashboard.
+  // Others start in the middle (Step 7) for testing downstream actions.
   const { data: campaign, error } = await db
     .from('campaigns')
-    .insert({ name, invite_code: inviteCode })
+    .insert({
+      name,
+      invite_code: inviteCode,
+      current_location: isFirst ? 'western_front' : 'plainsworth',
+      pressure: isFirst ? 0 : 3,
+      intel: isFirst ? 0 : 2,
+      time_clock_1: isFirst ? 0 : 5,
+      horse_uses: isFirst ? 0 : 2,
+      campaign_phase_state: isFirst ? 'PHASE_COMPLETE' : 'AWAITING_ADVANCE',
+    })
     .select()
     .single();
 
@@ -224,6 +237,50 @@ async function createCampaign(name: string): Promise<{ id: string; inviteCode: s
 
   log(`✓ "${name}" created  (invite: ${inviteCode})`);
   return { id: campaign.id, inviteCode };
+}
+
+async function seedMissions(campaignId: string) {
+  const { error } = await db.from('missions').insert([
+    {
+      campaign_id: campaignId,
+      phase_number: 1,
+      name: 'The Relic of Sunstrider',
+      type: 'RELIGIOUS',
+      objective: 'Recover the ancient relic before the Broken defile it.',
+      rewards: { time: 2, morale: 1 },
+      penalties: { time: -1 },
+      threat_level: 2,
+      status: 'GENERATED',
+    },
+    {
+      campaign_id: campaignId,
+      phase_number: 1,
+      name: 'Supply Run to Westlake',
+      type: 'SUPPLY',
+      objective: 'Secure vital supplies for the winter.',
+      rewards: { supply: 3 },
+      penalties: { pressure: 1 },
+      threat_level: 1,
+      status: 'GENERATED',
+    },
+    {
+      campaign_id: campaignId,
+      phase_number: 1,
+      name: 'Ambush at the Pass',
+      type: 'ASSAULT',
+      objective: 'Eliminate the undead scouts blocking our path.',
+      rewards: { morale: 2, intel: 1 },
+      penalties: { pressure: 2 },
+      threat_level: 3,
+      status: 'GENERATED',
+    },
+  ]);
+
+  if (error) {
+    console.error(`  Failed to seed missions: ${error.message}`);
+    process.exit(1);
+  }
+  log('✓ 3 sample missions generated');
 }
 
 async function assignMemberships(campaignId: string, suffix: string, userIds: Map<string, string>) {
@@ -294,13 +351,15 @@ async function main() {
 
   const results: Array<{ campaign: CampaignDef; inviteCode: string }> = [];
 
-  for (const campaign of CAMPAIGNS) {
+  for (let i = 0; i < CAMPAIGNS.length; i++) {
+    const campaign = CAMPAIGNS[i];
     section(`Campaign: ${campaign.name}`);
     const userIds = await createUsersForCampaign(campaign.suffix);
-    const { id, inviteCode } = await createCampaign(campaign.name);
+    const { id, inviteCode } = await createCampaign(campaign.name, i === 0);
     await assignMemberships(id, campaign.suffix, userIds);
     await seedScenes(id);
     await seedMateriel(id, campaign.suffix);
+    await seedMissions(id);
     results.push({ campaign, inviteCode });
   }
 

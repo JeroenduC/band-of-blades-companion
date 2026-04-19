@@ -10,9 +10,9 @@ A web application that digitises the campaign phase of [Band of Blades](https://
 
 ## 🚀 Current Status
 
-**Epic 5 — Commander Tools** ⏳
+**Epic 6 — Marshal Tools** ⏳
 
-Epic 4 is complete. The Quartermaster's full action set is live. Next up: Commander tools — pressure tracking, intel, and mission selection.
+Epic 5 is complete. Commander tools are live: war table, advance decision with pressure dice, interactive location map, intel questions, GM mission generation, and mission selection. Next up: Marshal tools — morale, squads, and mission deployment.
 
 ---
 
@@ -65,8 +65,8 @@ Full 10-step campaign loop with role-aware dashboards, FSM, phase logging, missi
 ### ✅ Epic 4: Quartermaster Campaign Actions
 All QM actions implemented: Acquire Assets (location-aware dice pool), R&R, Recruit, Long-Term Projects (create or work), Alchemist Projects (effect + corruption), Laborer ticks. QM Materiel Panel always visible. → [Sprint 4 Journal](docs/journal/sprint-04-quartermaster.md)
 
-### ⏳ Epic 5: Commander Tools
-Time, pressure, intel, advancing, mission selection.
+### ✅ Epic 5: Commander Tools
+War table (time/pressure/intel), interactive location map (node graph, click detail), advance decision with pressure dice and path selection, broken advance detection, intel question system (BoB pp.122-123), GM mission generation helper, mission selection with primary/secondary/auto-fail and intel spending. → [Sprint 5 Journal](docs/journal/sprint-05-commander.md)
 
 ### ⏳ Epic 6: Marshal Tools
 Morale, squads, Specialists, mission deployment.
@@ -153,6 +153,8 @@ Each entry covers what was built, decisions made, and lessons learned — writte
 - [Sprint 1 — Foundation](docs/journal/sprint-01-foundation.md)
 - [Sprint 2 — Visual Identity](docs/journal/sprint-02-visual-identity.md)
 - [Sprint 3 — Core Campaign Loop](docs/journal/sprint-03-core-loop.md)
+- [Sprint 4 — Quartermaster](docs/journal/sprint-04-quartermaster.md)
+- [Sprint 5 — Commander Tools](docs/journal/sprint-05-commander.md)
 
 ---
 

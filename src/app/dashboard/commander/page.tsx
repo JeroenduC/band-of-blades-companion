@@ -1,12 +1,16 @@
 import { loadDashboard } from '@/server/loaders/dashboard';
 import { DashboardShell } from '@/components/features/campaign/dashboard-shell';
+import { CommanderWarTable } from '@/components/features/campaign/commander-war-table';
+import { MissionFocusForm } from '@/components/features/campaign/mission-focus-form';
 import { WaitingForOthers } from '@/components/features/campaign/waiting-for-others';
 import { TimePassesSummary } from '@/components/features/campaign/time-passes-summary';
 import { AdvanceDecisionForm } from '@/components/features/campaign/advance-decision-form';
-import { PlaceholderStep } from '@/components/features/campaign/placeholder-step';
+import { MissionSelectionStep } from '@/components/features/campaign/mission-selection-step';
 import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle } from '@/components/legion';
+import { LocationMap } from '@/components/features/campaign/location-map';
+import { createServiceClient } from '@/lib/supabase/service';
 import { isRoleActive } from '@/lib/state-machine';
-import type { CampaignPhaseState } from '@/lib/types';
+import type { CampaignPhaseState, Mission } from '@/lib/types';
 
 export const metadata = { title: 'Commander — Band of Blades' };
 
@@ -15,8 +19,35 @@ export default async function CommanderDashboardPage() {
   const phaseState = campaign.campaign_phase_state as CampaignPhaseState | null;
   const isMyTurn = phaseState !== null && isRoleActive('COMMANDER', phaseState);
 
+  // Fetch missions for the selection step
+  let phaseMissions: Mission[] = [];
+  if (phaseState === 'AWAITING_MISSION_SELECTION') {
+    const db = createServiceClient();
+    const { data } = await db
+      .from('missions')
+      .select('*')
+      .eq('campaign_id', campaign.id)
+      .eq('phase_number', campaign.phase_number)
+      .eq('status', 'GENERATED')
+      .order('created_at', { ascending: true });
+    phaseMissions = (data ?? []) as unknown as Mission[];
+  }
+
   return (
     <DashboardShell role="COMMANDER" campaignName={campaign.name}>
+      <CommanderWarTable campaign={campaign} />
+
+      <LegionCard>
+        <LegionCardHeader>
+          <LegionCardTitle className="text-sm font-medium text-legion-text-muted uppercase tracking-widest">
+            Campaign Map
+          </LegionCardTitle>
+        </LegionCardHeader>
+        <LegionCardContent>
+          <LocationMap currentLocationId={campaign.current_location} />
+        </LegionCardContent>
+      </LegionCard>
+
       {phaseState === null ? (
         <div className="rounded-lg border border-dashed border-border p-8 text-center">
           <p className="text-sm text-legion-text-muted">
@@ -54,16 +85,7 @@ export default async function CommanderDashboardPage() {
               </LegionCardTitle>
             </LegionCardHeader>
             <LegionCardContent>
-              <PlaceholderStep
-                campaignId={campaign.id}
-                title="Mission Focus"
-                message="Full mission type selection (Assault, Recon, Religious, Supply) will be implemented in Epic 9. For now, click Continue to advance."
-                buttonLabel="Continue to Mission Generation"
-                nextState="AWAITING_MISSION_GENERATION"
-                role="COMMANDER"
-                actionType="MISSION_FOCUS_SELECTED"
-                dashboardPath="/dashboard/commander"
-              />
+              <MissionFocusForm campaign={campaign} />
             </LegionCardContent>
           </LegionCard>
         ) : phaseState === 'AWAITING_MISSION_SELECTION' ? (
@@ -74,16 +96,7 @@ export default async function CommanderDashboardPage() {
               </LegionCardTitle>
             </LegionCardHeader>
             <LegionCardContent>
-              <PlaceholderStep
-                campaignId={campaign.id}
-                title="Mission Selection"
-                message="Full mission selection will be implemented in Epic 5/6. Click Continue to complete this phase."
-                buttonLabel="Complete Phase"
-                nextState="PHASE_COMPLETE"
-                role="COMMANDER"
-                actionType="MISSION_SELECTED"
-                dashboardPath="/dashboard/commander"
-              />
+              <MissionSelectionStep campaignId={campaign.id} intel={campaign.intel} missions={phaseMissions} />
             </LegionCardContent>
           </LegionCard>
         ) : (
