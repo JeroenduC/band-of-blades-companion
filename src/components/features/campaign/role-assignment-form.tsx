@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { assignRole } from '@/server/actions/campaign';
 import type { LegionRole, MemberRank, CampaignMembershipWithProfile } from '@/lib/types';
 import { LegionButton } from '@/components/legion';
@@ -24,7 +25,16 @@ interface RoleAssignmentFormProps {
 }
 
 export function RoleAssignmentForm({ membership, campaignId }: RoleAssignmentFormProps) {
+  const router = useRouter();
   const [state, action, pending] = useActionState(assignRole, null);
+
+  // Trigger a full data refresh when the action succeeds. This forces the
+  // Server Component to re-fetch memberships and push fresh props down.
+  useEffect(() => {
+    if (state?.success) {
+      router.refresh();
+    }
+  }, [state, router]);
 
   // Controlled state so the selects reflect server-updated values after revalidation.
   // defaultValue only applies on mount — these sync whenever the parent re-renders

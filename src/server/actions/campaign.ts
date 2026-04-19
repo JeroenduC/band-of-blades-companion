@@ -129,10 +129,15 @@ export async function joinCampaign(
   redirect('/dashboard');
 }
 
+export interface ActionState {
+  error?: string;
+  success?: boolean;
+}
+
 export async function assignRole(
-  _prevState: { error: string } | null,
+  _prevState: ActionState | null,
   formData: FormData
-) {
+): Promise<ActionState> {
   const supabase = await createClient();
   const db = createServiceClient();
 
@@ -185,13 +190,13 @@ export async function assignRole(
   }
 
   revalidatePath(`/campaign/${campaignId}/members`);
-  return null;
+  return { success: true };
 }
 
 export async function removePlayer(
-  _prevState: { error: string } | null,
+  _prevState: ActionState | null,
   formData: FormData,
-) {
+): Promise<ActionState> {
   const supabase = await createClient();
   const db = createServiceClient();
 
@@ -256,5 +261,5 @@ export async function removePlayer(
   }
 
   revalidatePath(`/campaign/${campaignId}/members`);
-  return null;
+  return { success: true };
 }
