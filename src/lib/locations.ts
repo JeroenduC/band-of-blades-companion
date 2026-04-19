@@ -184,7 +184,9 @@ export const LOCATIONS: Location[] = [
 
 /** Look up a location by its ID. Returns undefined if not found. */
 export function getLocation(id: string): Location | undefined {
-  return LOCATIONS.find((l) => l.id === id);
+  if (!id) return undefined;
+  const normalizedId = id.toLowerCase().replace(/\s+/g, '_');
+  return LOCATIONS.find((l) => l.id === normalizedId);
 }
 
 /**

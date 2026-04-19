@@ -200,7 +200,7 @@ async function createUsersForCampaign(suffix: string): Promise<Map<string, strin
   return userIds;
 }
 
-async function createCampaign(name: string): Promise<{ id: string; inviteCode: string }> {
+async function createCampaign(name: string, isFirst: boolean): Promise<{ id: string; inviteCode: string }> {
   let inviteCode = generateInviteCode();
   for (let i = 0; i < 5; i++) {
     const { data: existing } = await db
@@ -212,17 +212,20 @@ async function createCampaign(name: string): Promise<{ id: string; inviteCode: s
     inviteCode = generateInviteCode();
   }
 
+  // First campaign starts at the very beginning (PHASE_COMPLETE).
+  // This allows the GM to start the first phase from the dashboard.
+  // Others start in the middle (Step 7) for testing downstream actions.
   const { data: campaign, error } = await db
     .from('campaigns')
     .insert({
       name,
       invite_code: inviteCode,
-      current_location: 'Plainsworth',
-      pressure: 3,
-      intel: 2,
-      time_clock_1: 5,
-      horse_uses: 2,
-      campaign_phase_state: 'AWAITING_ADVANCE', // Start at Step 7 for testing
+      current_location: isFirst ? 'western_front' : 'plainsworth',
+      pressure: isFirst ? 0 : 3,
+      intel: isFirst ? 0 : 2,
+      time_clock_1: isFirst ? 0 : 5,
+      horse_uses: isFirst ? 0 : 2,
+      campaign_phase_state: isFirst ? 'PHASE_COMPLETE' : 'AWAITING_ADVANCE',
     })
     .select()
     .single();
@@ -348,10 +351,11 @@ async function main() {
 
   const results: Array<{ campaign: CampaignDef; inviteCode: string }> = [];
 
-  for (const campaign of CAMPAIGNS) {
+  for (let i = 0; i < CAMPAIGNS.length; i++) {
+    const campaign = CAMPAIGNS[i];
     section(`Campaign: ${campaign.name}`);
     const userIds = await createUsersForCampaign(campaign.suffix);
-    const { id, inviteCode } = await createCampaign(campaign.name);
+    const { id, inviteCode } = await createCampaign(campaign.name, i === 0);
     await assignMemberships(id, campaign.suffix, userIds);
     await seedScenes(id);
     await seedMateriel(id, campaign.suffix);
