@@ -2,8 +2,8 @@
 
 import { useActionState, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { selectMissions } from '@/server/actions/campaign-phase';
-import type { SelectMissionsState } from '@/server/actions/campaign-phase';
+import { selectMissions } from '@/server/actions/phase';
+import type { SelectMissionsState } from '@/server/actions/phase';
 import type { Mission } from '@/lib/types';
 
 interface MissionSelectionCardsProps {

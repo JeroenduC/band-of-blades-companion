@@ -2,8 +2,8 @@
 
 import { useActionState, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { generateMissions } from '@/server/actions/campaign-phase';
-import type { GenerateMissionsState } from '@/server/actions/campaign-phase';
+import { generateMissions } from '@/server/actions/phase';
+import type { GenerateMissionsState } from '@/server/actions/phase';
 import type { MissionType } from '@/lib/types';
 
 // ── Types ─────────────────────────────────────────────────────────────────────

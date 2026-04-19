@@ -2,8 +2,8 @@
 
 import { useActionState, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { submitIntelQuestions } from '@/server/actions/campaign-phase';
-import type { IntelQuestionsState } from '@/server/actions/campaign-phase';
+import { submitIntelQuestions } from '@/server/actions/phase';
+import type { IntelQuestionsState } from '@/server/actions/phase';
 import { getUnlockedTiers } from '@/lib/intel-questions';
 
 interface IntelQuestionsFormProps {

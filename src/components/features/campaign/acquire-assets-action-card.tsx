@@ -6,7 +6,7 @@ import {
   performAcquireAssets,
   type AcquireAssetsState,
   type AcquireAssetType,
-} from '@/server/actions/campaign-phase';
+} from '@/server/actions/phase';
 import { LOCATIONS, type AssetType } from '@/lib/locations';
 import type { Campaign } from '@/lib/types';
 import type { ActionQuality } from '@/lib/campaign-utils';

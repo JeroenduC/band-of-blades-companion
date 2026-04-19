@@ -1,8 +1,8 @@
 'use client';
 
 import { useActionState } from 'react';
-import { resolveMission } from '@/server/actions/campaign-phase';
-import type { ResolveMissionState } from '@/server/actions/campaign-phase';
+import { resolveMission } from '@/server/actions/phase';
+import type { ResolveMissionState } from '@/server/actions/phase';
 
 interface MissionResolutionFormProps {
   campaignId: string;

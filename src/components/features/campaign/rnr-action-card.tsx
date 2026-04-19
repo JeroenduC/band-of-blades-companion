@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { performRnR, type RnRState } from '@/server/actions/campaign-phase';
+import { performRnR, type RnRState } from '@/server/actions/phase';
 import type { Campaign, Mercy } from '@/lib/types';
 
 interface RnRActionCardProps {

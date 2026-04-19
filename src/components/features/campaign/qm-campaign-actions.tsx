@@ -1,9 +1,9 @@
 'use client';
 
 import { useActionState } from 'react';
-import { performLiberty, completeQmActions } from '@/server/actions/campaign-phase';
+import { performLiberty, completeQmActions } from '@/server/actions/phase';
 import { freeActionsFromMorale } from '@/lib/campaign-utils';
-import type { LibertyState } from '@/server/actions/campaign-phase';
+import type { LibertyState } from '@/server/actions/phase';
 import type { Campaign, Mercy, LongTermProject } from '@/lib/types';
 import { RecruitActionCard } from './recruit-action-card';
 import { AcquireAssetsActionCard } from './acquire-assets-action-card';

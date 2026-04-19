@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { performLongTermProject, type LongTermProjectState } from '@/server/actions/campaign-phase';
+import { performLongTermProject, type LongTermProjectState } from '@/server/actions/phase';
 import type { Campaign, LongTermProject } from '@/lib/types';
 import type { ActionQuality } from '@/lib/campaign-utils';
 
