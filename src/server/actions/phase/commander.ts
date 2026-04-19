@@ -543,7 +543,7 @@ export async function selectMissions(
   try {
     assertValidTransition(
       campaign.campaign_phase_state as CampaignPhaseState | null,
-      'PHASE_COMPLETE',
+      'AWAITING_MISSION_DEPLOYMENT',
     );
   } catch {
     return { errors: { _form: ['Cannot select missions in the current phase state'] } };
@@ -592,7 +592,7 @@ export async function selectMissions(
     .from('campaigns')
     .update({
       intel: campaign.intel - totalIntelSpent,
-      campaign_phase_state: 'PHASE_COMPLETE',
+      campaign_phase_state: 'AWAITING_MISSION_DEPLOYMENT',
     })
     .eq('id', campaign_id);
 

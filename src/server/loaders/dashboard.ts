@@ -12,6 +12,7 @@ import { createServiceClient } from '@/lib/supabase/service';
 import type {
   Campaign, CampaignMembership, LegionRole, BackAtCampScene, MoraleLevel,
   Alchemist, Mercy, Laborers, LongTermProject, SiegeWeapon, RecruitPool,
+  Specialist, Squad, SquadMember, Mission,
 } from '@/lib/types';
 
 export interface DashboardData {
@@ -171,6 +172,74 @@ export async function loadQmMateriel(campaignId: string, phaseNumber: number): P
     recruitPool: (recruitPool ?? []) as RecruitPool[],
     acquiredAssetTypes,
   };
+}
+
+// ─── Marshal Personnel ───────────────────────────────────────────────────────
+
+export interface MarshalPersonnelData {
+  specialists: Specialist[];
+  squads: (Squad & { members: SquadMember[] })[];
+  unassignedRecruits: { rookies: number; soldiers: number };
+  totalLegionnaires: number;
+  totalSpecialists: number;
+  totalSquads: number;
+}
+
+/**
+ * Load all personnel data for the Marshal.
+ */
+export async function loadMarshalPersonnel(campaignId: string): Promise<MarshalPersonnelData> {
+  const db = createServiceClient();
+
+  const [
+    { data: specialists },
+    { data: squads },
+    { data: unassignedRecruits },
+  ] = await Promise.all([
+    db.from('specialists').select('*').eq('campaign_id', campaignId).order('name'),
+    db.from('squads').select('*, squad_members(*)').eq('campaign_id', campaignId).order('name'),
+    db.from('recruit_pool').select('rookies, soldiers').eq('campaign_id', campaignId).eq('assigned', false),
+  ]);
+
+  const specs = (specialists ?? []) as Specialist[];
+  const sqds = (squads ?? []) as (Squad & { squad_members: SquadMember[] })[];
+
+  // Map squad_members to members to match our interface
+  const formattedSquads = sqds.map(s => ({
+    ...s,
+    members: s.squad_members || []
+  }));
+
+  const livingSpecialists = specs.filter(s => s.status !== 'DEAD' && s.status !== 'RETIRED').length;
+  const livingSquadMembers = formattedSquads.reduce((acc, s) =>
+    acc + s.members.filter(m => m.status !== 'DEAD').length, 0
+  );
+
+  const unassignedRookies = (unassignedRecruits ?? []).reduce((acc, r) => acc + (r.rookies || 0), 0);
+  const unassignedSoldiers = (unassignedRecruits ?? []).reduce((acc, r) => acc + (r.soldiers || 0), 0);
+
+  return {
+    specialists: specs,
+    squads: formattedSquads,
+    unassignedRecruits: { rookies: unassignedRookies, soldiers: unassignedSoldiers },
+    totalLegionnaires: livingSquadMembers + unassignedRookies + unassignedSoldiers + livingSpecialists,
+    totalSpecialists: livingSpecialists,
+    totalSquads: formattedSquads.length,
+  };
+}
+
+/**
+ * Load all missions for a campaign phase.
+ */
+export async function loadMissions(campaignId: string, phaseNumber: number): Promise<Mission[]> {
+  const db = createServiceClient();
+  const { data: missions } = await db
+    .from('missions')
+    .select('*')
+    .eq('campaign_id', campaignId)
+    .eq('phase_number', phaseNumber);
+
+  return (missions ?? []) as Mission[];
 }
 
 /**

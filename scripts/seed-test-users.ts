@@ -111,6 +111,9 @@ async function deleteAllData() {
     'mercies',
     'siege_weapons',
     'missions',
+    'specialists',
+    'squad_members',
+    'squads',
     'campaign_memberships',
     'campaigns',
     'profiles',
@@ -338,6 +341,60 @@ async function seedMateriel(campaignId: string, suffix: string) {
   log('✓ QM materiel: 2 laborers, 2 alchemists, 1 mercy, 1 project (3/8)');
 }
 
+async function seedPersonnel(campaignId: string) {
+  const squads = [
+    { name: 'Ember Wolves', motto: 'First Into the Fray', type: 'SOLDIER' },
+    { name: 'Grinning Ravens', motto: 'We Laugh at Death', type: 'SOLDIER' },
+    { name: 'Star Vipers', motto: 'In Darkness We Shine', type: 'SOLDIER' },
+    { name: 'Shattered Lions', motto: 'Pride of the Legion', type: 'SOLDIER' },
+    { name: 'Ghost Owls', motto: 'Calm Before the Storm', type: 'SOLDIER' },
+    { name: 'Silver Stags', motto: 'No Matter the Cost', type: 'SOLDIER' },
+  ];
+
+  for (const s of squads) {
+    const { data: squad, error: se } = await db.from('squads').insert({
+      campaign_id: campaignId,
+      ...s
+    }).select().single();
+
+    if (se) { console.error(`  Failed to seed squad ${s.name}: ${se.message}`); process.exit(1); }
+
+    // Seed 3-5 members per squad
+    const memberCount = Math.floor(Math.random() * 3) + 3;
+    const heritages = ['Bartylla', 'Pannonia', 'Zemya', 'Akhoros'];
+    const names = ['Kaelen', 'Mara', 'Jaxon', 'Lyra', 'Torin', 'Sela', 'Bram', 'Via', 'Dax', 'Kira'];
+
+    for (let i = 0; i < memberCount; i++) {
+      const { error: me } = await db.from('squad_members').insert({
+        squad_id: squad.id,
+        name: names[Math.floor(Math.random() * names.length)] + ' ' + (i + 1),
+        heritage: heritages[Math.floor(Math.random() * heritages.length)],
+        rank: Math.random() > 0.7 ? 'SOLDIER' : 'ROOKIE',
+        status: 'ALIVE',
+        harm: 0,
+        stress: 0,
+        xp: Math.floor(Math.random() * 3)
+      });
+      if (me) { console.error(`  Failed to seed squad member: ${me.message}`); process.exit(1); }
+    }
+  }
+
+  const specialists = [
+    { name: 'Kruge', class: 'HEAVY', heritage: 'Bartylla', stress: 2, status: 'AVAILABLE', xp: 4 },
+    { name: 'Ana', class: 'MEDIC', heritage: 'Pannonia', stress: 0, status: 'AVAILABLE', xp: 2 },
+    { name: 'Kael', class: 'OFFICER', heritage: 'Zemya', stress: 5, status: 'AVAILABLE', xp: 6 },
+    { name: 'Thief', class: 'SCOUT', heritage: 'Akhoros', stress: 1, status: 'AVAILABLE', xp: 1 },
+    { name: 'Eagle', class: 'SNIPER', heritage: 'Bartylla', stress: 3, status: 'AVAILABLE', xp: 3, harm_level_1_a: 'Twisted Ankle' },
+  ];
+
+  const { error: spe } = await db.from('specialists').insert(
+    specialists.map(s => ({ ...s, campaign_id: campaignId }))
+  );
+  if (spe) { console.error(`  Failed to seed specialists: ${spe.message}`); process.exit(1); }
+
+  log('✓ Personnel seeded: 6 squads, 5 specialists');
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -359,6 +416,7 @@ async function main() {
     await assignMemberships(id, campaign.suffix, userIds);
     await seedScenes(id);
     await seedMateriel(id, campaign.suffix);
+    await seedPersonnel(id);
     await seedMissions(id);
     results.push({ campaign, inviteCode });
   }
