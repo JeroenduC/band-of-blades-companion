@@ -129,7 +129,7 @@ export async function resolveMission(
   const currentState = campaign.campaign_phase_state as CampaignPhaseState | null;
 
   try {
-    assertValidTransition(currentState, 'AWAITING_BACK_AT_CAMP');
+    assertValidTransition(currentState, 'AWAITING_PERSONNEL_UPDATE');
   } catch {
     return { errors: { _form: ['Cannot resolve mission in the current phase state'] } };
   }
@@ -143,7 +143,7 @@ export async function resolveMission(
   const { error: updateError } = await db
     .from('campaigns')
     .update({
-      campaign_phase_state: 'AWAITING_BACK_AT_CAMP',
+      campaign_phase_state: 'AWAITING_PERSONNEL_UPDATE',
       morale: newMorale,
       supply: newSupply,
       intel: newIntel,

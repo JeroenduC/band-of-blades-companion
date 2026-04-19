@@ -10,9 +10,9 @@ A web application that digitises the campaign phase of [Band of Blades](https://
 
 ## 🚀 Current Status
 
-**Epic 6 — Marshal Tools** ⏳
+**Epic 7 — Spymaster Tools** ⏳
 
-Epic 5 is complete. Commander tools are live: war table, advance decision with pressure dice, interactive location map, intel questions, GM mission generation, and mission selection. Next up: Marshal tools — morale, squads, and mission deployment.
+Epic 6 is complete. Marshal tools are live: morale tracking, squad management (naming/transfers), Specialist roster (stress/harm/xp), mission deployment, and engagement roll builder. Next up: Spymaster tools — spies, intel, and assignments.
 
 ---
 
@@ -68,8 +68,8 @@ All QM actions implemented: Acquire Assets (location-aware dice pool), R&R, Recr
 ### ✅ Epic 5: Commander Tools
 War table (time/pressure/intel), interactive location map (node graph, click detail), advance decision with pressure dice and path selection, broken advance detection, intel question system (BoB pp.122-123), GM mission generation helper, mission selection with primary/secondary/auto-fail and intel spending. → [Sprint 5 Journal](docs/journal/sprint-05-commander.md)
 
-### ⏳ Epic 6: Marshal Tools
-Morale, squads, Specialists, mission deployment.
+### ✅ Epic 6: Marshal Tools
+Morale, squads, Specialists, mission deployment, and engagement roll builder. Added two new phase states: AWAITING_MISSION_DEPLOYMENT and AWAITING_PERSONNEL_UPDATE. → [Sprint 6 Journal](docs/journal/sprint-06-marshal.md)
 
 ### ⏳ Epic 7: Spymaster Tools
 Spy dispatch, assignments, network upgrades.

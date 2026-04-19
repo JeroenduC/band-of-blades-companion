@@ -13,6 +13,7 @@ export type CampaignPhase = 'MISSION' | 'CAMPAIGN';
 
 export type CampaignPhaseState =
   | 'AWAITING_MISSION_RESOLUTION'
+  | 'AWAITING_PERSONNEL_UPDATE'
   | 'AWAITING_BACK_AT_CAMP'
   | 'TIME_PASSING'
   | 'CAMPAIGN_ACTIONS'
@@ -21,6 +22,7 @@ export type CampaignPhaseState =
   | 'AWAITING_MISSION_FOCUS'
   | 'AWAITING_MISSION_GENERATION'
   | 'AWAITING_MISSION_SELECTION'
+  | 'AWAITING_MISSION_DEPLOYMENT'
   | 'PHASE_COMPLETE';
 
 export type SessionStatus = 'PLANNED' | 'IN_PROGRESS' | 'COMPLETE';
@@ -136,6 +138,54 @@ export interface RecruitPool {
   created_at: string;
 }
 
+// ─── Sprint 6: Marshal and Personnel ────────────────────────────────────────
+
+export type SpecialistClass = 'HEAVY' | 'MEDIC' | 'OFFICER' | 'SCOUT' | 'SNIPER';
+export type SpecialistStatus = 'AVAILABLE' | 'DEPLOYED' | 'DEAD' | 'RETIRED';
+export type SquadRank = 'ROOKIE' | 'SOLDIER';
+export type SquadMemberStatus = 'ALIVE' | 'WOUNDED' | 'DEAD';
+
+export interface Specialist {
+  id: string;
+  campaign_id: string;
+  name: string;
+  class: SpecialistClass;
+  heritage: string;
+  stress: number; // 0-9
+  harm_level_1_a: string | null;
+  harm_level_1_b: string | null;
+  harm_level_2_a: string | null;
+  harm_level_2_b: string | null;
+  harm_level_3: string | null;
+  healing_ticks: number;
+  xp: number;
+  abilities: string[]; // IDs or names of special abilities
+  status: SpecialistStatus;
+  created_at: string;
+}
+
+export interface Squad {
+  id: string;
+  campaign_id: string;
+  name: string;
+  motto: string;
+  type: 'ROOKIE' | 'SOLDIER' | 'ELITE';
+  created_at: string;
+}
+
+export interface SquadMember {
+  id: string;
+  squad_id: string;
+  name: string;
+  heritage: string;
+  rank: SquadRank;
+  status: SquadMemberStatus;
+  harm: number;
+  stress: number;
+  xp: number;
+  created_at: string;
+}
+
 export type CampaignPhaseLogActionType =
   | 'PHASE_START'
   | 'MISSION_RESOLVED'
@@ -158,7 +208,10 @@ export type CampaignPhaseLogActionType =
   | 'LONG_TERM_PROJECT'
   | 'ALCHEMIST_PROJECT'
   | 'LABORER_TICK'
-  | 'INTEL_QUESTIONS_SUBMITTED';
+  | 'INTEL_QUESTIONS_SUBMITTED'
+  | 'PERSONNEL_DEPLOYED'
+  | 'ENGAGEMENT_ROLL'
+  | 'PERSONNEL_UPDATED';
 
 export interface CampaignPhaseLog {
   id: string;
