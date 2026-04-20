@@ -15,6 +15,7 @@ export type CampaignPhaseState =
   | 'AWAITING_MISSION_RESOLUTION'
   | 'AWAITING_PERSONNEL_UPDATE'
   | 'AWAITING_BACK_AT_CAMP'
+  | 'AWAITING_TALES'
   | 'TIME_PASSING'
   | 'CAMPAIGN_ACTIONS'
   | 'AWAITING_LABORERS_ALCHEMISTS'
@@ -57,7 +58,32 @@ export interface Campaign {
   spymaster_actions_complete: boolean;
   // Sprint 3: current location on the campaign map
   current_location: string;
+  // Sprint 8: Lorekeeper tracking
+  deaths_since_last_tale: number;
+  tales_told: string[]; // List of Tale IDs
+  
+  // Sprint 8: Tale bonuses for next phase/mission
+  next_mission_special?: boolean;
+  next_mission_maneuver_bonus?: number;
+  next_mission_wreck_bonus?: number;
+  next_mission_resist_bonus?: number;
+  next_mission_resolve_bonus?: number;
+  next_mission_engagement_bonus?: number;
+  next_mission_armor_bonus?: number;
+  next_mission_no_advance?: boolean;
+  
   created_at: string;
+}
+
+// ─── Sprint 8: Lorekeeper Tools ──────────────────────────────────────────────
+
+export interface AnnalsEntry {
+  id: string;
+  campaign_id: string;
+  phase_number: number;
+  lorekeeper_notes: string;
+  created_at: string;
+  updated_at: string;
 }
 
 // ─── Sprint 5: Commander and Missions ────────────────────────────────────────
@@ -261,7 +287,8 @@ export type CampaignPhaseLogActionType =
   | 'INTEL_QUESTIONS_SUBMITTED'
   | 'PERSONNEL_DEPLOYED'
   | 'ENGAGEMENT_ROLL'
-  | 'PERSONNEL_UPDATED';
+  | 'PERSONNEL_UPDATED'
+  | 'TALE_TOLD';
 
 export interface CampaignPhaseLog {
   id: string;
@@ -283,6 +310,8 @@ export interface BackAtCampScene {
   morale_level: MoraleLevel;
   used: boolean;
   used_in_phase: number | null;
+  max_uses: number;
+  times_used: number;
 }
 
 export interface CampaignMembership {

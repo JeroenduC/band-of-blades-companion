@@ -13,6 +13,7 @@ import {
   Campaign, CampaignMembership, LegionRole, BackAtCampScene, MoraleLevel,
   Alchemist, Mercy, Laborers, LongTermProject, SiegeWeapon, RecruitPool,
   Specialist, Squad, SquadMember, Mission, Spy, SpyNetwork, SpyLongTermAssignment,
+  AnnalsEntry, CampaignPhaseLog,
 } from '@/lib/types';
 
 export interface DashboardData {
@@ -110,7 +111,7 @@ export async function loadBackAtCampScenes(
     : ['LOW'];
 
   for (const l of levelOrder) {
-    const available = scenes.filter((s) => s.morale_level === l && !s.used);
+    const available = scenes.filter((s) => s.morale_level === l && s.times_used < s.max_uses);
     if (available.length > 0) {
       const levelScenes = scenes.filter((s) => s.morale_level === l);
       return { scenes: levelScenes, activeLevel: l, fallback: l !== level };
@@ -211,6 +212,93 @@ export async function loadSpyData(campaignId: string): Promise<SpymasterData> {
     network: net,
     longTermAssignments,
     maxSpies,
+  };
+}
+
+// ─── Lorekeeper Data ─────────────────────────────────────────────────────────
+
+export interface FallenLegionnaire {
+  id: string;
+  name: string;
+  rank: 'ROOKIE' | 'SOLDIER' | 'SPECIALIST';
+  squad_name: string | null;
+  cause_of_death: string | null;
+  phase_number: number | null;
+  died_at: string;
+}
+
+export interface LorekeeperData {
+  fallen: FallenLegionnaire[];
+  annals: AnnalsEntry[];
+  missions: Mission[];
+  logs: CampaignPhaseLog[];
+  totalFallen: number;
+}
+
+/**
+ * Load all data for the Lorekeeper.
+ */
+export async function loadLorekeeperData(campaignId: string): Promise<LorekeeperData> {
+  const db = createServiceClient();
+
+  // Fetch dead specialists and squad members
+  const [
+    { data: deadSpecialists },
+    { data: deadSquadMembers },
+    { data: squads },
+    { data: annals },
+    { data: missions },
+    { data: logs },
+  ] = await Promise.all([
+    db.from('specialists').select('*').eq('campaign_id', campaignId).eq('status', 'DEAD'),
+    db.from('squad_members').select('*, squads(name, campaign_id)').eq('status', 'DEAD'),
+    db.from('squads').select('id, name').eq('campaign_id', campaignId),
+    db.from('annals_entries').select('*').eq('campaign_id', campaignId).order('phase_number', { ascending: false }),
+    db.from('missions').select('*').eq('campaign_id', campaignId).order('phase_number', { ascending: false }),
+    db.from('campaign_phase_log').select('*').eq('campaign_id', campaignId).order('created_at', { ascending: false }),
+  ]);
+
+  const fallen: FallenLegionnaire[] = [];
+
+  // Map specialists
+  (deadSpecialists ?? []).forEach((s: any) => {
+    fallen.push({
+      id: s.id,
+      name: s.name,
+      rank: 'SPECIALIST',
+      squad_name: 'Specialist',
+      cause_of_death: null,
+      phase_number: null,
+      died_at: s.created_at,
+    });
+  });
+
+  // Map squad members
+  (deadSquadMembers ?? []).forEach((m: any) => {
+    // Only include if the squad belongs to this campaign
+    const squad = squads?.find(s => s.id === m.squad_id);
+    if (squad) {
+      fallen.push({
+        id: m.id,
+        name: m.name,
+        rank: m.rank,
+        squad_name: squad.name,
+        cause_of_death: null,
+        phase_number: null,
+        died_at: m.created_at,
+      });
+    }
+  });
+
+  // Sort by death date (newest first)
+  fallen.sort((a, b) => new Date(b.died_at).getTime() - new Date(a.died_at).getTime());
+
+  return {
+    fallen,
+    annals: (annals ?? []) as AnnalsEntry[],
+    missions: (missions ?? []) as Mission[],
+    logs: (logs ?? []) as CampaignPhaseLog[],
+    totalFallen: fallen.length,
   };
 }
 

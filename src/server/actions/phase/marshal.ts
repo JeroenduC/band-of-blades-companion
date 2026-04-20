@@ -268,7 +268,7 @@ export async function updatePersonnelPostMission(
 
   const { data: campaign } = await db
     .from('campaigns')
-    .select('campaign_phase_state, phase_number')
+    .select('campaign_phase_state, phase_number, deaths_since_last_tale')
     .eq('id', campaignId)
     .single();
 
@@ -278,8 +278,24 @@ export async function updatePersonnelPostMission(
     return { errors: { _form: ['Cannot update personnel in the current phase state'] } };
   }
 
+  // Fetch current status to detect new deaths
+  const [
+    { data: currentSpecialists },
+    { data: currentSquadMembers }
+  ] = await Promise.all([
+    db.from('specialists').select('id, status').in('id', specialistUpdates.map(u => u.id)),
+    db.from('squad_members').select('id, status').in('id', squadMemberUpdates.map(u => u.id))
+  ]);
+
+  let newDeaths = 0;
+
   // Batch update specialists
   for (const update of specialistUpdates) {
+    const current = currentSpecialists?.find(s => s.id === update.id);
+    if (current && current.status !== 'DEAD' && update.status === 'DEAD') {
+      newDeaths++;
+    }
+
     const { error } = await db
       .from('specialists')
       .update({
@@ -298,6 +314,11 @@ export async function updatePersonnelPostMission(
 
   // Batch update squad members
   for (const update of squadMemberUpdates) {
+    const current = currentSquadMembers?.find(s => s.id === update.id);
+    if (current && current.status !== 'DEAD' && update.status === 'DEAD') {
+      newDeaths++;
+    }
+
     const { error } = await db
       .from('squad_members')
       .update({
@@ -317,13 +338,20 @@ export async function updatePersonnelPostMission(
     step: 'AWAITING_PERSONNEL_UPDATE',
     role: 'MARSHAL',
     actionType: 'PERSONNEL_UPDATED',
-    details: { specialist_count: specialistUpdates.length, squad_member_count: squadMemberUpdates.length },
+    details: { 
+      specialist_count: specialistUpdates.length, 
+      squad_member_count: squadMemberUpdates.length,
+      new_deaths: newDeaths
+    },
   });
 
-  // Transition to AWAITING_BACK_AT_CAMP
+  // Transition to AWAITING_BACK_AT_CAMP and update death counter
   const { error: updateError } = await db
     .from('campaigns')
-    .update({ campaign_phase_state: 'AWAITING_BACK_AT_CAMP' })
+    .update({ 
+      campaign_phase_state: 'AWAITING_BACK_AT_CAMP',
+      deaths_since_last_tale: campaign.deaths_since_last_tale + newDeaths
+    })
     .eq('id', campaignId);
 
   if (updateError) return { errors: { _form: [updateError.message] } };

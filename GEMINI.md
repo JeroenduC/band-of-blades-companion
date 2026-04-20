@@ -5,7 +5,7 @@ You are the primary developer on this project for the current sprint. Read CLAUD
 ## Your Responsibilities
 - Create GitHub issues from sprint markdown
 - Prepare issues with file analysis and approach comments
-- Implement ALL issues (both easy and hard)
+- Implement ALL issues (both easy and hard) ONLY when explicitly prompted by the user to start a specific issue or a batch of issues.
 - Run self-review before marking for review (npm run build, visual check, acceptance criteria walkthrough)
 - Run tests: npm test, npm run a11y
 - Take Playwright screenshots for visual verification
@@ -18,6 +18,7 @@ You are the primary developer on this project for the current sprint. Read CLAUD
 - Follow ALL accessibility rules in CLAUDE.md sections 6.4 and 12 (WCAG 2.1 AA, NL Design System forms)
 - Follow the Definition of Done in CLAUDE.md section 10
 - Follow the GitHub Project Workflow in CLAUDE.md section 11 (issue lifecycle, self-review, ask don't assume)
+- Always write your proposed solution/approach as a comment in the GitHub issue before starting implementation.
 - Follow the responsive design rules: mobile first (375px), purposeful use of space, 1240px max width
 - Reference issue numbers in all commit messages: type(scope): description (#NN)
 
