@@ -116,6 +116,7 @@ async function deleteAllData() {
     'squads',
     'spies',
     'spy_networks',
+    'spy_long_term_assignments',
     'campaign_memberships',
     'campaigns',
     'profiles',
