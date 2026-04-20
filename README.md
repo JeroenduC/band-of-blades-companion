@@ -10,9 +10,9 @@ A web application that digitises the campaign phase of [Band of Blades](https://
 
 ## 🚀 Current Status
 
-**Epic 7 — Spymaster Tools** ⏳
+**Epic 8 — Lorekeeper Tools** ⏳
 
-Epic 6 is complete. Marshal tools are live: morale tracking, squad management (naming/transfers), Specialist roster (stress/harm/xp), mission deployment, and engagement roll builder. Next up: Spymaster tools — spies, intel, and assignments.
+Epic 7 is complete. Spymaster tools are live: spy roster, simple and long-term assignments with clock progress and dice rolls, and the visual spy network upgrade tree. Next up: Lorekeeper tools — death tracking, Tales of the Legion, and the Annals.
 
 ---
 
@@ -71,8 +71,8 @@ War table (time/pressure/intel), interactive location map (node graph, click det
 ### ✅ Epic 6: Marshal Tools
 Morale, squads, Specialists, mission deployment, and engagement roll builder. Added two new phase states: AWAITING_MISSION_DEPLOYMENT and AWAITING_PERSONNEL_UPDATE. → [Sprint 6 Journal](docs/journal/sprint-06-marshal.md)
 
-### ⏳ Epic 7: Spymaster Tools
-Spy dispatch, assignments, network upgrades.
+### ✅ Epic 7: Spymaster Tools
+Spy dispatch, assignments, network upgrades. → [Sprint 7 Journal](docs/journal/sprint-07-spymaster.md)
 
 ### ⏳ Epic 8: Lorekeeper Tools
 Death tracker, Tales, Back at Camp scenes, Annals.
@@ -155,6 +155,8 @@ Each entry covers what was built, decisions made, and lessons learned — writte
 - [Sprint 3 — Core Campaign Loop](docs/journal/sprint-03-core-loop.md)
 - [Sprint 4 — Quartermaster](docs/journal/sprint-04-quartermaster.md)
 - [Sprint 5 — Commander Tools](docs/journal/sprint-05-commander.md)
+- [Sprint 6 — Marshal Tools](docs/journal/sprint-06-marshal.md)
+- [Sprint 7 — Spymaster Tools](docs/journal/sprint-07-spymaster.md)
 
 ---
 

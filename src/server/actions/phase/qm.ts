@@ -912,7 +912,7 @@ export async function completeLaborersAlchemists(formData: FormData): Promise<vo
     .eq('campaign_id', campaignId);
 
   await logCampaignAction({
-    campaignId: campaign.id as unknown as string, // verifyQmAndFetchCampaign doesn't return ID in select but I can add it
+    campaignId,
     phaseNumber: campaign.phase_number,
     step: 'AWAITING_LABORERS_ALCHEMISTS',
     role: 'QUARTERMASTER',

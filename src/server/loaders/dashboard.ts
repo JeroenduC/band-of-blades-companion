@@ -9,10 +9,10 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
-import type {
+import {
   Campaign, CampaignMembership, LegionRole, BackAtCampScene, MoraleLevel,
   Alchemist, Mercy, Laborers, LongTermProject, SiegeWeapon, RecruitPool,
-  Specialist, Squad, SquadMember, Mission,
+  Specialist, Squad, SquadMember, Mission, Spy, SpyNetwork, SpyLongTermAssignment,
 } from '@/lib/types';
 
 export interface DashboardData {
@@ -171,6 +171,46 @@ export async function loadQmMateriel(campaignId: string, phaseNumber: number): P
     siegeWeapons: (siegeWeapons ?? []) as SiegeWeapon[],
     recruitPool: (recruitPool ?? []) as RecruitPool[],
     acquiredAssetTypes,
+  };
+}
+
+// ─── Spymaster Data ──────────────────────────────────────────────────────────
+
+export interface SpymasterData {
+  spies: Spy[];
+  network: SpyNetwork | null;
+  longTermAssignments: SpyLongTermAssignment[];
+  maxSpies: number;
+}
+
+/**
+ * Load all spy data for the Spymaster.
+ */
+export async function loadSpyData(campaignId: string): Promise<SpymasterData> {
+  const db = createServiceClient();
+
+  const [
+    { data: spies },
+    { data: network },
+    { data: ltas },
+  ] = await Promise.all([
+    db.from('spies').select('*').eq('campaign_id', campaignId).order('created_at'),
+    db.from('spy_networks').select('*').eq('campaign_id', campaignId).maybeSingle(),
+    db.from('spy_long_term_assignments').select('*').eq('campaign_id', campaignId).order('created_at'),
+  ]);
+
+  const spyList = (spies ?? []) as Spy[];
+  const net = network as SpyNetwork | null;
+  const longTermAssignments = (ltas ?? []) as SpyLongTermAssignment[];
+
+  const hasAcquisition = net?.upgrades.includes('Acquisition') ?? false;
+  const maxSpies = hasAcquisition ? 3 : 2;
+
+  return {
+    spies: spyList,
+    network: net,
+    longTermAssignments,
+    maxSpies,
   };
 }
 

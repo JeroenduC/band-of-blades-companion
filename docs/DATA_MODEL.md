@@ -1,7 +1,7 @@
 # Data Model
 
 Living document. Updated whenever a migration changes the schema.
-Last updated: Sprint 5 (2026-04-18)
+Last updated: Sprint 7 (2026-04-21)
 
 ---
 
@@ -46,7 +46,7 @@ One row per campaign. All campaign-wide state lives here.
 | `religious_supply_uses` | `integer` | `0` | Religious supply uses remaining |
 | `supply_carts` | `integer` | `0` | Supply carts |
 | `qm_actions_complete` | `boolean` | `false` | QM has finished CAMPAIGN_ACTIONS step — reset each phase |
-| `spymaster_actions_complete` | `boolean` | `false` | Spymaster has finished — reset each phase |
+| `spymaster_actions_complete` | `boolean" | `false` | Spymaster has finished CAMPAIGN_ACTIONS step — reset each phase |
 | `current_location` | `text` | `'Barrak'` | Current location on campaign map |
 | `created_at` | `timestamptz` | `now()` | |
 
@@ -108,7 +108,7 @@ Append-only audit trail of all campaign phase actions. Never updated, never dele
 | `details` | `jsonb` | Structured payload (morale delta, dice result, etc.) |
 | `created_at` | `timestamptz` | Default `now()` |
 
-**Action types:** `PHASE_START`, `MISSION_RESOLVED`, `BACK_AT_CAMP_SCENE_SELECTED`, `TIME_PASSED`, `LIBERTY`, `QM_ACTIONS_COMPLETE`, `SPYMASTER_ACTIONS_COMPLETE`, `LABORERS_ALCHEMISTS_COMPLETE`, `ADVANCE`, `STAY`, `MISSION_FOCUS_SELECTED`, `MISSION_GENERATION_COMPLETE`, `MISSION_SELECTED`, `PHASE_COMPLETE`
+**Action types:** `PHASE_START`, `MISSION_RESOLVED`, `BACK_AT_CAMP_SCENE_SELECTED`, `TIME_PASSED`, `LIBERTY`, `QM_ACTIONS_COMPLETE`, `SPY_DISPATCHED`, `SPYMASTER_ACTIONS_COMPLETE`, `LABORERS_ALCHEMISTS_COMPLETE`, `ADVANCE`, `STAY`, `MISSION_FOCUS_SELECTED`, `MISSION_GENERATION_COMPLETE`, `MISSION_SELECTED`, `PHASE_COMPLETE`
 
 **RLS:** Campaign members can `SELECT` their own campaign's log. Only service role can `INSERT` (no authenticated INSERT policy).
 
@@ -145,7 +145,7 @@ Custom campaign clocks. QM works on these via the Long-Term Project action; Labo
 | `campaign_id` | `uuid` | FK → `campaigns.id` ON DELETE CASCADE |
 | `name` | `text` | Project name |
 | `description` | `text` | What completing this project does |
-| `clock_size` | `integer` | 4–12 segments |
+| `clock_size` | `integer" | 4–12 segments |
 | `segments_filled` | `integer` | 0 to clock_size |
 | `phase_last_worked` | `integer` | Prevents working the same project twice per phase |
 | `completed_at` | `timestamptz` | Nullable — set when segments_filled reaches clock_size |
@@ -268,7 +268,7 @@ Individual Rookies and Soldiers assigned to squads.
 | `status` | `text` | `ALIVE`, `WOUNDED`, or `DEAD` |
 | `harm` | `integer` | Current harm level |
 | `stress` | `integer` | Current stress |
-| `xp` | `integer` | Current XP |
+| `xp" | `integer` | Current XP |
 | `created_at` | `timestamptz` | |
 
 **RLS:** Campaign members can read. Service role only for writes.
@@ -296,6 +296,63 @@ The Legion's elite soldiers.
 | `xp` | `integer` | Current XP |
 | `abilities` | `text[]` | List of acquired special abilities |
 | `status` | `text` | `AVAILABLE`, `DEPLOYED`, `DEAD`, `RETIRED` |
+| `created_at` | `timestamptz` | |
+
+**RLS:** Campaign members can read. Service role only for writes.
+
+---
+
+### `spies`
+
+The Spymaster's field agents.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | `uuid` | PK |
+| `campaign_id` | `uuid` | FK → `campaigns.id` ON DELETE CASCADE |
+| `name` | `text` | |
+| `rank` | `text` | `TRAINED` or `MASTER` |
+| `status` | `text` | `AVAILABLE`, `ON_ASSIGNMENT`, `WOUNDED`, or `DEAD` |
+| `specialty` | `text` | Roleplay description or mechanical bonus |
+| `current_assignment` | `text` | `NONE`, `RECOVER`, `INTERROGATE`, `BLACKMAIL`, `HELP`, `AUGMENT`, `EXPAND`, `LAY_TRAP`, `RECRUIT`, `RESEARCH` |
+| `assignment_clock` | `integer` | 0–8 segments for long-term assignments (DEPRECATED) |
+| `long_term_assignment_id` | `uuid` | FK → `spy_long_term_assignments.id` |
+| `last_phase_worked` | `integer` | |
+| `created_at` | `timestamptz` | |
+
+**RLS:** Campaign members can read. Service role only for writes.
+
+---
+
+### `spy_networks`
+
+The tech tree of spy capabilities for a campaign.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | `uuid` | PK |
+| `campaign_id` | `uuid` | FK → `campaigns.id` ON DELETE CASCADE. UNIQUE. |
+| `upgrades` | `jsonb` | Array of unlocked upgrade names (e.g., `["Acquisition", "Analysts"]`) |
+| `created_at` | `timestamptz` | |
+
+**RLS:** Campaign members can read. Service role only for writes.
+
+---
+
+### `spy_long_term_assignments`
+
+Long-term assignments for spies (8-segment clocks).
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | `uuid` | PK |
+| `campaign_id` | `uuid` | FK → `campaigns.id` ON DELETE CASCADE |
+| `type` | `text` | `AUGMENT`, `EXPAND`, `LAY_TRAP`, `RECRUIT`, `RESEARCH` |
+| `name` | `text` | |
+| `description` | `text` | |
+| `clock_segments` | `integer` | Usually 8 |
+| `clock_filled` | `integer` | 0-8 |
+| `is_completed` | `boolean` | |
 | `created_at` | `timestamptz` | |
 
 **RLS:** Campaign members can read. Service role only for writes.
@@ -332,6 +389,8 @@ Generated by the GM each campaign phase and selected by the Commander.
 | `supabase/migrations/20260414000000_sprint4_qm_materiel.sql` | 2026-04-14 | Create `long_term_projects`, `alchemists`, `mercies`, `laborers`, `siege_weapons`, `recruit_pool` with RLS |
 | `supabase/migrations/20260418000000_sprint5_mission_table.sql` | 2026-04-18 | Create `missions` table with RLS |
 | `supabase/migrations/20260420000000_sprint6_marshal_personnel.sql` | 2026-04-20 | Create `squads`, `squad_members`, and `specialists` tables with RLS |
+| `supabase/migrations/20260421000000_sprint7_spymaster.sql` | 2026-04-21 | Create `spies` and `spy_networks` tables with RLS |
+| `supabase/migrations/20260421000001_sprint7_spymaster_longterm.sql` | 2026-04-21 | Create `spy_long_term_assignments` table with RLS |
 
 > **Note:** Sprint 1 schema changes (profiles, campaigns, campaign_memberships, sessions, RLS policies) were applied directly in the Supabase dashboard and are not captured in migration files. Future changes must be tracked here.
 

@@ -114,6 +114,9 @@ async function deleteAllData() {
     'specialists',
     'squad_members',
     'squads',
+    'spies',
+    'spy_networks',
+    'spy_long_term_assignments',
     'campaign_memberships',
     'campaigns',
     'profiles',
@@ -395,6 +398,29 @@ async function seedPersonnel(campaignId: string) {
   log('✓ Personnel seeded: 6 squads, 5 specialists');
 }
 
+async function seedSpymaster(campaignId: string) {
+  // Named spies
+  const spies = [
+    { name: 'Antoinette', rank: 'MASTER', status: 'AVAILABLE', specialty: 'automatically upgrades to Master when selected.', current_assignment: 'NONE', assignment_clock: 0 },
+    { name: 'Bortis', rank: 'TRAINED', status: 'ON_ASSIGNMENT', current_assignment: 'EXPAND', assignment_clock: 3, specialty: '+1 segment on Expand Network rolls.' },
+    { name: 'Crimson Vexing Gale', rank: 'TRAINED', status: 'DEAD', specialty: 'does not wound on any mission.', current_assignment: 'NONE', assignment_clock: 0 },
+    { name: 'Igrid', rank: 'TRAINED', status: 'AVAILABLE', specialty: '+1 question when Interrogating.', current_assignment: 'NONE', assignment_clock: 0 },
+  ];
+
+  const { error: se } = await db.from('spies').insert(
+    spies.map(s => ({ ...s, campaign_id: campaignId }))
+  );
+  if (se) { log(`⚠ Failed to seed spies: ${se.message}`); }
+
+  const { error: ne } = await db.from('spy_networks').insert({
+    campaign_id: campaignId,
+    upgrades: ['Spy Network']
+  });
+  if (ne) { log(`⚠ Failed to seed spy network: ${ne.message}`); }
+
+  log('✓ Spymaster: 2 active spies, 1 dead, network initialized');
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -417,6 +443,7 @@ async function main() {
     await seedScenes(id);
     await seedMateriel(id, campaign.suffix);
     await seedPersonnel(id);
+    await seedSpymaster(id);
     await seedMissions(id);
     results.push({ campaign, inviteCode });
   }

@@ -31,7 +31,7 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 // Steps whose roles act in parallel (CAMPAIGN_ACTIONS)
-const PARALLEL_STEP_NUMBER = 4;
+const PARALLEL_STEP_NUMBER = 5;
 
 export function PhaseProgressIndicator({
   currentState,
