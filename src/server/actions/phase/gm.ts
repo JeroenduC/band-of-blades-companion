@@ -328,3 +328,129 @@ export async function generateMissions(
   revalidatePath('/dashboard/commander');
   return { success: true };
 }
+
+// ─── Session Management ──────────────────────────────────────────────────────
+
+export interface SessionState {
+  errors?: {
+    campaign_id?: string[];
+    title?: string[];
+    date?: string[];
+    status?: string[];
+    notes?: string[];
+    linked_phases?: string[];
+    _form?: string[];
+  };
+  success?: boolean;
+}
+
+const SessionSchema = z.object({
+  campaign_id: z.string().uuid('Invalid campaign'),
+  title: z.string().max(100, 'Title must be under 100 characters').optional().nullable(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)').optional().nullable(),
+  status: z.enum(['PLANNED', 'IN_PROGRESS', 'COMPLETE']).default('PLANNED'),
+  notes: z.string().max(2000, 'Notes must be under 2000 characters').optional().nullable(),
+  linked_phases: z.array(z.number().int()).default([]),
+});
+
+/**
+ * GM action: create a new session.
+ */
+export async function createSession(
+  _prevState: SessionState | null,
+  formData: FormData,
+): Promise<SessionState> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/sign-in');
+
+  const campaignId = formData.get('campaign_id') as string;
+  const title = formData.get('title') as string;
+  const date = formData.get('date') as string;
+
+  const raw = {
+    campaign_id: campaignId,
+    title: title || null,
+    date: date || null,
+    status: 'PLANNED',
+    linked_phases: [],
+  };
+
+  const parsed = SessionSchema.safeParse(raw);
+  if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors };
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .eq('role', 'GM')
+    .maybeSingle();
+
+  if (!membership) return { errors: { _form: ['Only the GM can create sessions'] } };
+
+  // Get current session count for session_number
+  const { count } = await db
+    .from('sessions')
+    .select('*', { count: 'exact', head: true })
+    .eq('campaign_id', campaignId);
+
+  const { error } = await db.from('sessions').insert({
+    campaign_id: campaignId,
+    session_number: (count ?? 0) + 1,
+    title: parsed.data.title,
+    date: parsed.data.date,
+    status: parsed.data.status,
+    linked_phases: parsed.data.linked_phases,
+  });
+
+  if (error) return { errors: { _form: [error.message] } };
+
+  revalidatePath('/dashboard/gm');
+  return { success: true };
+}
+
+/**
+ * GM action: update an existing session.
+ */
+export async function updateSession(
+  campaignId: string,
+  sessionId: string,
+  updates: {
+    title?: string | null;
+    date?: string | null;
+    status?: 'PLANNED' | 'IN_PROGRESS' | 'COMPLETE';
+    prep_notes?: string | null;
+    post_notes?: string | null;
+    linked_phases?: number[];
+  },
+): Promise<SessionState> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/sign-in');
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .eq('role', 'GM')
+    .maybeSingle();
+
+  if (!membership) return { errors: { _form: ['Only the GM can update sessions'] } };
+
+  const { error } = await db
+    .from('sessions')
+    .update(updates)
+    .eq('id', sessionId)
+    .eq('campaign_id', campaignId);
+
+  if (error) return { errors: { _form: [error.message] } };
+
+  revalidatePath('/dashboard/gm');
+  return { success: true };
+}
