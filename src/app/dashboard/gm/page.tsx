@@ -134,6 +134,12 @@ export default async function GmDashboardPage() {
           
           <div className="flex gap-3">
             <a
+              href="/dashboard/gm/audit"
+              className="rounded-md bg-white/5 border border-white/10 px-4 py-2 text-xs font-heading font-semibold uppercase tracking-widest text-legion-text-primary hover:bg-white/10 transition-colors"
+            >
+              Audit Trail
+            </a>
+            <a
               href={`/campaign/${membership.campaign_id}/members`}
               className="rounded-md bg-white/5 border border-white/10 px-4 py-2 text-xs font-heading font-semibold uppercase tracking-widest text-legion-text-primary hover:bg-white/10 transition-colors"
             >
