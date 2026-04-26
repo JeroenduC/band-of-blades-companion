@@ -404,10 +404,10 @@ async function seedPersonnel(campaignId: string) {
 async function seedSpymaster(campaignId: string) {
   // Named spies
   const spies = [
-    { name: 'Antoinette', rank: 'MASTER', status: 'AVAILABLE', specialty: 'automatically upgrades to Master when selected.' },
+    { name: 'Antoinette', rank: 'MASTER', status: 'AVAILABLE', current_assignment: 'NONE', assignment_clock: 0, specialty: 'automatically upgrades to Master when selected.' },
     { name: 'Bortis', rank: 'TRAINED', status: 'ON_ASSIGNMENT', current_assignment: 'EXPAND', assignment_clock: 3, specialty: '+1 segment on Expand Network rolls.' },
-    { name: 'Crimson Vexing Gale', rank: 'TRAINED', status: 'DEAD', specialty: 'does not wound on any mission.' }, // Seeded as dead to show visibility
-    { name: 'Igrid', rank: 'TRAINED', status: 'AVAILABLE', specialty: '+1 question when Interrogating.' },
+    { name: 'Crimson Vexing Gale', rank: 'TRAINED', status: 'DEAD', current_assignment: 'NONE', assignment_clock: 0, specialty: 'does not wound on any mission.' }, // Seeded as dead to show visibility
+    { name: 'Igrid', rank: 'TRAINED', status: 'AVAILABLE', current_assignment: 'NONE', assignment_clock: 0, specialty: '+1 question when Interrogating.' },
   ];
 
   const { error: se } = await db.from('spies').insert(
