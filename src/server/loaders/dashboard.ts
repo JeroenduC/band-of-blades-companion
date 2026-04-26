@@ -13,7 +13,7 @@ import {
   Campaign, CampaignMembership, LegionRole, BackAtCampScene, MoraleLevel,
   Alchemist, Mercy, Laborers, LongTermProject, SiegeWeapon, RecruitPool,
   Specialist, Squad, SquadMember, Mission, Spy, SpyNetwork, SpyLongTermAssignment,
-  AnnalsEntry, CampaignPhaseLog, Session,
+  AnnalsEntry, CampaignPhaseLog, Session, BrokenAdvance,
 } from '@/lib/types';
 
 export interface DashboardData {
@@ -70,6 +70,19 @@ export async function loadDashboard(role: LegionRole): Promise<DashboardData> {
     campaign: membership.campaigns as unknown as Campaign,
     membership: membership as unknown as CampaignMembership & { role: LegionRole },
   };
+}
+
+/**
+ * Load all Broken advances for a campaign.
+ */
+export async function loadBrokenAdvances(campaignId: string): Promise<BrokenAdvance[]> {
+  const db = createServiceClient();
+  const { data: advances } = await db
+    .from('broken_advances')
+    .select('*')
+    .eq('campaign_id', campaignId);
+
+  return (advances ?? []) as BrokenAdvance[];
 }
 
 /**

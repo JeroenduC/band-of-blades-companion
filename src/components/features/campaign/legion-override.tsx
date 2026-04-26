@@ -17,6 +17,7 @@ import { MissionSelectionStep } from './mission-selection-step';
 import { MissionDeploymentForm } from './mission-deployment-form';
 import { SpyRoster } from './spy-roster';
 import { SpyDispatch } from './spy-dispatch';
+import { GmAntagonistSelection } from './gm-antagonist-selection';
 import { getUnlockedTiers } from '@/lib/intel-questions';
 
 interface LegionOverrideProps {

@@ -452,3 +452,115 @@ export async function updateSession(
   revalidatePath('/dashboard/gm');
   return { success: true };
 }
+
+// ─── Broken Tracking ────────────────────────────────────────────────────────
+
+/**
+ * GM action: select the two Broken for this campaign.
+ */
+export async function selectBroken(campaignId: string, brokenNames: string[]): Promise<void> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/sign-in');
+
+  if (brokenNames.length !== 2) throw new Error('Select exactly two Broken');
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .eq('role', 'GM')
+    .maybeSingle();
+
+  if (!membership) throw new Error('Only the GM can select Broken');
+
+  const { error } = await db
+    .from('campaigns')
+    .update({ chosen_broken: brokenNames })
+    .eq('id', campaignId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/dashboard/gm');
+}
+
+/**
+ * GM action: unlock or lock a Broken ability.
+ */
+export async function toggleBrokenAbility(
+  campaignId: string,
+  brokenName: string,
+  abilityName: string,
+  unlocked: boolean,
+  phaseNumber: number | null,
+): Promise<void> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/sign-in');
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .eq('role', 'GM')
+    .maybeSingle();
+
+  if (!membership) throw new Error('Only the GM can manage Broken abilities');
+
+  const { error } = await db
+    .from('broken_advances')
+    .upsert({
+      campaign_id: campaignId,
+      broken_name: brokenName as any,
+      ability_name: abilityName,
+      unlocked,
+      unlocked_at_phase: unlocked ? phaseNumber : null,
+    }, {
+      onConflict: 'campaign_id, broken_name, ability_name'
+    });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/dashboard/gm');
+}
+
+/**
+ * GM action: update notes for a Broken.
+ */
+export async function updateBrokenNotes(
+  campaignId: string,
+  brokenName: string,
+  abilityName: string,
+  notes: string,
+): Promise<void> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/sign-in');
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .eq('role', 'GM')
+    .maybeSingle();
+
+  if (!membership) throw new Error('Only the GM can update Broken notes');
+
+  const { error } = await db
+    .from('broken_advances')
+    .update({ notes })
+    .match({ campaign_id: campaignId, broken_name: brokenName, ability_name: abilityName });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/dashboard/gm');
+}

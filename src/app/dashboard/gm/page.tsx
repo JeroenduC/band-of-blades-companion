@@ -4,7 +4,8 @@ import {
   loadQmMateriel, 
   loadMarshalPersonnel, 
   loadSpyData,
-  loadSessions
+  loadSessions,
+  loadBrokenAdvances
 } from '@/server/loaders/dashboard';
 import { createServiceClient } from '@/lib/supabase/service';
 import { DashboardShell } from '@/components/features/campaign/dashboard-shell';
@@ -12,6 +13,8 @@ import { PhaseProgressIndicator } from '@/components/features/campaign/phase-pro
 import { MissionResolutionForm } from '@/components/features/campaign/mission-resolution-form';
 import { MissionGenerationForm } from '@/components/features/campaign/mission-generation-form';
 import { GmOverview } from '@/components/features/campaign/gm-overview';
+import { BrokenTracking } from '@/components/features/campaign/broken-tracking';
+import { GmAntagonistSelection } from '@/components/features/campaign/gm-antagonist-selection';
 import { LocationThumbnail } from '@/components/features/campaign/location-thumbnail';
 import { LocationMap } from '@/components/features/campaign/location-map';
 import { LegionOverride } from '@/components/features/campaign/legion-override';
@@ -19,10 +22,10 @@ import { PlaceholderStep } from '@/components/features/campaign/placeholder-step
 import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle } from '@/components/legion';
 import { CopyInviteButton } from '@/components/features/campaign/copy-invite-button';
 import { startCampaignPhase } from '@/server/actions/phase';
-import { createSession } from '@/server/actions/phase/gm';
+import { createSession, selectBroken } from '@/server/actions/phase/gm';
 import { getLocation } from '@/lib/locations';
-import type { CampaignPhaseState, MissionType } from '@/lib/types';
-import { PlusIcon, CalendarIcon, HistoryIcon } from 'lucide-react';
+import type { CampaignPhaseState, MissionType, BrokenName } from '@/lib/types';
+import { PlusIcon, CalendarIcon, HistoryIcon, SkullIcon } from 'lucide-react';
 
 export const metadata = { title: 'GM Dashboard — Band of Blades' };
 
@@ -34,10 +37,11 @@ export default async function GmDashboardPage() {
   const db = createServiceClient();
 
   // Load dashboard data
-  const [personnelData, spyData, sessions] = await Promise.all([
+  const [personnelData, spyData, sessions, brokenAdvances] = await Promise.all([
     loadMarshalPersonnel(campaign.id),
     loadSpyData(campaign.id),
-    loadSessions(campaign.id)
+    loadSessions(campaign.id),
+    loadBrokenAdvances(campaign.id)
   ]);
 
   const personnelCounts = {
@@ -168,6 +172,20 @@ export default async function GmDashboardPage() {
             campaign={campaign}
             personnelCounts={personnelCounts}
             spyCounts={spyCounts}
+          />
+        </section>
+
+        {/* ─── Broken Tracking Section ─── */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 border-b border-white/10 pb-2">
+            <SkullIcon className="w-4 h-4 text-red-500" />
+            <h2 className="font-heading text-lg text-legion-text-primary uppercase tracking-widest">
+              The Broken
+            </h2>
+          </div>
+          <BrokenTracking 
+            campaign={campaign}
+            advances={brokenAdvances}
           />
         </section>
 
