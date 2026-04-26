@@ -21,7 +21,7 @@ import { getUnlockedTiers } from '@/lib/intel-questions';
 
 interface LegionOverrideProps {
   campaign: any;
-  phaseState: CampaignPhaseState;
+  phaseState: CampaignPhaseState | null;
   // Data for the various forms
   backAtCampData?: any;
   qmData?: any;
@@ -57,6 +57,8 @@ export function LegionOverride({
 }: LegionOverrideProps) {
   const [isActive, setIsActive] = useState(false);
   
+  if (!phaseState) return null;
+
   const targetRoles = STEP_ROLES[phaseState] || [];
   const isGmTurn = targetRoles.includes('GM');
 

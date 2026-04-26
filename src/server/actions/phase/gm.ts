@@ -357,9 +357,8 @@ const SessionSchema = z.object({
  * GM action: create a new session.
  */
 export async function createSession(
-  _prevState: SessionState | null,
   formData: FormData,
-): Promise<SessionState> {
+): Promise<void> {
   const supabase = await createClient();
   const db = createServiceClient();
 
@@ -379,7 +378,7 @@ export async function createSession(
   };
 
   const parsed = SessionSchema.safeParse(raw);
-  if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors };
+  if (!parsed.success) throw new Error('Invalid session data');
 
   const { data: membership } = await db
     .from('campaign_memberships')
@@ -389,7 +388,7 @@ export async function createSession(
     .eq('role', 'GM')
     .maybeSingle();
 
-  if (!membership) return { errors: { _form: ['Only the GM can create sessions'] } };
+  if (!membership) throw new Error('Only the GM can create sessions');
 
   // Get current session count for session_number
   const { count } = await db
@@ -402,14 +401,13 @@ export async function createSession(
     session_number: (count ?? 0) + 1,
     title: parsed.data.title,
     date: parsed.data.date,
-    status: parsed.data.status,
-    linked_phases: parsed.data.linked_phases,
+    status: 'PLANNED' as const,
+    linked_phases: [],
   });
 
-  if (error) return { errors: { _form: [error.message] } };
+  if (error) throw new Error(error.message);
 
   revalidatePath('/dashboard/gm');
-  return { success: true };
 }
 
 /**
