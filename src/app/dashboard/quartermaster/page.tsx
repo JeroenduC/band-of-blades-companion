@@ -22,14 +22,26 @@ export default async function QuartermasterDashboardPage() {
   if (phaseState === 'PHASE_COMPLETE') {
     const { logs } = await loadLorekeeperData(campaign.id);
     return (
-      <DashboardShell role="QUARTERMASTER" campaignName={campaign.name}>
+      <DashboardShell 
+      role="QUARTERMASTER" 
+      campaignName={campaign.name}
+      campaignId={campaign.id}
+      currentState={phaseState}
+      pendingExpiry={campaign.pending_expiry}
+    >
         <PhaseSummary campaign={campaign} role="QUARTERMASTER" logs={logs} />
       </DashboardShell>
     );
   }
 
   return (
-    <DashboardShell role="QUARTERMASTER" campaignName={campaign.name}>
+    <DashboardShell 
+      role="QUARTERMASTER" 
+      campaignName={campaign.name}
+      campaignId={campaign.id}
+      currentState={phaseState}
+      pendingExpiry={campaign.pending_expiry}
+    >
 
       {/* Materiel panel — always visible */}
       <QmMaterielPanel

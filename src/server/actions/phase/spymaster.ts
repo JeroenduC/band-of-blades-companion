@@ -7,6 +7,19 @@ import { createServiceClient } from '@/lib/supabase/service';
 import { type CampaignPhaseState } from '@/lib/types';
 import { logCampaignAction, rollDicePool } from './core';
 
+export interface SpymasterActionState {
+  errors?: {
+    _form?: string[];
+  };
+  result?: {
+    dice: number[];
+    segments_added: number;
+    wounded: boolean;
+    died: boolean;
+    completed: boolean;
+  };
+}
+
 /**
  * Spymaster action: mark spy dispatch complete (placeholder until Epic 7).
  */
@@ -252,7 +265,10 @@ export async function unlockUpgrade(formData: FormData): Promise<void> {
   revalidatePath('/dashboard/spymaster');
 }
 
-export async function workOnLongTermAssignment(formData: FormData): Promise<void> {
+export async function workOnLongTermAssignment(
+  _prevState: SpymasterActionState | null,
+  formData: FormData
+): Promise<SpymasterActionState> {
   const supabase = await createClient();
   const db = createServiceClient();
 
@@ -263,7 +279,7 @@ export async function workOnLongTermAssignment(formData: FormData): Promise<void
   const spyId = formData.get('spy_id') as string;
   const ltaId = formData.get('lta_id') as string;
 
-  if (!campaignId || !spyId || !ltaId) throw new Error('Missing required IDs');
+  if (!campaignId || !spyId || !ltaId) return { errors: { _form: ['Missing required IDs'] } };
 
   // Verify membership and fetch campaign/spy/lta/network
   const [
@@ -280,12 +296,12 @@ export async function workOnLongTermAssignment(formData: FormData): Promise<void
     db.from('spy_networks').select('*').eq('campaign_id', campaignId).maybeSingle(),
   ]);
 
-  if (!membership) throw new Error('Forbidden');
+  if (!membership) return { errors: { _form: ['Forbidden'] } };
 
   const isOverride = membership.role === 'GM';
 
-  if (!spy || spy.status === 'DEAD' || spy.status === 'ON_ASSIGNMENT') throw new Error('Spy unavailable');
-  if (!lta || lta.is_completed) throw new Error('Assignment already complete');
+  if (!spy || spy.status === 'DEAD' || spy.status === 'ON_ASSIGNMENT') return { errors: { _form: ['Spy unavailable'] } };
+  if (!lta || lta.is_completed) return { errors: { _form: ['Assignment already complete'] } };
 
   // Specialties & Network Bonuses
   let dicePool = spy.rank === 'MASTER' ? 2 : 1;
@@ -371,4 +387,13 @@ export async function workOnLongTermAssignment(formData: FormData): Promise<void
   });
 
   revalidatePath('/dashboard/spymaster');
+  return {
+    result: {
+      dice,
+      segments_added: segments,
+      wounded,
+      died: newStatus === 'DEAD',
+      completed
+    }
+  };
 }

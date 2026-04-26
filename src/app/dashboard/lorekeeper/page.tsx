@@ -35,14 +35,26 @@ export default async function LorekeeperDashboardPage() {
 
   if (phaseState === 'PHASE_COMPLETE') {
     return (
-      <DashboardShell role="LOREKEEPER" campaignName={campaign.name}>
+      <DashboardShell 
+      role="LOREKEEPER" 
+      campaignName={campaign.name}
+      campaignId={campaign.id}
+      currentState={phaseState}
+      pendingExpiry={campaign.pending_expiry}
+    >
         <PhaseSummary campaign={campaign} role="LOREKEEPER" logs={lorekeeperData.logs} />
       </DashboardShell>
     );
   }
 
   return (
-    <DashboardShell role="LOREKEEPER" campaignName={campaign.name}>
+    <DashboardShell 
+      role="LOREKEEPER" 
+      campaignName={campaign.name}
+      campaignId={campaign.id}
+      currentState={phaseState}
+      pendingExpiry={campaign.pending_expiry}
+    >
       <div className="space-y-8">
         {/* Sacred Duty Header */}
         <section className="border-b border-border pb-4">

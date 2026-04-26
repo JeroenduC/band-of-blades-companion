@@ -127,7 +127,13 @@ export default async function GmDashboardPage() {
   if (phaseState === 'PHASE_COMPLETE') {
     const { logs } = await loadLorekeeperData(campaign.id);
     return (
-      <DashboardShell role="GM" campaignName={campaign.name}>
+      <DashboardShell 
+      role="GM" 
+      campaignName={campaign.name}
+      campaignId={campaign.id}
+      currentState={phaseState}
+      pendingExpiry={campaign.pending_expiry}
+    >
         <PhaseSummary campaign={campaign} role="GM" logs={logs} />
         
         {/* GM can still see global overview below summary */}
@@ -162,7 +168,13 @@ export default async function GmDashboardPage() {
   }
 
   return (
-    <DashboardShell role="GM" campaignName={campaign.name}>
+    <DashboardShell 
+      role="GM" 
+      campaignName={campaign.name}
+      campaignId={campaign.id}
+      currentState={phaseState}
+      pendingExpiry={campaign.pending_expiry}
+    >
 
       <div className="flex flex-col gap-6 lg:gap-10">
         
