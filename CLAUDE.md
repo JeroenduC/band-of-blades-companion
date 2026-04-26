@@ -215,7 +215,7 @@ src/
 - When facing an architectural choice, check if there's a relevant ADR before making a decision. If not, flag it as a potential new ADR.
 
 ### 9.2 Your Workflow With Claude
-For the full two-agent workflow using Claude Code (senior) and Gemini CLI (junior), see [docs/Two_Agent_Sprint_Protocol.md](docs/Two_Agent_Sprint_Protocol.md).
+For the full two-agent workflow using Claude Code (senior) and Gemini CLI (junior), see [docs/Development_Agent_Protocol.md](docs/Development_Agent_Protocol.md).
 
 ---
 

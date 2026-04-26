@@ -11,15 +11,18 @@
  *
  *   null / PHASE_COMPLETE
  *     → AWAITING_MISSION_RESOLUTION   (GM starts phase)
- *     → AWAITING_BACK_AT_CAMP         (GM resolves missions)
- *     → TIME_PASSING                  (Lorekeeper/GM sets scene)
- *     → CAMPAIGN_ACTIONS              (Commander confirms time; QM + Spymaster act in parallel)
+ *     → AWAITING_PERSONNEL_UPDATE     (Marshal records casualties)
+ *     → AWAITING_BACK_AT_CAMP         (GM/Lorekeeper sets scene)
+ *     → AWAITING_TALES                (Lorekeeper recounts history)
+ *     → TIME_PASSING                  (Commander confirms time)
+ *     → CAMPAIGN_ACTIONS              (QM + Spymaster act in parallel)
  *     → AWAITING_LABORERS_ALCHEMISTS  (both QM and Spymaster mark complete)
- *     → AWAITING_ADVANCE              (QM/Lorekeeper complete laborers step)
- *     → AWAITING_MISSION_FOCUS        (Commander decides advance/stay)
- *     → AWAITING_MISSION_GENERATION   (Commander picks mission type)
- *     → AWAITING_MISSION_SELECTION    (GM generates missions)
- *     → PHASE_COMPLETE                (Commander + Marshal select mission)
+ *     → AWAITING_ADVANCE              (Commander decides advance/stay)
+ *     → AWAITING_MISSION_FOCUS        (Commander picks mission type)
+ *     → AWAITING_MISSION_GENERATION   (GM generates missions)
+ *     → AWAITING_MISSION_SELECTION    (Commander picks missions)
+ *     → AWAITING_MISSION_DEPLOYMENT   (Marshal assigns personnel)
+ *     → PHASE_COMPLETE                (Ready for next mission)
  */
 
 import type { CampaignPhaseState, LegionRole } from './types';

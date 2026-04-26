@@ -251,6 +251,7 @@ export async function unlockUpgrade(formData: FormData): Promise<void> {
 
   revalidatePath('/dashboard/spymaster');
 }
+
 export async function workOnLongTermAssignment(formData: FormData): Promise<void> {
   const supabase = await createClient();
   const db = createServiceClient();

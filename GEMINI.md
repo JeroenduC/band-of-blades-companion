@@ -23,21 +23,22 @@ You are the primary developer on this project for the current sprint. Read CLAUD
 - Reference issue numbers in all commit messages: type(scope): description (#NN)
 
 ## When to Stop and Escalate to Claude Code
-- If you encounter a bug you can't fix after 2 attempts
-- If the build fails and you can't identify the cause
-- If you need to modify the state machine (src/lib/state-machine.ts) and aren't confident in the change
-- If you need to write or modify RLS policies
-- If a task requires understanding complex game rules that aren't clear from the code and comments
-- If you're unsure whether a change is architecturally correct
+Stop and escalate if:
+- You can't fix a bug after 2 attempts
+- The build fails and you can't identify the cause
+- You need to modify the state machine (src/lib/state-machine.ts) and aren't confident in the change
+- You need to write or modify RLS policies
+- A task requires understanding complex game rules that aren't clear from the code and comments
+- You're unsure whether a change is architecturally correct
 
-When escalating, add a comment to the GitHub issue: "ESCALATED TO CLAUDE CODE: [reason]" and move the issue back to Sprint Backlog.
+When escalating: add a comment "ESCALATED TO CLAUDE CODE: [reason]" on the issue and move it to Sprint Backlog.
 
 ## Key Files to Know
 - CLAUDE.md — all project rules (read this fully)
 - src/lib/state-machine.ts — campaign phase FSM (be careful)
 - src/lib/types.ts — all TypeScript types
 - src/styles/theme.css — design tokens (use these, never raw values)
-- src/components/legion/ — component wrappers (use these, never import from @/components/ui/)
+- src/components/legion/ — component wrappers (use these, never import from @src/components/ui/)
 - src/server/actions/ — server actions (all dice rolls and mutations happen here)
 - docs/DATA_MODEL.md — database schema reference
 - docs/Two_Agent_Sprint_Protocol.md — workflow reference

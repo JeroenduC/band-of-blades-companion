@@ -195,7 +195,7 @@ export async function performRecruit(
     db, user.id, campaignId,
     'campaign_phase_state, phase_number, supply',
   );
-  if (!membership) return { errors: { _form: ['Only the Quartermaster can recruit'] } };
+  if (!membership) return { errors: { _form: ['Only the Quartermaster or GM can recruit'] } };
   if (!_campaign) return { errors: { _form: ['Campaign not found'] } };
   const campaign = _campaign as unknown as QmCampaignRow;
 
@@ -940,7 +940,7 @@ export async function completeLaborersAlchemists(formData: FormData): Promise<vo
     .eq('campaign_id', campaignId);
 
   await logCampaignAction({
-    campaignId: campaignId,
+    campaignId,
     phaseNumber: campaign.phase_number,
     step: 'AWAITING_LABORERS_ALCHEMISTS',
     role: 'QUARTERMASTER',
