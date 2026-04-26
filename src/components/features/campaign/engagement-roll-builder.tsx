@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Mission } from '@/lib/types';
+import { Mission, type CampaignPhaseLog } from '@/lib/types';
 import { UNIVERSAL_QUESTIONS, TYPE_SPECIFIC_QUESTIONS, calculateEngagementPool } from '@/lib/engagement-utils';
 import { completeEngagementRolls } from '@/server/actions/phase/marshal';
-import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle, LegionButton } from '@/components/legion';
+import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle, LegionButton, LegionDice } from '@/components/legion';
 import { cn } from '@/lib/utils';
 
 interface EngagementRollBuilderProps {
@@ -19,6 +19,7 @@ export function EngagementRollBuilder({ campaignId, missions }: EngagementRollBu
   const [primaryAnswers, setPrimaryAnswers] = useState<Record<string, boolean>>({});
   const [secondaryAnswers, setSecondaryAnswers] = useState<Record<string, boolean>>({});
   const [isRolling, setIsRolling] = useState(false);
+  const [rollResult, setRollResult] = useState<any>(null);
 
   if (!primaryMission || !secondaryMission) return null;
 
@@ -35,15 +36,79 @@ export function EngagementRollBuilder({ campaignId, missions }: EngagementRollBu
 
   const handleComplete = async () => {
     setIsRolling(true);
-    await completeEngagementRolls(
+    const result = await completeEngagementRolls(
       campaignId,
       primaryPool,
       secondaryPool,
       primaryMission.id,
       secondaryMission.id
     );
-    setIsRolling(false);
+    
+    if (result.results) {
+      setRollResult(result.results);
+      // Wait for animation before final refresh (optional, as revalidatePath might kick in)
+    } else {
+      setIsRolling(false);
+    }
   };
+
+  if (rollResult) {
+    const primary = rollResult.find((r: any) => r.is_primary);
+    const secondary = rollResult.find((r: any) => !r.is_primary);
+    
+    return (
+      <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="grid gap-6 md:grid-cols-2">
+          <LegionCard className="border-legion-amber/30">
+            <LegionCardHeader>
+              <LegionCardTitle className="text-sm font-bold uppercase tracking-widest text-legion-amber">
+                Primary Engagement: {primaryMission.name}
+              </LegionCardTitle>
+            </LegionCardHeader>
+            <LegionCardContent className="space-y-4">
+              <p className="text-xs text-legion-text-muted italic">Result pending GM roll at table.</p>
+              <div className="text-[10px] font-mono text-legion-amber uppercase">Dice Pool: {primary.dice_pool}d</div>
+            </LegionCardContent>
+          </LegionCard>
+
+          <LegionCard className="border-legion-amber/30">
+            <LegionCardHeader>
+              <LegionCardTitle className="text-sm font-bold uppercase tracking-widest text-legion-amber">
+                Secondary Engagement: {secondaryMission.name}
+              </LegionCardTitle>
+            </LegionCardHeader>
+            <LegionCardContent className="space-y-6">
+              <LegionDice 
+                results={secondary.dice_results} 
+                bestDieIndex={secondary.dice_pool === 0 ? undefined : secondary.dice_results.indexOf(secondary.highest)}
+                worstDieIndex={secondary.dice_pool === 0 ? secondary.dice_results.indexOf(secondary.highest) : undefined}
+              />
+              <div className="space-y-2">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-[10px] font-mono text-legion-text-muted uppercase">Outcome</span>
+                  <span className="font-heading text-lg text-legion-text-primary">{secondary.outcome}</span>
+                </div>
+                <div className="space-y-1 border-t border-white/5 pt-2">
+                  <span className="text-[9px] font-mono text-legion-text-muted uppercase tracking-tighter">Consequences</span>
+                  <ul className="list-disc list-inside text-xs text-legion-text-primary space-y-1">
+                    {secondary.consequences.map((c: string, i: number) => (
+                      <li key={i}>{c}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </LegionCardContent>
+          </LegionCard>
+        </div>
+        
+        <div className="flex justify-center">
+          <LegionButton size="lg" onClick={() => window.location.reload()}>
+            CONTINUE TO PHASE COMPLETE
+          </LegionButton>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

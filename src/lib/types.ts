@@ -74,6 +74,11 @@ export interface Campaign {
   next_mission_armor_bonus?: number;
   next_mission_no_advance?: boolean;
   
+  // Sprint 10: Undo/Rollback
+  pending_state: CampaignPhaseState | null;
+  pending_expiry: string | null;
+  last_action_id: string | null;
+
   created_at: string;
 }
 
@@ -306,7 +311,8 @@ export type CampaignPhaseLogActionType =
   | 'ENGAGEMENT_ROLL'
   | 'PERSONNEL_UPDATED'
   | 'TALE_TOLD'
-  | 'GM_OVERRIDE';
+  | 'GM_OVERRIDE'
+  | 'UNDO';
 
 export interface CampaignPhaseLog {
   id: string;

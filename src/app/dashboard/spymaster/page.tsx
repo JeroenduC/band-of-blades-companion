@@ -22,14 +22,26 @@ export default async function SpymasterDashboardPage() {
   if (phaseState === 'PHASE_COMPLETE') {
     const { logs } = await loadLorekeeperData(campaign.id);
     return (
-      <DashboardShell role="SPYMASTER" campaignName={campaign.name}>
+      <DashboardShell 
+      role="SPYMASTER" 
+      campaignName={campaign.name}
+      campaignId={campaign.id}
+      currentState={phaseState}
+      pendingExpiry={campaign.pending_expiry}
+    >
         <PhaseSummary campaign={campaign} role="SPYMASTER" logs={logs} />
       </DashboardShell>
     );
   }
 
   return (
-    <DashboardShell role="SPYMASTER" campaignName={campaign.name}>
+    <DashboardShell 
+      role="SPYMASTER" 
+      campaignName={campaign.name}
+      campaignId={campaign.id}
+      currentState={phaseState}
+      pendingExpiry={campaign.pending_expiry}
+    >
       <div className="space-y-8">
         {/* Network Tree */}
         <SpyNetworkTree 

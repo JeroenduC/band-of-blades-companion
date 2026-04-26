@@ -6,6 +6,7 @@ import { makeAdvanceDecision } from '@/server/actions/phase';
 import type { AdvanceDecisionState } from '@/server/actions/phase';
 import type { Campaign } from '@/lib/types';
 import { getConnections } from '@/lib/locations';
+import { LegionDice } from '@/components/legion';
 
 interface AdvanceDecisionFormProps {
   campaign: Campaign;
@@ -74,21 +75,11 @@ export function AdvanceDecisionForm({ campaign }: AdvanceDecisionFormProps) {
                 Pressure rolled ({result.pressure_after_horses} dice
                 {result.horses_spent > 0 && `, after spending ${result.horses_spent} Horse use${result.horses_spent !== 1 ? 's' : ''}`}):
               </p>
-              <div className="flex flex-wrap gap-2" aria-label="Dice results">
-                {result.dice.map((d, i) => (
-                  <span
-                    key={i}
-                    className={`inline-flex items-center justify-center w-9 h-9 rounded border text-sm font-bold font-mono
-                      ${d === result.worst_die && result.dice.indexOf(d) === i
-                        ? 'border-red-500 bg-red-900/40 text-red-300'
-                        : 'border-border bg-legion-bg-surface text-legion-text-primary'
-                      }`}
-                    aria-label={`Die ${i + 1}: ${d}${d === result.worst_die && result.dice.indexOf(d) === i ? ' (worst)' : ''}`}
-                  >
-                    {d}
-                  </span>
-                ))}
-              </div>
+              <LegionDice 
+                results={result.dice} 
+                worstDieIndex={result.dice.indexOf(result.worst_die)} 
+                className="mb-4"
+              />
             </div>
 
             {/* Summary */}

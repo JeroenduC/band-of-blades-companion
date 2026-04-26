@@ -230,3 +230,52 @@
 g:focus-visible circle.focus-ring {
   opacity: 1;
 }
+
+@media print {
+  @page {
+    size: auto;
+    margin: 20mm;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Force white backgrounds for cards in print */
+  div, section, article {
+    background-color: transparent !important;
+    border-color: #ddd !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+
+  /* Reset all custom text colors to black */
+  span, p, h1, h2, h3, h4, li {
+    color: black !important;
+  }
+
+  /* Special handling for headers in print */
+  h1, h2, h3, h4 {
+    border-bottom: 1px solid black !important;
+  }
+
+  /* Hide grain textures */
+  .grain-base::after, .grain-surface::after {
+    display: none !important;
+  }
+
+  /* Hide main navigation and other non-content items */
+  header, nav, form, button, .print-hidden {
+    display: none !important;
+  }
+
+  /* Ensure the summary content takes full width */
+  main {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+  }
+}

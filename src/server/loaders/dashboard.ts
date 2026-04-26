@@ -54,7 +54,8 @@ export async function loadDashboard(role: LegionRole): Promise<DashboardData> {
         food_uses, horse_uses, black_shot_uses,
         religious_supply_uses, supply_carts,
         qm_actions_complete, spymaster_actions_complete,
-        current_location, created_at
+        current_location, created_at,
+        pending_state, pending_expiry, last_action_id
       )
     `)
     .eq('user_id', user.id)
@@ -423,7 +424,8 @@ export async function loadGmDashboard(): Promise<DashboardData> {
         food_uses, horse_uses, black_shot_uses,
         religious_supply_uses, supply_carts,
         qm_actions_complete, spymaster_actions_complete,
-        current_location, created_at
+        current_location, created_at,
+        pending_state, pending_expiry, last_action_id
       )
     `)
     .eq('user_id', user.id)

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useActionState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Spy, SpyLongTermAssignment } from '@/lib/types';
 import { IntelTier } from '@/lib/intel-questions';
 import {
@@ -16,9 +17,11 @@ import {
   dispatchSpy, 
   completeSpymasterActions,
   createLongTermAssignment,
-  workOnLongTermAssignment
+  workOnLongTermAssignment,
+  type SpymasterActionState
 } from '@/server/actions/phase/spymaster';
 import { cn } from '@/lib/utils';
+import { LegionDice } from '@/components/legion';
 
 interface SpyDispatchProps {
   campaignId: string;
@@ -251,45 +254,91 @@ interface LongTermPanelProps {
 }
 
 function LongTermAssignmentPanel({ campaignId, spy, longTermAssignments }: LongTermPanelProps) {
+  const router = useRouter();
+  const [state, action, pending] = useActionState<SpymasterActionState | null, FormData>(
+    workOnLongTermAssignment, null,
+  );
+  
   const [showCreateForm, setShowCreateForm] = useState(false);
+  
+  useEffect(() => {
+    if (state?.result) router.refresh();
+  }, [state?.result, router]);
+
   const activeAssignments = longTermAssignments.filter(a => !a.is_completed);
 
   return (
     <div className="col-span-full space-y-4">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {activeAssignments.map((lta) => (
-          <LegionCard key={lta.id}>
-            <LegionCardHeader className="pb-2">
-              <LegionCardTitle className="text-base">{lta.name}</LegionCardTitle>
-              <p className="text-xs text-legion-text-muted uppercase tracking-tighter">{lta.type.replace(/_/g, ' ')}</p>
-            </LegionCardHeader>
-            <LegionCardContent className="flex justify-center py-4">
-              <LegionClock total={lta.clock_segments} filled={lta.clock_filled} size="sm" />
-            </LegionCardContent>
-            <LegionCardFooter>
-              <form action={workOnLongTermAssignment} className="w-full">
-                <input type="hidden" name="campaign_id" value={campaignId} />
-                <input type="hidden" name="spy_id" value={spy.id} />
-                <input type="hidden" name="lta_id" value={lta.id} />
-                <LegionButton size="sm" variant="outline" className="w-full">
-                  Roll to Advance
-                </LegionButton>
-              </form>
-            </LegionCardFooter>
-          </LegionCard>
-        ))}
+      {state?.result ? (
+        <LegionCard className="border-legion-amber/30 bg-legion-amber/5 animate-in zoom-in-95 duration-300">
+          <LegionCardHeader className="pb-2">
+            <LegionCardTitle className="text-sm font-bold uppercase tracking-widest text-legion-amber">
+              Assignment Result
+            </LegionCardTitle>
+          </LegionCardHeader>
+          <LegionCardContent className="space-y-6">
+            <div className="flex flex-col gap-4">
+              <div className="space-y-1">
+                <span className="text-[10px] font-mono text-legion-text-muted uppercase">Dice Roll</span>
+                <LegionDice 
+                  results={state.result.dice} 
+                  bestDieIndex={state.result.dice.indexOf(Math.max(...state.result.dice))} 
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 rounded bg-white/5 border border-white/10">
+                  <span className="block text-[9px] text-legion-text-muted uppercase tracking-tighter mb-1">Segments Added</span>
+                  <span className="text-lg font-heading text-legion-text-primary">+{state.result.segments_added}</span>
+                </div>
+                {state.result.wounded && (
+                  <div className="p-3 rounded bg-red-900/20 border border-red-500/50">
+                    <span className="block text-[9px] text-red-300 uppercase tracking-tighter mb-1">Consequence</span>
+                    <span className="text-sm font-bold text-red-400 uppercase">{state.result.died ? 'SPY KILLED' : 'SPY WOUNDED'}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <LegionButton size="sm" onClick={() => window.location.reload()} className="w-full">
+              CONTINUE
+            </LegionButton>
+          </LegionCardContent>
+        </LegionCard>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {activeAssignments.map((lta) => (
+            <LegionCard key={lta.id}>
+              <LegionCardHeader className="pb-2">
+                <LegionCardTitle className="text-base">{lta.name}</LegionCardTitle>
+                <p className="text-xs text-legion-text-muted uppercase tracking-tighter">{lta.type.replace(/_/g, ' ')}</p>
+              </LegionCardHeader>
+              <LegionCardContent className="flex justify-center py-4">
+                <LegionClock total={lta.clock_segments} filled={lta.clock_filled} size="sm" />
+              </LegionCardContent>
+              <LegionCardFooter>
+                <form action={action} className="w-full">
+                  <input type="hidden" name="campaign_id" value={campaignId} />
+                  <input type="hidden" name="spy_id" value={spy.id} />
+                  <input type="hidden" name="lta_id" value={lta.id} />
+                  <LegionButton type="submit" size="sm" variant="outline" className="w-full" disabled={pending}>
+                    {pending ? 'ROLLING...' : 'Roll to Advance'}
+                  </LegionButton>
+                </form>
+              </LegionCardFooter>
+            </LegionCard>
+          ))}
 
-        {activeAssignments.length < 5 && !showCreateForm && (
-          <button
-            onClick={() => setShowCreateForm(true)}
-            className="flex h-full min-h-[140px] flex-col items-center justify-center rounded-lg border border-dashed border-border p-4 text-center hover:bg-legion-bg-overlay transition-colors"
-          >
-            <span className="text-2xl text-legion-amber mb-1">+</span>
-            <p className="text-sm font-heading text-legion-amber">New Assignment</p>
-            <p className="text-xs text-legion-text-muted mt-1">Start a new 8-clock project</p>
-          </button>
-        )}
-      </div>
+          {activeAssignments.length < 5 && !showCreateForm && (
+            <button
+              onClick={() => setShowCreateForm(true)}
+              className="flex h-full min-h-[140px] flex-col items-center justify-center rounded-lg border border-dashed border-border p-4 text-center hover:bg-legion-bg-overlay transition-colors"
+            >
+              <span className="text-2xl text-legion-amber mb-1">+</span>
+              <p className="text-sm font-heading text-legion-amber">New Assignment</p>
+              <p className="text-xs text-legion-text-muted mt-1">Start a new 8-clock project</p>
+            </button>
+          )}
+        </div>
+      )}
 
       {showCreateForm && (
         <LegionCard className="bg-legion-bg-overlay border-legion-amber/20">

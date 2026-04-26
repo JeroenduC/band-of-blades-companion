@@ -11,6 +11,7 @@ import {
 } from '@/server/actions/phase';
 import type { Alchemist, Laborers, LongTermProject } from '@/lib/types';
 import type { ActionQuality } from '@/lib/campaign-utils';
+import { LegionDice } from '@/components/legion';
 
 interface AlchemistsLaborersFormProps {
   campaignId: string;
@@ -77,20 +78,21 @@ function AlchemistCard({
           This alchemist has reached maximum corruption and must be dealt with.
         </p>
       ) : state?.result ? (
-        <div className="space-y-0.5">
-          <p className="text-xs">
-            <span className="text-legion-text-muted">Effect: </span>
-            <span className="text-legion-text-primary">{QUALITY_LABELS[state.result.quality]}</span>
-            <span className="text-legion-text-muted ml-1">[{state.result.dice_effect.join(', ')}]</span>
-          </p>
-          <p className="text-xs">
-            <span className="text-legion-text-muted">Corruption: </span>
-            <span className={state.result.corruption_added >= 3 ? 'text-red-400' : 'text-legion-text-primary'}>
-              +{state.result.corruption_added}
-            </span>
-            <span className="text-legion-text-muted ml-1">[{state.result.dice_corruption.join(', ')}]</span>
-            <span className="text-legion-text-muted"> → {state.result.new_corruption}/8</span>
-          </p>
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <p className="text-[10px] text-legion-text-muted uppercase tracking-widest">Effect: {QUALITY_LABELS[state.result.quality]}</p>
+            <LegionDice 
+              results={state.result.dice_effect} 
+              bestDieIndex={state.result.dice_effect.indexOf(Math.max(...state.result.dice_effect))} 
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="text-[10px] text-legion-text-muted uppercase tracking-widest">Corruption: +{state.result.corruption_added} (Total {state.result.new_corruption}/8)</p>
+            <LegionDice 
+              results={state.result.dice_corruption} 
+              worstDieIndex={state.result.dice_corruption.indexOf(Math.max(...state.result.dice_corruption))} 
+            />
+          </div>
           {state.result.corrupted && (
             <p className="text-xs text-red-400 font-medium">Alchemist corrupted! Must be dealt with.</p>
           )}
