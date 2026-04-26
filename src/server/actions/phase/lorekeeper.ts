@@ -48,6 +48,8 @@ export async function completeBackAtCamp(
 
   if (!membership) return { errors: { _form: ['Only the Lorekeeper or GM can set the Back at Camp scene'] } };
 
+  const isOverride = membership.role === 'GM';
+
   const { data: campaign, error: fetchError } = await db
     .from('campaigns')
     .select('campaign_phase_state, phase_number, morale, pressure, food_uses, time_clock_1, time_clock_2, time_clock_3, deaths_since_last_tale')
@@ -159,6 +161,8 @@ export async function completeBackAtCamp(
       food_note: foodNote,
       morale_after: newMorale,
       needs_tale: needsTale,
+      gm_override: isOverride,
+      acting_user_id: isOverride ? user.id : undefined,
     },
   });
 
@@ -199,6 +203,19 @@ export async function submitTale(
   if (!campaignId) return { errors: { _form: ['Campaign ID is required'] } };
   if (!taleId) return { errors: { tale_id: ['Tale ID is required'] } };
   if (!benefitId) return { errors: { benefit_id: ['Select a benefit before continuing'] } };
+
+  // Verify role (Lorekeeper or GM)
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('role')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .in('role', ['LOREKEEPER', 'GM'])
+    .maybeSingle();
+
+  if (!membership) return { errors: { _form: ['Only the Lorekeeper or GM can tell a Tale'] } };
+
+  const isOverride = membership.role === 'GM';
 
   // Fetch campaign and verify state
   const { data: campaign } = await db
@@ -319,7 +336,9 @@ export async function submitTale(
       tale_id: taleId,
       benefit_id: benefitId,
       answers,
-      effect: benefit.mechanical_effect
+      effect: benefit.mechanical_effect,
+      gm_override: isOverride,
+      acting_user_id: isOverride ? user.id : undefined,
     },
   });
 
@@ -342,16 +361,16 @@ export async function saveAnnalsNotes(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/sign-in');
 
-  // Verify Lorekeeper role
+  // Verify role (Lorekeeper or GM)
   const { data: membership } = await db
     .from('campaign_memberships')
     .select('role')
     .eq('campaign_id', campaignId)
     .eq('user_id', user.id)
-    .eq('role', 'LOREKEEPER')
+    .in('role', ['LOREKEEPER', 'GM'])
     .maybeSingle();
 
-  if (!membership) throw new Error('Unauthorized: Only the Lorekeeper can update Annals');
+  if (!membership) throw new Error('Unauthorized: Only the Lorekeeper or GM can update Annals');
 
   const { error } = await db
     .from('annals_entries')

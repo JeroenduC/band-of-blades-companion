@@ -69,15 +69,17 @@ export async function deployPersonnel(
 
   const { data: membership } = await db
     .from('campaign_memberships')
-    .select('id')
+    .select('role')
     .eq('campaign_id', campaignId)
     .eq('user_id', user.id)
-    .eq('role', 'MARSHAL')
+    .in('role', ['MARSHAL', 'GM'])
     .maybeSingle();
 
   if (!membership) {
-    return { errors: { _form: ['Only the Marshal can deploy personnel'] } };
+    return { errors: { _form: ['Only the Marshal or GM can deploy personnel'] } };
   }
+
+  const isOverride = membership.role === 'GM';
 
   const { data: campaign, error: fetchError } = await db
     .from('campaigns')
@@ -122,7 +124,9 @@ export async function deployPersonnel(
         specialist_ids: deployment.secondary_specialists,
         squad_id: deployment.secondary_squad_id,
         leader_id: deployment.secondary_leader_id,
-      }
+      },
+      gm_override: isOverride,
+      acting_user_id: isOverride ? user.id : undefined,
     },
   });
 
@@ -165,6 +169,19 @@ export async function completeEngagementRolls(
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/sign-in');
+
+  // Verify role (Marshal or GM)
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('role')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .in('role', ['MARSHAL', 'GM'])
+    .maybeSingle();
+
+  if (!membership) return { errors: { _form: ['Only the Marshal or GM can complete engagement rolls'] } };
+
+  const isOverride = membership.role === 'GM';
 
   const { data: campaign } = await db
     .from('campaigns')
@@ -225,7 +242,11 @@ export async function completeEngagementRolls(
     step: 'AWAITING_MISSION_DEPLOYMENT',
     role: 'MARSHAL',
     actionType: 'ENGAGEMENT_ROLL',
-    details: { results },
+    details: { 
+      results,
+      gm_override: isOverride,
+      acting_user_id: isOverride ? user.id : undefined,
+    },
   });
 
   // Final transition to PHASE_COMPLETE
@@ -265,6 +286,19 @@ export async function updatePersonnelPostMission(
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/sign-in');
+
+  // Verify role (Marshal or GM)
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('role')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .in('role', ['MARSHAL', 'GM'])
+    .maybeSingle();
+
+  if (!membership) return { errors: { _form: ['Only the Marshal or GM can update personnel'] } };
+
+  const isOverride = membership.role === 'GM';
 
   const { data: campaign } = await db
     .from('campaigns')
@@ -341,7 +375,9 @@ export async function updatePersonnelPostMission(
     details: { 
       specialist_count: specialistUpdates.length, 
       squad_member_count: squadMemberUpdates.length,
-      new_deaths: newDeaths
+      new_deaths: newDeaths,
+      gm_override: isOverride,
+      acting_user_id: isOverride ? user.id : undefined,
     },
   });
 

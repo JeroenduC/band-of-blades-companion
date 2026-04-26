@@ -1,9 +1,16 @@
-import { loadGmDashboard } from '@/server/loaders/dashboard';
+import { 
+  loadGmDashboard, 
+  loadBackAtCampScenes, 
+  loadQmMateriel, 
+  loadMarshalPersonnel, 
+  loadSpyData 
+} from '@/server/loaders/dashboard';
 import { createServiceClient } from '@/lib/supabase/service';
 import { DashboardShell } from '@/components/features/campaign/dashboard-shell';
 import { PhaseProgressIndicator } from '@/components/features/campaign/phase-progress-indicator';
 import { MissionResolutionForm } from '@/components/features/campaign/mission-resolution-form';
 import { MissionGenerationForm } from '@/components/features/campaign/mission-generation-form';
+import { LegionOverride } from '@/components/features/campaign/legion-override';
 import { PlaceholderStep } from '@/components/features/campaign/placeholder-step';
 import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle } from '@/components/legion';
 import { CopyInviteButton } from '@/components/features/campaign/copy-invite-button';
@@ -18,12 +25,12 @@ export default async function GmDashboardPage() {
   const phaseState = campaign.campaign_phase_state as CampaignPhaseState | null;
   const phaseActive = phaseState !== null && phaseState !== 'PHASE_COMPLETE';
 
+  const db = createServiceClient();
+
   // For mission generation: fetch the Commander's focus choice and intel questions from the phase log
   let commanderFocus: string | null = null;
   let intelQuestions: string[] = [];
   if (phaseState === 'AWAITING_MISSION_GENERATION') {
-    const db = createServiceClient();
-
     // Fetch focus
     const { data: focusLog } = await db
       .from('campaign_phase_log')
@@ -59,6 +66,35 @@ export default async function GmDashboardPage() {
         .filter((text): text is string => !!text);
     }
   }
+
+  // ─── Data Loading for Overrides ───────────────────────────────────────────
+  
+  const backAtCampData = phaseActive && phaseState === 'AWAITING_BACK_AT_CAMP' 
+    ? await loadBackAtCampScenes(campaign.id, campaign.morale)
+    : undefined;
+
+  const qmData = phaseActive && (
+    phaseState === 'AWAITING_TALES' || 
+    phaseState === 'CAMPAIGN_ACTIONS' || 
+    phaseState === 'AWAITING_LABORERS_ALCHEMISTS'
+  ) ? await loadQmMateriel(campaign.id, campaign.phase_number)
+    : undefined;
+
+  const marshalData = phaseActive && (
+    phaseState === 'AWAITING_PERSONNEL_UPDATE' || 
+    phaseState === 'AWAITING_MISSION_DEPLOYMENT'
+  ) ? await loadMarshalPersonnel(campaign.id)
+    : undefined;
+
+  const spymasterData = phaseActive && phaseState === 'CAMPAIGN_ACTIONS'
+    ? await loadSpyData(campaign.id)
+    : undefined;
+
+  const missions = phaseActive && (
+    phaseState === 'AWAITING_MISSION_SELECTION' || 
+    phaseState === 'AWAITING_MISSION_DEPLOYMENT'
+  ) ? (await db.from('missions').select('*').eq('campaign_id', campaign.id).eq('phase_number', campaign.phase_number)).data
+    : undefined;
 
   const currentLoc = getLocation(campaign.current_location);
   const availableMissionTypes = (currentLoc?.available_mission_types ?? []) as MissionType[];
@@ -162,6 +198,17 @@ export default async function GmDashboardPage() {
               </LegionCardContent>
             </LegionCard>
           )}
+
+          {/* Override Authority for other roles */}
+          <LegionOverride 
+            campaign={campaign}
+            phaseState={phaseState}
+            backAtCampData={backAtCampData}
+            qmData={qmData}
+            marshalData={marshalData}
+            spymasterData={spymasterData}
+            missions={missions || undefined}
+          />
 
         </div>
       )}

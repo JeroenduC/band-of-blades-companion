@@ -50,23 +50,15 @@ export async function performLiberty(
 
   const boosted = formData.get('boosted') === 'true';
 
-  const { data: membership } = await db
-    .from('campaign_memberships')
-    .select('id')
-    .eq('campaign_id', campaignId)
-    .eq('user_id', user.id)
-    .eq('role', 'QUARTERMASTER')
-    .maybeSingle();
+  const { membership, campaign: _campaign } = await verifyQmAndFetchCampaign(
+    db, user.id, campaignId,
+    'campaign_phase_state, phase_number, morale, supply',
+  );
+  if (!membership) return { errors: { _form: ['Only the Quartermaster or GM can perform Liberty'] } };
+  if (!_campaign) return { errors: { _form: ['Campaign not found'] } };
+  const campaign = _campaign as unknown as QmCampaignRow;
 
-  if (!membership) return { errors: { _form: ['Only the Quartermaster can perform Liberty'] } };
-
-  const { data: campaign, error: fetchError } = await db
-    .from('campaigns')
-    .select('campaign_phase_state, phase_number, morale, supply')
-    .eq('id', campaignId)
-    .single();
-
-  if (fetchError || !campaign) return { errors: { _form: ['Campaign not found'] } };
+  const isOverride = membership.role === 'GM';
 
   if (campaign.campaign_phase_state !== 'CAMPAIGN_ACTIONS') {
     return { errors: { _form: ['Liberty can only be performed during Campaign Actions'] } };
@@ -100,6 +92,8 @@ export async function performLiberty(
       supply_spent: supplySpent,
       morale_after: newMorale,
       note: 'Stress reduction deferred until Roster is implemented',
+      gm_override: isOverride,
+      acting_user_id: isOverride ? user.id : undefined,
     },
   });
 
@@ -122,13 +116,15 @@ export async function completeQmActions(formData: FormData): Promise<void> {
 
   const { data: membership } = await db
     .from('campaign_memberships')
-    .select('id')
+    .select('role')
     .eq('campaign_id', campaignId)
     .eq('user_id', user.id)
-    .eq('role', 'QUARTERMASTER')
+    .in('role', ['QUARTERMASTER', 'GM'])
     .maybeSingle();
 
-  if (!membership) throw new Error('Only the Quartermaster can complete QM actions');
+  if (!membership) throw new Error('Only the Quartermaster or GM can complete QM actions');
+
+  const isOverride = membership.role === 'GM';
 
   const { data: campaign, error: fetchError } = await db
     .from('campaigns')
@@ -158,7 +154,11 @@ export async function completeQmActions(formData: FormData): Promise<void> {
     step: 'CAMPAIGN_ACTIONS',
     role: 'QUARTERMASTER',
     actionType: 'QM_ACTIONS_COMPLETE',
-    details: { advanced_state: bothDone },
+    details: { 
+      advanced_state: bothDone,
+      gm_override: isOverride,
+      acting_user_id: isOverride ? user.id : undefined,
+    },
   });
 
   revalidatePath('/dashboard');
@@ -199,6 +199,8 @@ export async function performRecruit(
   if (!_campaign) return { errors: { _form: ['Campaign not found'] } };
   const campaign = _campaign as unknown as QmCampaignRow;
 
+  const isOverride = membership.role === 'GM';
+
   if (campaign.campaign_phase_state !== 'CAMPAIGN_ACTIONS') {
     return { errors: { _form: ['Recruit can only be performed during Campaign Actions'] } };
   }
@@ -232,7 +234,11 @@ export async function performRecruit(
     step: 'CAMPAIGN_ACTIONS',
     role: 'QUARTERMASTER',
     actionType: 'RECRUIT',
-    details: { rookies, soldiers, boosted, supply_spent: supplySpent },
+    details: { 
+      rookies, soldiers, boosted, supply_spent: supplySpent,
+      gm_override: isOverride,
+      acting_user_id: isOverride ? user.id : undefined,
+    },
   });
 
   revalidatePath('/dashboard/quartermaster');
@@ -291,9 +297,11 @@ export async function performAcquireAssets(
     `campaign_phase_state, phase_number, supply, current_location,
      food_uses, horse_uses, black_shot_uses, religious_supply_uses`,
   );
-  if (!membership) return { errors: { _form: ['Only the Quartermaster can acquire assets'] } };
+  if (!membership) return { errors: { _form: ['Only the Quartermaster or GM can acquire assets'] } };
   if (!_campaignAA) return { errors: { _form: ['Campaign not found'] } };
   const campaign = _campaignAA as unknown as QmCampaignRow;
+
+  const isOverride = membership.role === 'GM';
 
   if (campaign.campaign_phase_state !== 'CAMPAIGN_ACTIONS') {
     return { errors: { _form: ['Acquire Assets can only be performed during Campaign Actions'] } };
@@ -324,7 +332,7 @@ export async function performAcquireAssets(
   const locationAssetType = assetType as Parameters<typeof getAssetsDicePool>[1];
   const diceCount = location ? getAssetsDicePool(location, locationAssetType) : 1;
 
-  const dice = await await rollDicePool(diceCount);
+  const dice = await rollDicePool(diceCount);
   const baseQuality = qualityFromDice(dice);
   const finalQuality = applyBoosts(baseQuality, boosts);
 
@@ -404,6 +412,8 @@ export async function performAcquireAssets(
       supply_spent: supplySpent,
       uses_gained: usesGained,
       personnel_added: personnelAdded,
+      gm_override: isOverride,
+      acting_user_id: isOverride ? user.id : undefined,
     },
   });
 
@@ -445,9 +455,11 @@ export async function performRnR(
     db, user.id, campaignId,
     'campaign_phase_state, phase_number, supply',
   );
-  if (!membership) return { errors: { _form: ['Only the Quartermaster can perform R&R'] } };
+  if (!membership) return { errors: { _form: ['Only the Quartermaster or GM can perform R&R'] } };
   if (!_campaignRnR) return { errors: { _form: ['Campaign not found'] } };
   const campaign = _campaignRnR as unknown as QmCampaignRow;
+
+  const isOverride = membership.role === 'GM';
 
   if (campaign.campaign_phase_state !== 'CAMPAIGN_ACTIONS') {
     return { errors: { _form: ['R&R can only be performed during Campaign Actions'] } };
@@ -488,6 +500,8 @@ export async function performRnR(
       supply_spent: supplySpent,
       mercies_healed: merciesHealed,
       note: 'Per-Specialist healing deferred until Marshal Roster (Epic 6)',
+      gm_override: isOverride,
+      acting_user_id: isOverride ? user.id : undefined,
     },
   });
 
@@ -560,9 +574,11 @@ export async function performLongTermProject(
     db, user.id, campaign_id,
     'campaign_phase_state, phase_number, supply',
   );
-  if (!membership) return { errors: { _form: ['Only the Quartermaster can work on projects'] } };
+  if (!membership) return { errors: { _form: ['Only the Quartermaster or GM can work on projects'] } };
   if (!_campaignLTP) return { errors: { _form: ['Campaign not found'] } };
   const campaign = _campaignLTP as unknown as QmCampaignRow;
+
+  const isOverride = membership.role === 'GM';
 
   if (campaign.campaign_phase_state !== 'CAMPAIGN_ACTIONS') {
     return { errors: { _form: ['Long-Term Projects can only be worked during Campaign Actions'] } };
@@ -650,6 +666,8 @@ export async function performLongTermProject(
       completed,
       boosts,
       supply_spent: supplySpent,
+      gm_override: isOverride,
+      acting_user_id: isOverride ? user.id : undefined,
     },
   });
 
@@ -707,9 +725,11 @@ export async function performAlchemistProject(
     db, user.id, campaignId,
     'campaign_phase_state, phase_number',
   );
-  if (!membership) return { errors: { _form: ['Only the Quartermaster can run Alchemist projects'] } };
+  if (!membership) return { errors: { _form: ['Only the Quartermaster or GM can run Alchemist projects'] } };
   if (!_campaignAlch) return { errors: { _form: ['Campaign not found'] } };
   const campaign = _campaignAlch as unknown as QmCampaignRow;
+
+  const isOverride = membership.role === 'GM';
 
   if (campaign.campaign_phase_state !== 'AWAITING_LABORERS_ALCHEMISTS') {
     return { errors: { _form: ['Alchemist projects can only run during Step 6'] } };
@@ -764,6 +784,8 @@ export async function performAlchemistProject(
       corruption_added: corruptionAdded,
       new_corruption: newCorruption,
       corrupted,
+      gm_override: isOverride,
+      acting_user_id: isOverride ? user.id : undefined,
     },
   });
 
@@ -807,9 +829,11 @@ export async function assignLaborers(
     db, user.id, campaignId,
     'campaign_phase_state, phase_number',
   );
-  if (!membership) return { errors: { _form: ['Only the Quartermaster can assign laborers'] } };
+  if (!membership) return { errors: { _form: ['Only the Quartermaster or GM can assign laborers'] } };
   if (!_campaignLab) return { errors: { _form: ['Campaign not found'] } };
   const campaign = _campaignLab as unknown as QmCampaignRow;
+
+  const isOverride = membership.role === 'GM';
 
   if (campaign.campaign_phase_state !== 'AWAITING_LABORERS_ALCHEMISTS') {
     return { errors: { _form: ['Laborer assignment only available during Step 6'] } };
@@ -867,6 +891,8 @@ export async function assignLaborers(
       segments_added: segmentsAdded,
       new_total: newTotal,
       completed,
+      gm_override: isOverride,
+      acting_user_id: isOverride ? user.id : undefined,
     },
   });
 
@@ -891,9 +917,11 @@ export async function completeLaborersAlchemists(formData: FormData): Promise<vo
     db, user.id, campaignId,
     'campaign_phase_state, phase_number',
   );
-  if (!membership) throw new Error('Only the Quartermaster can complete Step 6');
+  if (!membership) throw new Error('Only the Quartermaster or GM can complete Step 6');
   if (!_campaignComp) throw new Error('Campaign not found');
   const campaign = _campaignComp as unknown as QmCampaignRow;
+
+  const isOverride = membership.role === 'GM';
 
   assertValidTransition(
     campaign.campaign_phase_state as CampaignPhaseState | null,
@@ -912,12 +940,15 @@ export async function completeLaborersAlchemists(formData: FormData): Promise<vo
     .eq('campaign_id', campaignId);
 
   await logCampaignAction({
-    campaignId: campaign.id as unknown as string, // verifyQmAndFetchCampaign doesn't return ID in select but I can add it
+    campaignId: campaignId,
     phaseNumber: campaign.phase_number,
     step: 'AWAITING_LABORERS_ALCHEMISTS',
     role: 'QUARTERMASTER',
     actionType: 'LABORERS_ALCHEMISTS_COMPLETE',
-    details: {},
+    details: {
+      gm_override: isOverride,
+      acting_user_id: isOverride ? user.id : undefined,
+    },
   });
 
   revalidatePath('/dashboard');

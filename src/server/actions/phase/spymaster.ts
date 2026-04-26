@@ -22,13 +22,15 @@ export async function completeSpymasterActions(formData: FormData): Promise<void
 
   const { data: membership } = await db
     .from('campaign_memberships')
-    .select('id')
+    .select('role')
     .eq('campaign_id', campaignId)
     .eq('user_id', user.id)
-    .eq('role', 'SPYMASTER')
+    .in('role', ['SPYMASTER', 'GM'])
     .maybeSingle();
 
-  if (!membership) throw new Error('Only the Spymaster can complete spy dispatch');
+  if (!membership) throw new Error('Only the Spymaster or GM can complete spy dispatch');
+
+  const isOverride = membership.role === 'GM';
 
   const { data: campaign, error: fetchError } = await db
     .from('campaigns')
@@ -54,7 +56,11 @@ export async function completeSpymasterActions(formData: FormData): Promise<void
     step: 'CAMPAIGN_ACTIONS',
     role: 'SPYMASTER',
     actionType: 'SPYMASTER_ACTIONS_COMPLETE',
-    details: { advanced_state: bothDone },
+    details: { 
+      advanced_state: bothDone,
+      gm_override: isOverride,
+      acting_user_id: isOverride ? user.id : undefined,
+    },
   });
 
   revalidatePath('/dashboard');
@@ -84,13 +90,15 @@ export async function dispatchSpy(formData: FormData): Promise<void> {
   // Verify membership
   const { data: membership } = await db
     .from('campaign_memberships')
-    .select('id')
+    .select('role')
     .eq('campaign_id', campaignId)
     .eq('user_id', user.id)
-    .eq('role', 'SPYMASTER')
+    .in('role', ['SPYMASTER', 'GM'])
     .maybeSingle();
 
-  if (!membership) throw new Error('Only the Spymaster can dispatch spies');
+  if (!membership) throw new Error('Only the Spymaster or GM can dispatch spies');
+
+  const isOverride = membership.role === 'GM';
 
   // Load spy
   const { data: spy, error: spyError } = await db
@@ -119,6 +127,8 @@ export async function dispatchSpy(formData: FormData): Promise<void> {
   const details: any = {
     spy_name: spy.name,
     assignment_type: assignment,
+    gm_override: isOverride,
+    acting_user_id: isOverride ? user.id : undefined,
   };
 
   // Logic for simple assignments
@@ -155,12 +165,28 @@ export async function dispatchSpy(formData: FormData): Promise<void> {
  * Create a new long-term assignment.
  */
 export async function createLongTermAssignment(formData: FormData): Promise<void> {
+  const supabase = await createClient();
   const db = createServiceClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/sign-in');
+
   const campaignId = formData.get('campaign_id') as string;
   const type = formData.get('type') as any;
   const name = formData.get('name') as string;
 
   if (!campaignId || !type || !name) throw new Error('All fields are required');
+
+  // Verify membership (Spymaster or GM)
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('role')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .in('role', ['SPYMASTER', 'GM'])
+    .maybeSingle();
+
+  if (!membership) throw new Error('Unauthorized');
 
   await db.from('spy_long_term_assignments').insert({
     campaign_id: campaignId,
@@ -177,11 +203,27 @@ export async function createLongTermAssignment(formData: FormData): Promise<void
  * Unlock a spy network upgrade.
  */
 export async function unlockUpgrade(formData: FormData): Promise<void> {
+  const supabase = await createClient();
   const db = createServiceClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/sign-in');
+
   const campaignId = formData.get('campaign_id') as string;
   const upgradeName = formData.get('upgrade_name') as string;
 
   if (!campaignId || !upgradeName) throw new Error('Missing fields');
+
+  // Verify membership (Spymaster or GM)
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('role')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .in('role', ['SPYMASTER', 'GM'])
+    .maybeSingle();
+
+  if (!membership) throw new Error('Unauthorized');
 
   const { data: network } = await db
     .from('spy_networks')
@@ -230,7 +272,7 @@ export async function workOnLongTermAssignment(formData: FormData): Promise<void
     { data: lta },
     { data: network },
   ] = await Promise.all([
-    db.from('campaign_memberships').select('id').eq('campaign_id', campaignId).eq('user_id', user.id).eq('role', 'SPYMASTER').maybeSingle(),
+    db.from('campaign_memberships').select('role').eq('campaign_id', campaignId).eq('user_id', user.id).in('role', ['SPYMASTER', 'GM']).maybeSingle(),
     db.from('campaigns').select('phase_number').eq('id', campaignId).single(),
     db.from('spies').select('*').eq('id', spyId).single(),
     db.from('spy_long_term_assignments').select('*').eq('id', ltaId).single(),
@@ -238,6 +280,9 @@ export async function workOnLongTermAssignment(formData: FormData): Promise<void
   ]);
 
   if (!membership) throw new Error('Forbidden');
+
+  const isOverride = membership.role === 'GM';
+
   if (!spy || spy.status === 'DEAD' || spy.status === 'ON_ASSIGNMENT') throw new Error('Spy unavailable');
   if (!lta || lta.is_completed) throw new Error('Assignment already complete');
 
@@ -319,6 +364,8 @@ export async function workOnLongTermAssignment(formData: FormData): Promise<void
       wounded,
       died: newStatus === 'DEAD',
       completed,
+      gm_override: isOverride,
+      acting_user_id: isOverride ? user.id : undefined,
     },
   });
 
