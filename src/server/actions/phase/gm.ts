@@ -328,3 +328,357 @@ export async function generateMissions(
   revalidatePath('/dashboard/commander');
   return { success: true };
 }
+
+// ─── Session Management ──────────────────────────────────────────────────────
+
+export interface SessionState {
+  errors?: {
+    campaign_id?: string[];
+    title?: string[];
+    date?: string[];
+    status?: string[];
+    notes?: string[];
+    linked_phases?: string[];
+    _form?: string[];
+  };
+  success?: boolean;
+}
+
+const SessionSchema = z.object({
+  campaign_id: z.string().uuid('Invalid campaign'),
+  title: z.string().max(100, 'Title must be under 100 characters').optional().nullable(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)').optional().nullable(),
+  status: z.enum(['PLANNED', 'IN_PROGRESS', 'COMPLETE']).default('PLANNED'),
+  notes: z.string().max(2000, 'Notes must be under 2000 characters').optional().nullable(),
+  linked_phases: z.array(z.number().int()).default([]),
+});
+
+/**
+ * GM action: create a new session.
+ */
+export async function createSession(
+  formData: FormData,
+): Promise<void> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/sign-in');
+
+  const campaignId = formData.get('campaign_id') as string;
+  const title = formData.get('title') as string;
+  const date = formData.get('date') as string;
+
+  const raw = {
+    campaign_id: campaignId,
+    title: title || null,
+    date: date || null,
+    status: 'PLANNED',
+    linked_phases: [],
+  };
+
+  const parsed = SessionSchema.safeParse(raw);
+  if (!parsed.success) throw new Error('Invalid session data');
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .eq('role', 'GM')
+    .maybeSingle();
+
+  if (!membership) throw new Error('Only the GM can create sessions');
+
+  // Get current session count for session_number
+  const { count } = await db
+    .from('sessions')
+    .select('*', { count: 'exact', head: true })
+    .eq('campaign_id', campaignId);
+
+  const { error } = await db.from('sessions').insert({
+    campaign_id: campaignId,
+    session_number: (count ?? 0) + 1,
+    title: parsed.data.title,
+    date: parsed.data.date,
+    status: 'PLANNED' as const,
+    linked_phases: [],
+  });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/dashboard/gm');
+}
+
+/**
+ * GM action: update an existing session.
+ */
+export async function updateSession(
+  campaignId: string,
+  sessionId: string,
+  updates: {
+    title?: string | null;
+    date?: string | null;
+    status?: 'PLANNED' | 'IN_PROGRESS' | 'COMPLETE';
+    prep_notes?: string | null;
+    post_notes?: string | null;
+    linked_phases?: number[];
+  },
+): Promise<SessionState> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/sign-in');
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .eq('role', 'GM')
+    .maybeSingle();
+
+  if (!membership) return { errors: { _form: ['Only the GM can update sessions'] } };
+
+  const { error } = await db
+    .from('sessions')
+    .update(updates)
+    .eq('id', sessionId)
+    .eq('campaign_id', campaignId);
+
+  if (error) return { errors: { _form: [error.message] } };
+
+  revalidatePath('/dashboard/gm');
+  return { success: true };
+}
+
+// ─── Broken Tracking ────────────────────────────────────────────────────────
+
+/**
+ * GM action: select the two Broken for this campaign.
+ */
+export async function selectBroken(campaignId: string, brokenNames: string[]): Promise<void> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/sign-in');
+
+  if (brokenNames.length !== 2) throw new Error('Select exactly two Broken');
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .eq('role', 'GM')
+    .maybeSingle();
+
+  if (!membership) throw new Error('Only the GM can select Broken');
+
+  const { error } = await db
+    .from('campaigns')
+    .update({ chosen_broken: brokenNames })
+    .eq('id', campaignId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/dashboard/gm');
+}
+
+/**
+ * GM action: unlock or lock a Broken ability.
+ */
+export async function toggleBrokenAbility(
+  campaignId: string,
+  brokenName: string,
+  abilityName: string,
+  unlocked: boolean,
+  phaseNumber: number | null,
+): Promise<void> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/sign-in');
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .eq('role', 'GM')
+    .maybeSingle();
+
+  if (!membership) throw new Error('Only the GM can manage Broken abilities');
+
+  const { error } = await db
+    .from('broken_advances')
+    .upsert({
+      campaign_id: campaignId,
+      broken_name: brokenName as any,
+      ability_name: abilityName,
+      unlocked,
+      unlocked_at_phase: unlocked ? phaseNumber : null,
+    }, {
+      onConflict: 'campaign_id, broken_name, ability_name'
+    });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/dashboard/gm');
+}
+
+/**
+ * GM action: generic override of campaign values.
+ */
+export async function gmOverride(
+  campaignId: string,
+  updates: Record<string, any>,
+  reason: string,
+): Promise<void> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/sign-in');
+
+  if (!reason) throw new Error('Reason is required for GM override');
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .eq('role', 'GM')
+    .maybeSingle();
+
+  if (!membership) throw new Error('Only the GM can perform overrides');
+
+  const { data: campaign } = await db
+    .from('campaigns')
+    .select('phase_number, campaign_phase_state')
+    .eq('id', campaignId)
+    .single();
+
+  if (!campaign) throw new Error('Campaign not found');
+
+  const { error } = await db
+    .from('campaigns')
+    .update(updates)
+    .eq('id', campaignId);
+
+  if (error) throw new Error(error.message);
+
+  await logCampaignAction({
+    campaignId,
+    phaseNumber: campaign.phase_number,
+    step: campaign.campaign_phase_state as any,
+    role: 'GM',
+    actionType: 'GM_OVERRIDE',
+    details: {
+      updates,
+      reason,
+      acting_user_id: user.id,
+    },
+  });
+
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/gm');
+}
+
+/**
+ * GM action: force transition the campaign phase state machine.
+ */
+export async function gmTransitionState(
+  campaignId: string,
+  newState: CampaignPhaseState,
+  reason: string,
+): Promise<void> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/sign-in');
+
+  if (!reason) throw new Error('Reason is required for GM state transition');
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .eq('role', 'GM')
+    .maybeSingle();
+
+  if (!membership) throw new Error('Only the GM can perform state overrides');
+
+  const { data: campaign } = await db
+    .from('campaigns')
+    .select('phase_number, campaign_phase_state')
+    .eq('id', campaignId)
+    .single();
+
+  if (!campaign) throw new Error('Campaign not found');
+
+  const { error } = await db
+    .from('campaigns')
+    .update({ campaign_phase_state: newState })
+    .eq('id', campaignId);
+
+  if (error) throw new Error(error.message);
+
+  await logCampaignAction({
+    campaignId,
+    phaseNumber: campaign.phase_number,
+    step: campaign.campaign_phase_state as any,
+    role: 'GM',
+    actionType: 'GM_OVERRIDE',
+    details: {
+      type: 'STATE_TRANSITION',
+      from: campaign.campaign_phase_state,
+      to: newState,
+      reason,
+      acting_user_id: user.id,
+    },
+  });
+
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/gm');
+}
+
+/**
+ * GM action: update notes for a Broken.
+ */
+export async function updateBrokenNotes(
+  campaignId: string,
+  brokenName: string,
+  abilityName: string,
+  notes: string,
+): Promise<void> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/sign-in');
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .eq('role', 'GM')
+    .maybeSingle();
+
+  if (!membership) throw new Error('Only the GM can update Broken notes');
+
+  const { error } = await db
+    .from('broken_advances')
+    .update({ notes })
+    .match({ campaign_id: campaignId, broken_name: brokenName, ability_name: abilityName });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/dashboard/gm');
+}

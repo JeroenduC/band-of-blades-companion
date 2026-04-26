@@ -13,7 +13,7 @@ import {
   Campaign, CampaignMembership, LegionRole, BackAtCampScene, MoraleLevel,
   Alchemist, Mercy, Laborers, LongTermProject, SiegeWeapon, RecruitPool,
   Specialist, Squad, SquadMember, Mission, Spy, SpyNetwork, SpyLongTermAssignment,
-  AnnalsEntry, CampaignPhaseLog,
+  AnnalsEntry, CampaignPhaseLog, Session, BrokenAdvance,
 } from '@/lib/types';
 
 export interface DashboardData {
@@ -70,6 +70,19 @@ export async function loadDashboard(role: LegionRole): Promise<DashboardData> {
     campaign: membership.campaigns as unknown as Campaign,
     membership: membership as unknown as CampaignMembership & { role: LegionRole },
   };
+}
+
+/**
+ * Load all Broken advances for a campaign.
+ */
+export async function loadBrokenAdvances(campaignId: string): Promise<BrokenAdvance[]> {
+  const db = createServiceClient();
+  const { data: advances } = await db
+    .from('broken_advances')
+    .select('*')
+    .eq('campaign_id', campaignId);
+
+  return (advances ?? []) as BrokenAdvance[];
 }
 
 /**
@@ -368,6 +381,20 @@ export async function loadMissions(campaignId: string, phaseNumber: number): Pro
     .eq('phase_number', phaseNumber);
 
   return (missions ?? []) as Mission[];
+}
+
+/**
+ * Load all sessions for a campaign.
+ */
+export async function loadSessions(campaignId: string): Promise<Session[]> {
+  const db = createServiceClient();
+  const { data: sessions } = await db
+    .from('sessions')
+    .select('*')
+    .eq('campaign_id', campaignId)
+    .order('session_number', { ascending: false });
+
+  return (sessions ?? []) as Session[];
 }
 
 /**

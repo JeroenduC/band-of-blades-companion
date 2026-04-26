@@ -1,6 +1,7 @@
 import { loadDashboard } from '@/server/loaders/dashboard';
 import { DashboardShell } from '@/components/features/campaign/dashboard-shell';
 import { CommanderWarTable } from '@/components/features/campaign/commander-war-table';
+import { PhaseSummary } from '@/components/features/campaign/phase-summary';
 import { MissionFocusForm } from '@/components/features/campaign/mission-focus-form';
 import { WaitingForOthers } from '@/components/features/campaign/waiting-for-others';
 import { TimePassesSummary } from '@/components/features/campaign/time-passes-summary';
@@ -10,6 +11,7 @@ import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle } from
 import { LocationMap } from '@/components/features/campaign/location-map';
 import { createServiceClient } from '@/lib/supabase/service';
 import { isRoleActive } from '@/lib/state-machine';
+import { loadLorekeeperData } from '@/server/loaders/dashboard';
 import type { CampaignPhaseState, Mission } from '@/lib/types';
 
 export const metadata = { title: 'Commander — Band of Blades' };
@@ -31,6 +33,15 @@ export default async function CommanderDashboardPage() {
       .eq('status', 'GENERATED')
       .order('created_at', { ascending: true });
     phaseMissions = (data ?? []) as unknown as Mission[];
+  }
+
+  if (phaseState === 'PHASE_COMPLETE') {
+    const { logs } = await loadLorekeeperData(campaign.id);
+    return (
+      <DashboardShell role="COMMANDER" campaignName={campaign.name}>
+        <PhaseSummary campaign={campaign} role="COMMANDER" logs={logs} />
+      </DashboardShell>
+    );
   }
 
   return (

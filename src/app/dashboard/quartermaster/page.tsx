@@ -1,5 +1,6 @@
-import { loadDashboard, loadQmMateriel } from '@/server/loaders/dashboard';
+import { loadDashboard, loadQmMateriel, loadLorekeeperData } from '@/server/loaders/dashboard';
 import { DashboardShell } from '@/components/features/campaign/dashboard-shell';
+import { PhaseSummary } from '@/components/features/campaign/phase-summary';
 import { WaitingForOthers } from '@/components/features/campaign/waiting-for-others';
 import { QmCampaignActions } from '@/components/features/campaign/qm-campaign-actions';
 import { QmMaterielPanel } from '@/components/features/campaign/qm-materiel-panel';
@@ -17,6 +18,15 @@ export default async function QuartermasterDashboardPage() {
 
   // Always load materiel so the panel is visible regardless of phase state
   const materiel = await loadQmMateriel(campaign.id, campaign.phase_number);
+
+  if (phaseState === 'PHASE_COMPLETE') {
+    const { logs } = await loadLorekeeperData(campaign.id);
+    return (
+      <DashboardShell role="QUARTERMASTER" campaignName={campaign.name}>
+        <PhaseSummary campaign={campaign} role="QUARTERMASTER" logs={logs} />
+      </DashboardShell>
+    );
+  }
 
   return (
     <DashboardShell role="QUARTERMASTER" campaignName={campaign.name}>

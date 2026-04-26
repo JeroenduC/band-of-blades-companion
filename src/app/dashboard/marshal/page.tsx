@@ -1,5 +1,6 @@
-import { loadDashboard, loadMarshalPersonnel, loadMissions } from '@/server/loaders/dashboard';
+import { loadDashboard, loadMarshalPersonnel, loadMissions, loadLorekeeperData } from '@/server/loaders/dashboard';
 import { DashboardShell } from '@/components/features/campaign/dashboard-shell';
+import { PhaseSummary } from '@/components/features/campaign/phase-summary';
 import { WaitingForOthers } from '@/components/features/campaign/waiting-for-others';
 import { MarshalOverview } from '@/components/features/campaign/marshal-overview';
 import { SpecialistRoster } from '@/components/features/campaign/specialist-roster';
@@ -37,6 +38,15 @@ export default async function MarshalDashboardPage({
     .maybeSingle();
 
   const isDeployed = !!deploymentLog;
+
+  if (phaseState === 'PHASE_COMPLETE') {
+    const { logs } = await loadLorekeeperData(campaign.id);
+    return (
+      <DashboardShell role="MARSHAL" campaignName={campaign.name}>
+        <PhaseSummary campaign={campaign} role="MARSHAL" logs={logs} />
+      </DashboardShell>
+    );
+  }
 
   return (
     <DashboardShell role="MARSHAL" campaignName={campaign.name}>

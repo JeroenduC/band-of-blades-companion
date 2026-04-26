@@ -118,6 +118,8 @@ async function deleteAllData() {
     'spies',
     'spy_networks',
     'spy_long_term_assignments',
+    'broken_advances',
+    'sessions',
     'campaign_memberships',
     'campaigns',
     'profiles',
@@ -235,6 +237,7 @@ async function createCampaign(name: string, isFirst: boolean): Promise<{ id: str
       campaign_phase_state: isFirst ? 'PHASE_COMPLETE' : 'AWAITING_ADVANCE',
       deaths_since_last_tale: isFirst ? 0 : 3,
       tales_told: [],
+      chosen_broken: ['BLIGHTER', 'BREAKER'],
     })
     .select()
     .single();
@@ -442,6 +445,67 @@ async function seedAnnals(campaignId: string) {
   else { log('✓ Annals seeded: 2 entries'); }
 }
 
+async function seedBroken(campaignId: string) {
+  const { error } = await db.from('broken_advances').insert([
+    {
+      campaign_id: campaignId,
+      broken_name: 'BLIGHTER',
+      ability_name: 'Miasma',
+      unlocked: true,
+      unlocked_at_phase: 1,
+      notes: 'Plague clouds sighted over the Western Front.'
+    },
+    {
+      campaign_id: campaignId,
+      broken_name: 'BREAKER',
+      ability_name: 'Sunder',
+      unlocked: true,
+      unlocked_at_phase: 2,
+      notes: 'The walls of Sunstrider were shattered by the Breakers presence.'
+    }
+  ]);
+
+  if (error) { log(`⚠ Failed to seed broken advances: ${error.message}`); }
+  else { log('✓ Broken: Blighter (Miasma) and Breaker (Sunder) unlocked'); }
+}
+
+async function seedSessions(campaignId: string) {
+  const { error } = await db.from('sessions').insert([
+    {
+      campaign_id: campaignId,
+      session_number: 1,
+      title: 'The Fall of the Western Front',
+      date: '2026-04-01',
+      status: 'COMPLETE',
+      prep_notes: 'Start the retreat. Ensure the Relic is a priority.',
+      post_notes: 'Relic secured, but many lost. Morale is shaky.',
+      linked_phases: [1]
+    },
+    {
+      campaign_id: campaignId,
+      session_number: 2,
+      title: 'Respite in Plainsworth',
+      date: '2026-04-15',
+      status: 'COMPLETE',
+      prep_notes: 'Establish camp, recruit new soldiers.',
+      post_notes: 'Recruitment successful. New specialists emerged.',
+      linked_phases: [2]
+    },
+    {
+      campaign_id: campaignId,
+      session_number: 3,
+      title: 'The Road Ahead',
+      date: '2026-05-01',
+      status: 'PLANNED',
+      prep_notes: 'Advance toward Sunstrider or the Long Road.',
+      linked_phases: [3]
+    }
+  ]);
+
+  if (error) { log(`⚠ Failed to seed sessions: ${error.message}`); }
+  else { log('✓ Sessions: 2 completed, 1 planned'); }
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -467,6 +531,8 @@ async function main() {
     await seedSpymaster(id);
     await seedMissions(id);
     await seedAnnals(id);
+    await seedBroken(id);
+    await seedSessions(id);
     results.push({ campaign, inviteCode });
   }
 
