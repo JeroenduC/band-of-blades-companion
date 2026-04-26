@@ -5,7 +5,8 @@ import {
   loadMarshalPersonnel, 
   loadSpyData,
   loadSessions,
-  loadBrokenAdvances
+  loadBrokenAdvances,
+  loadLorekeeperData
 } from '@/server/loaders/dashboard';
 import { createServiceClient } from '@/lib/supabase/service';
 import { DashboardShell } from '@/components/features/campaign/dashboard-shell';
@@ -13,6 +14,7 @@ import { PhaseProgressIndicator } from '@/components/features/campaign/phase-pro
 import { MissionResolutionForm } from '@/components/features/campaign/mission-resolution-form';
 import { MissionGenerationForm } from '@/components/features/campaign/mission-generation-form';
 import { GmOverview } from '@/components/features/campaign/gm-overview';
+import { PhaseSummary } from '@/components/features/campaign/phase-summary';
 import { BrokenTracking } from '@/components/features/campaign/broken-tracking';
 import { GmAntagonistSelection } from '@/components/features/campaign/gm-antagonist-selection';
 import { GmOverrideForm } from '@/components/features/campaign/gm-override-form';
@@ -121,6 +123,43 @@ export default async function GmDashboardPage() {
 
   const currentLoc = getLocation(campaign.current_location);
   const availableMissionTypes = (currentLoc?.available_mission_types ?? []) as MissionType[];
+
+  if (phaseState === 'PHASE_COMPLETE') {
+    const { logs } = await loadLorekeeperData(campaign.id);
+    return (
+      <DashboardShell role="GM" campaignName={campaign.name}>
+        <PhaseSummary campaign={campaign} role="GM" logs={logs} />
+        
+        {/* GM can still see global overview below summary */}
+        <div className="mt-20 space-y-12">
+           <section className="space-y-6">
+            <h2 className="font-heading text-xl text-legion-text-primary uppercase tracking-[0.2em] border-b border-white/10 pb-2">
+              Legion Status
+            </h2>
+            <GmOverview 
+              campaign={campaign}
+              personnelCounts={personnelCounts}
+              spyCounts={spyCounts}
+            />
+          </section>
+          
+          <section className="space-y-4 pt-4">
+            <div className="flex items-center gap-2 border-b border-white/10 pb-2">
+              <AlertTriangleIcon className="w-4 h-4 text-legion-amber" />
+              <h2 className="font-heading text-lg text-legion-text-primary uppercase tracking-widest">
+                GM Authority & Overrides
+              </h2>
+            </div>
+            <LegionCard className="border-legion-amber/20 bg-black/20">
+              <LegionCardContent className="pt-6">
+                <GmOverrideForm campaign={campaign} />
+              </LegionCardContent>
+            </LegionCard>
+          </section>
+        </div>
+      </DashboardShell>
+    );
+  }
 
   return (
     <DashboardShell role="GM" campaignName={campaign.name}>

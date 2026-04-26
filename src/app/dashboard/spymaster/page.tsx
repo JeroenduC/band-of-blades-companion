@@ -1,5 +1,6 @@
-import { loadDashboard, loadSpyData } from '@/server/loaders/dashboard';
+import { loadDashboard, loadSpyData, loadLorekeeperData } from '@/server/loaders/dashboard';
 import { DashboardShell } from '@/components/features/campaign/dashboard-shell';
+import { PhaseSummary } from '@/components/features/campaign/phase-summary';
 import { WaitingForOthers } from '@/components/features/campaign/waiting-for-others';
 import { SpyRoster } from '@/components/features/campaign/spy-roster';
 import { SpyNetworkTree } from '@/components/features/campaign/spy-network-tree';
@@ -17,6 +18,15 @@ export default async function SpymasterDashboardPage() {
   const phaseState = campaign.campaign_phase_state as CampaignPhaseState | null;
   const isMyTurn = phaseState !== null && isRoleActive('SPYMASTER', phaseState);
   const actionsComplete = campaign.spymaster_actions_complete;
+
+  if (phaseState === 'PHASE_COMPLETE') {
+    const { logs } = await loadLorekeeperData(campaign.id);
+    return (
+      <DashboardShell role="SPYMASTER" campaignName={campaign.name}>
+        <PhaseSummary campaign={campaign} role="SPYMASTER" logs={logs} />
+      </DashboardShell>
+    );
+  }
 
   return (
     <DashboardShell role="SPYMASTER" campaignName={campaign.name}>
