@@ -58,6 +58,8 @@ export interface Campaign {
   spymaster_actions_complete: boolean;
   // Sprint 3: current location on the campaign map
   current_location: string;
+  // Sprint 9: Broken selection
+  chosen_broken: string[];
   // Sprint 8: Lorekeeper tracking
   deaths_since_last_tale: number;
   tales_told: string[]; // List of Tale IDs
@@ -84,6 +86,21 @@ export interface AnnalsEntry {
   lorekeeper_notes: string;
   created_at: string;
   updated_at: string;
+}
+
+// ─── Sprint 9: GM and Broken Tracking ────────────────────────────────────────
+
+export type BrokenName = 'BLIGHTER' | 'BREAKER' | 'RENDER';
+
+export interface BrokenAdvance {
+  id: string;
+  campaign_id: string;
+  broken_name: BrokenName;
+  ability_name: string;
+  unlocked: boolean;
+  unlocked_at_phase: number | null;
+  notes: string;
+  created_at: string;
 }
 
 // ─── Sprint 5: Commander and Missions ────────────────────────────────────────
@@ -332,10 +349,12 @@ export interface Session {
   id: string;
   campaign_id: string;
   session_number: number;
+  title: string | null;
   date: string | null;
   status: SessionStatus;
   prep_notes: string | null;
   post_notes: string | null;
-  phase_number: number | null;
+  linked_phases: number[];
+  phase_number: number | null; // DEPRECATED by linked_phases
   created_at: string;
 }
