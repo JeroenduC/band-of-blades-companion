@@ -69,15 +69,17 @@ export async function deployPersonnel(
 
   const { data: membership } = await db
     .from('campaign_memberships')
-    .select('id')
+    .select('role')
     .eq('campaign_id', campaignId)
     .eq('user_id', user.id)
-    .eq('role', 'MARSHAL')
+    .in('role', ['MARSHAL', 'GM'])
     .maybeSingle();
 
   if (!membership) {
-    return { errors: { _form: ['Only the Marshal can deploy personnel'] } };
+    return { errors: { _form: ['Only the Marshal or GM can deploy personnel'] } };
   }
+
+  const isOverride = membership.role === 'GM';
 
   const { data: campaign, error: fetchError } = await db
     .from('campaigns')
@@ -122,7 +124,9 @@ export async function deployPersonnel(
         specialist_ids: deployment.secondary_specialists,
         squad_id: deployment.secondary_squad_id,
         leader_id: deployment.secondary_leader_id,
-      }
+      },
+      gm_override: isOverride,
+      acting_user_id: isOverride ? user.id : undefined,
     },
   });
 
@@ -165,6 +169,19 @@ export async function completeEngagementRolls(
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/sign-in');
+
+  // Verify role (Marshal or GM)
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('role')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .in('role', ['MARSHAL', 'GM'])
+    .maybeSingle();
+
+  if (!membership) return { errors: { _form: ['Only the Marshal or GM can complete engagement rolls'] } };
+
+  const isOverride = membership.role === 'GM';
 
   const { data: campaign } = await db
     .from('campaigns')
@@ -225,7 +242,11 @@ export async function completeEngagementRolls(
     step: 'AWAITING_MISSION_DEPLOYMENT',
     role: 'MARSHAL',
     actionType: 'ENGAGEMENT_ROLL',
-    details: { results },
+    details: { 
+      results,
+      gm_override: isOverride,
+      acting_user_id: isOverride ? user.id : undefined,
+    },
   });
 
   // Final transition to PHASE_COMPLETE
@@ -266,9 +287,22 @@ export async function updatePersonnelPostMission(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/sign-in');
 
+  // Verify role (Marshal or GM)
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('role')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .in('role', ['MARSHAL', 'GM'])
+    .maybeSingle();
+
+  if (!membership) return { errors: { _form: ['Only the Marshal or GM can update personnel'] } };
+
+  const isOverride = membership.role === 'GM';
+
   const { data: campaign } = await db
     .from('campaigns')
-    .select('campaign_phase_state, phase_number')
+    .select('campaign_phase_state, phase_number, deaths_since_last_tale')
     .eq('id', campaignId)
     .single();
 
@@ -278,8 +312,24 @@ export async function updatePersonnelPostMission(
     return { errors: { _form: ['Cannot update personnel in the current phase state'] } };
   }
 
+  // Fetch current status to detect new deaths
+  const [
+    { data: currentSpecialists },
+    { data: currentSquadMembers }
+  ] = await Promise.all([
+    db.from('specialists').select('id, status').in('id', specialistUpdates.map(u => u.id)),
+    db.from('squad_members').select('id, status').in('id', squadMemberUpdates.map(u => u.id))
+  ]);
+
+  let newDeaths = 0;
+
   // Batch update specialists
   for (const update of specialistUpdates) {
+    const current = currentSpecialists?.find(s => s.id === update.id);
+    if (current && current.status !== 'DEAD' && update.status === 'DEAD') {
+      newDeaths++;
+    }
+
     const { error } = await db
       .from('specialists')
       .update({
@@ -298,6 +348,11 @@ export async function updatePersonnelPostMission(
 
   // Batch update squad members
   for (const update of squadMemberUpdates) {
+    const current = currentSquadMembers?.find(s => s.id === update.id);
+    if (current && current.status !== 'DEAD' && update.status === 'DEAD') {
+      newDeaths++;
+    }
+
     const { error } = await db
       .from('squad_members')
       .update({
@@ -317,13 +372,22 @@ export async function updatePersonnelPostMission(
     step: 'AWAITING_PERSONNEL_UPDATE',
     role: 'MARSHAL',
     actionType: 'PERSONNEL_UPDATED',
-    details: { specialist_count: specialistUpdates.length, squad_member_count: squadMemberUpdates.length },
+    details: { 
+      specialist_count: specialistUpdates.length, 
+      squad_member_count: squadMemberUpdates.length,
+      new_deaths: newDeaths,
+      gm_override: isOverride,
+      acting_user_id: isOverride ? user.id : undefined,
+    },
   });
 
-  // Transition to AWAITING_BACK_AT_CAMP
+  // Transition to AWAITING_BACK_AT_CAMP and update death counter
   const { error: updateError } = await db
     .from('campaigns')
-    .update({ campaign_phase_state: 'AWAITING_BACK_AT_CAMP' })
+    .update({ 
+      campaign_phase_state: 'AWAITING_BACK_AT_CAMP',
+      deaths_since_last_tale: campaign.deaths_since_last_tale + newDeaths
+    })
     .eq('id', campaignId);
 
   if (updateError) return { errors: { _form: [updateError.message] } };

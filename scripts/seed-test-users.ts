@@ -104,6 +104,7 @@ async function deleteAllData() {
   const tables = [
     'campaign_phase_log',
     'back_at_camp_scenes',
+    'annals_entries',
     'recruit_pool',
     'laborers',
     'long_term_projects',
@@ -232,6 +233,8 @@ async function createCampaign(name: string, isFirst: boolean): Promise<{ id: str
       time_clock_1: isFirst ? 0 : 5,
       horse_uses: isFirst ? 0 : 2,
       campaign_phase_state: isFirst ? 'PHASE_COMPLETE' : 'AWAITING_ADVANCE',
+      deaths_since_last_tale: isFirst ? 0 : 3,
+      tales_told: [],
     })
     .select()
     .single();
@@ -421,6 +424,24 @@ async function seedSpymaster(campaignId: string) {
   log('✓ Spymaster: 2 active spies, 1 dead, network initialized');
 }
 
+async function seedAnnals(campaignId: string) {
+  const { error } = await db.from('annals_entries').insert([
+    {
+      campaign_id: campaignId,
+      phase_number: 1,
+      lorekeeper_notes: 'The retreat from the Western Front was bloody. We lost good people, but the Relic is safe. The Chosen remains silent, watching the horizon.',
+    },
+    {
+      campaign_id: campaignId,
+      phase_number: 2,
+      lorekeeper_notes: 'Plainsworth offered a brief respite. Supplies are low, but the alchemists have found a way to purify the local wells. The Wolves are restless.',
+    }
+  ]);
+
+  if (error) { log(`⚠ Failed to seed annals: ${error.message}`); }
+  else { log('✓ Annals seeded: 2 entries'); }
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -445,6 +466,7 @@ async function main() {
     await seedPersonnel(id);
     await seedSpymaster(id);
     await seedMissions(id);
+    await seedAnnals(id);
     results.push({ campaign, inviteCode });
   }
 

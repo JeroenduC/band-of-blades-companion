@@ -11,15 +11,18 @@
  *
  *   null / PHASE_COMPLETE
  *     → AWAITING_MISSION_RESOLUTION   (GM starts phase)
- *     → AWAITING_BACK_AT_CAMP         (GM resolves missions)
- *     → TIME_PASSING                  (Lorekeeper/GM sets scene)
- *     → CAMPAIGN_ACTIONS              (Commander confirms time; QM + Spymaster act in parallel)
+ *     → AWAITING_PERSONNEL_UPDATE     (Marshal records casualties)
+ *     → AWAITING_BACK_AT_CAMP         (GM/Lorekeeper sets scene)
+ *     → AWAITING_TALES                (Lorekeeper recounts history)
+ *     → TIME_PASSING                  (Commander confirms time)
+ *     → CAMPAIGN_ACTIONS              (QM + Spymaster act in parallel)
  *     → AWAITING_LABORERS_ALCHEMISTS  (both QM and Spymaster mark complete)
- *     → AWAITING_ADVANCE              (QM/Lorekeeper complete laborers step)
- *     → AWAITING_MISSION_FOCUS        (Commander decides advance/stay)
- *     → AWAITING_MISSION_GENERATION   (Commander picks mission type)
- *     → AWAITING_MISSION_SELECTION    (GM generates missions)
- *     → PHASE_COMPLETE                (Commander + Marshal select mission)
+ *     → AWAITING_ADVANCE              (Commander decides advance/stay)
+ *     → AWAITING_MISSION_FOCUS        (Commander picks mission type)
+ *     → AWAITING_MISSION_GENERATION   (GM generates missions)
+ *     → AWAITING_MISSION_SELECTION    (Commander picks missions)
+ *     → AWAITING_MISSION_DEPLOYMENT   (Marshal assigns personnel)
+ *     → PHASE_COMPLETE                (Ready for next mission)
  */
 
 import type { CampaignPhaseState, LegionRole } from './types';
@@ -62,67 +65,74 @@ export const PHASE_STEPS: PhaseStep[] = [
     stepNumber: 3,
   },
   {
+    state: 'AWAITING_TALES',
+    label: 'Tales of the Legion',
+    description: 'The Lorekeeper recounts the history of the Legion.',
+    roles: ['LOREKEEPER', 'GM'],
+    stepNumber: 4,
+  },
+  {
     state: 'TIME_PASSING',
     label: 'Time Passes',
     description: 'Time and pressure advance. The Legion consumes food.',
     roles: ['COMMANDER'],
-    stepNumber: 4,
+    stepNumber: 5,
   },
   {
     state: 'CAMPAIGN_ACTIONS',
     label: 'Campaign Actions',
     description: 'The Quartermaster and Spymaster act simultaneously.',
     roles: ['QUARTERMASTER', 'SPYMASTER'],
-    stepNumber: 5,
+    stepNumber: 6,
   },
   {
     state: 'AWAITING_LABORERS_ALCHEMISTS',
     label: 'Laborers & Alchemists',
     description: 'The Quartermaster assigns laborers and alchemists.',
     roles: ['QUARTERMASTER'],
-    stepNumber: 6,
+    stepNumber: 7,
   },
   {
     state: 'AWAITING_ADVANCE',
     label: 'Advance Decision',
     description: 'The Commander decides whether the Legion advances.',
     roles: ['COMMANDER'],
-    stepNumber: 7,
+    stepNumber: 8,
   },
   {
     state: 'AWAITING_MISSION_FOCUS',
     label: 'Mission Focus',
     description: 'The Commander selects the type of mission to undertake.',
     roles: ['COMMANDER'],
-    stepNumber: 8,
+    stepNumber: 9,
   },
   {
     state: 'AWAITING_MISSION_GENERATION',
     label: 'Mission Generation',
     description: 'The GM generates missions based on the chosen focus.',
     roles: ['GM'],
-    stepNumber: 9,
+    stepNumber: 10,
   },
   {
     state: 'AWAITING_MISSION_SELECTION',
     label: 'Mission Selection',
     description: 'The Commander chooses which missions to run.',
     roles: ['COMMANDER'],
-    stepNumber: 10,
+    stepNumber: 11,
   },
   {
     state: 'AWAITING_MISSION_DEPLOYMENT',
     label: 'Personnel Deployment',
     description: 'The Marshal assigns personnel to the selected missions.',
     roles: ['MARSHAL'],
-    stepNumber: 11,
+    stepNumber: 12,
   },
   {
     state: 'PHASE_COMPLETE',
     label: 'Phase Complete',
     description: 'The campaign phase is complete. Ready for the next mission.',
     roles: [],
-    stepNumber: 12,
+    stepNumber: 13,
   },
 ];
 
@@ -137,7 +147,8 @@ export const VALID_TRANSITIONS: Record<CampaignPhaseState | 'null', CampaignPhas
   PHASE_COMPLETE: ['AWAITING_MISSION_RESOLUTION'],
   AWAITING_MISSION_RESOLUTION: ['AWAITING_PERSONNEL_UPDATE'],
   AWAITING_PERSONNEL_UPDATE: ['AWAITING_BACK_AT_CAMP'],
-  AWAITING_BACK_AT_CAMP: ['TIME_PASSING'],
+  AWAITING_BACK_AT_CAMP: ['AWAITING_TALES', 'TIME_PASSING'],
+  AWAITING_TALES: ['TIME_PASSING'],
   TIME_PASSING: ['CAMPAIGN_ACTIONS'],
   CAMPAIGN_ACTIONS: ['AWAITING_LABORERS_ALCHEMISTS'],
   AWAITING_LABORERS_ALCHEMISTS: ['AWAITING_ADVANCE'],

@@ -277,6 +277,7 @@ export interface QmCampaignRow {
   campaign_phase_state: string | null;
   phase_number: number;
   supply: number;
+  morale: number;
   current_location: string;
   food_uses: number;
   horse_uses: number;
@@ -284,19 +285,19 @@ export interface QmCampaignRow {
   religious_supply_uses: number;
 }
 
-/** Verify the caller is the QM and return campaign row, or return an error. */
+/** Verify the caller is the QM or GM and return campaign row, or return an error. */
 export async function verifyQmAndFetchCampaign(
   db: ReturnType<typeof createServiceClient>,
   userId: string,
   campaignId: string,
   select: string,
-): Promise<{ membership: { id: string } | null; campaign: Record<string, unknown> | null }> {
+): Promise<{ membership: { id: string; role: LegionRole } | null; campaign: Record<string, unknown> | null }> {
   const { data: membership } = await db
     .from('campaign_memberships')
-    .select('id')
+    .select('id, role')
     .eq('campaign_id', campaignId)
     .eq('user_id', userId)
-    .eq('role', 'QUARTERMASTER')
+    .in('role', ['QUARTERMASTER', 'GM'])
     .maybeSingle();
 
   if (!membership) return { membership: null, campaign: null };
@@ -307,5 +308,8 @@ export async function verifyQmAndFetchCampaign(
     .eq('id', campaignId)
     .single();
 
-  return { membership, campaign: campaign as Record<string, unknown> | null };
+  return { 
+    membership: membership as { id: string; role: LegionRole }, 
+    campaign: campaign as Record<string, unknown> | null 
+  };
 }

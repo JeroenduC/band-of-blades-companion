@@ -1,7 +1,7 @@
 # Data Model
 
 Living document. Updated whenever a migration changes the schema.
-Last updated: Sprint 7 (2026-04-21)
+Last updated: Sprint 8 (2026-04-23)
 
 ---
 
@@ -46,8 +46,10 @@ One row per campaign. All campaign-wide state lives here.
 | `religious_supply_uses` | `integer` | `0` | Religious supply uses remaining |
 | `supply_carts` | `integer` | `0` | Supply carts |
 | `qm_actions_complete` | `boolean` | `false` | QM has finished CAMPAIGN_ACTIONS step — reset each phase |
-| `spymaster_actions_complete` | `boolean" | `false` | Spymaster has finished CAMPAIGN_ACTIONS step — reset each phase |
+| `spymaster_actions_complete` | `boolean` | `false` | Spymaster has finished CAMPAIGN_ACTIONS step — reset each phase |
 | `current_location` | `text` | `'Barrak'` | Current location on campaign map |
+| `deaths_since_last_tale` | `integer` | `0` | Ticks on the Lorekeeper's death counter |
+| `tales_told` | `jsonb` | `[]` | Array of Tale IDs that have been told |
 | `created_at` | `timestamptz` | `now()` | |
 
 **RLS:** Campaign members can read their own campaign. Only service role writes (all mutations via server actions).
@@ -108,7 +110,7 @@ Append-only audit trail of all campaign phase actions. Never updated, never dele
 | `details` | `jsonb` | Structured payload (morale delta, dice result, etc.) |
 | `created_at` | `timestamptz` | Default `now()` |
 
-**Action types:** `PHASE_START`, `MISSION_RESOLVED`, `BACK_AT_CAMP_SCENE_SELECTED`, `TIME_PASSED`, `LIBERTY`, `QM_ACTIONS_COMPLETE`, `SPY_DISPATCHED`, `SPYMASTER_ACTIONS_COMPLETE`, `LABORERS_ALCHEMISTS_COMPLETE`, `ADVANCE`, `STAY`, `MISSION_FOCUS_SELECTED`, `MISSION_GENERATION_COMPLETE`, `MISSION_SELECTED`, `PHASE_COMPLETE`
+**Action types:** `PHASE_START`, `MISSION_RESOLVED`, `BACK_AT_CAMP_SCENE_SELECTED`, `TIME_PASSED`, `LIBERTY`, `QM_ACTIONS_COMPLETE`, `SPY_DISPATCHED`, `SPYMASTER_ACTIONS_COMPLETE`, `LABORERS_ALCHEMISTS_COMPLETE`, `ADVANCE`, `STAY`, `MISSION_FOCUS_SELECTED`, `MISSION_GENERATION_COMPLETE`, `MISSION_SELECTED`, `PHASE_COMPLETE`, `MEMBER_REMOVED`, `ACQUIRE_ASSETS`, `REST_AND_RECUPERATION`, `RECRUIT`, `LONG_TERM_PROJECT`, `ALCHEMIST_PROJECT`, `LABORER_TICK`, `INTEL_QUESTIONS_SUBMITTED`, `PERSONNEL_DEPLOYED`, `ENGAGEMENT_ROLL`, `PERSONNEL_UPDATED`, `TALE_TOLD`
 
 **RLS:** Campaign members can `SELECT` their own campaign's log. Only service role can `INSERT` (no authenticated INSERT policy).
 
@@ -120,18 +122,37 @@ Append-only audit trail of all campaign phase actions. Never updated, never dele
 
 Pool of Back at Camp scenes for a campaign. Seeded with 18 scenes on campaign creation (6 per morale tier). Scenes are crossed off as they are used.
 
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | `uuid` | PK |
-| `campaign_id` | `uuid` | FK → `campaigns.id` ON DELETE CASCADE |
-| `scene_text` | `text` | Full scene description |
-| `morale_level` | `text` | `HIGH` (8+), `MEDIUM` (4–7), or `LOW` (3-) |
-| `used` | `boolean` | Default `false` |
-| `used_in_phase` | `integer` | Nullable — set to `phase_number` when used |
+| Column | Type | Default | Notes |
+|--------|------|---------|-------|
+| `id` | `uuid` | `gen_random_uuid()` | PK |
+| `campaign_id` | `uuid` | — | FK → `campaigns.id` ON DELETE CASCADE |
+| `scene_text` | `text` | — | Full scene description |
+| `morale_level` | `text` | — | `HIGH` (8+), `MEDIUM` (4–7), or `LOW` (3-) |
+| `used` | `boolean` | `false` | Historically used (DEPRECATED by times_used) |
+| `used_in_phase` | `integer` | `null` | Nullable — set to `phase_number` when used |
+| `max_uses` | `integer` | `1` | Max number of times this scene can occur |
+| `times_used` | `integer` | `0` | Current number of times this scene has occurred |
 
 **RLS:** Campaign members can `SELECT`. Only service role can `INSERT`/`UPDATE`.
 
 **Index:** `(campaign_id, morale_level)` for filtered scene queries.
+
+---
+
+### `annals_entries`
+
+The Lorekeeper's in-character records of campaign phases.
+
+| Column | Type | Default | Notes |
+|--------|------|---------|-------|
+| `id` | `uuid` | `gen_random_uuid()` | PK |
+| `campaign_id` | `uuid` | — | FK → `campaigns.id` ON DELETE CASCADE |
+| `phase_number` | `integer` | — | Which phase this entry belongs to |
+| `lorekeeper_notes` | `text` | `''` | Free-text narrative notes |
+| `created_at` | `timestamptz` | `now()` | |
+| `updated_at` | `timestamptz` | `now()` | |
+
+**RLS:** Campaign members can read. Only Lorekeepers can write.
 
 ---
 
@@ -145,7 +166,7 @@ Custom campaign clocks. QM works on these via the Long-Term Project action; Labo
 | `campaign_id` | `uuid` | FK → `campaigns.id` ON DELETE CASCADE |
 | `name` | `text` | Project name |
 | `description` | `text` | What completing this project does |
-| `clock_size` | `integer" | 4–12 segments |
+| `clock_size` | `integer` | 4–12 segments |
 | `segments_filled` | `integer` | 0 to clock_size |
 | `phase_last_worked` | `integer` | Prevents working the same project twice per phase |
 | `completed_at` | `timestamptz` | Nullable — set when segments_filled reaches clock_size |
@@ -268,7 +289,7 @@ Individual Rookies and Soldiers assigned to squads.
 | `status` | `text` | `ALIVE`, `WOUNDED`, or `DEAD` |
 | `harm` | `integer` | Current harm level |
 | `stress` | `integer` | Current stress |
-| `xp" | `integer` | Current XP |
+| `xp` | `integer` | Current XP |
 | `created_at` | `timestamptz` | |
 
 **RLS:** Campaign members can read. Service role only for writes.
@@ -391,6 +412,7 @@ Generated by the GM each campaign phase and selected by the Commander.
 | `supabase/migrations/20260420000000_sprint6_marshal_personnel.sql` | 2026-04-20 | Create `squads`, `squad_members`, and `specialists` tables with RLS |
 | `supabase/migrations/20260421000000_sprint7_spymaster.sql` | 2026-04-21 | Create `spies` and `spy_networks` tables with RLS |
 | `supabase/migrations/20260421000001_sprint7_spymaster_longterm.sql` | 2026-04-21 | Create `spy_long_term_assignments` table with RLS |
+| `supabase/migrations/20260423000000_sprint8_lorekeeper.sql` | 2026-04-23 | Add Lorekeeper tracking fields, bonus flags, RPC helpers, and `annals_entries` table with RLS |
 
 > **Note:** Sprint 1 schema changes (profiles, campaigns, campaign_memberships, sessions, RLS policies) were applied directly in the Supabase dashboard and are not captured in migration files. Future changes must be tracked here.
 

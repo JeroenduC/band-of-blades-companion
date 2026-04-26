@@ -25,13 +25,15 @@ export async function confirmTimePasses(formData: FormData): Promise<void> {
 
   const { data: membership } = await db
     .from('campaign_memberships')
-    .select('id')
+    .select('role')
     .eq('campaign_id', campaignId)
     .eq('user_id', user.id)
-    .eq('role', 'COMMANDER')
+    .in('role', ['COMMANDER', 'GM'])
     .maybeSingle();
 
-  if (!membership) throw new Error('Only the Commander can confirm Time Passes');
+  if (!membership) throw new Error('Only the Commander or GM can confirm Time Passes');
+
+  const isOverride = membership.role === 'GM';
 
   const { data: campaign, error: fetchError } = await db
     .from('campaigns')
@@ -59,7 +61,11 @@ export async function confirmTimePasses(formData: FormData): Promise<void> {
     step: 'TIME_PASSING',
     role: 'COMMANDER',
     actionType: 'TIME_PASSED',
-    details: { confirmed: true },
+    details: { 
+      confirmed: true,
+      gm_override: isOverride,
+      acting_user_id: isOverride ? user.id : undefined,
+    },
   });
 
   revalidatePath('/dashboard');
@@ -133,15 +139,17 @@ export async function makeAdvanceDecision(
 
   const { data: membership } = await db
     .from('campaign_memberships')
-    .select('id')
+    .select('role')
     .eq('campaign_id', campaign_id)
     .eq('user_id', user.id)
-    .eq('role', 'COMMANDER')
+    .in('role', ['COMMANDER', 'GM'])
     .maybeSingle();
 
   if (!membership) {
-    return { errors: { _form: ['Only the Commander can make the Advance decision'] } };
+    return { errors: { _form: ['Only the Commander or GM can make the Advance decision'] } };
   }
+
+  const isOverride = membership.role === 'GM';
 
   const { data: campaign, error: fetchError } = await db
     .from('campaigns')
@@ -270,7 +278,11 @@ export async function makeAdvanceDecision(
     step: 'AWAITING_ADVANCE',
     role: 'COMMANDER',
     actionType: decision === 'ADVANCE' ? 'ADVANCE' : 'STAY',
-    details: logDetails,
+    details: {
+      ...logDetails,
+      gm_override: isOverride,
+      acting_user_id: isOverride ? user.id : undefined,
+    },
   });
 
   revalidatePath('/dashboard');
@@ -323,7 +335,7 @@ export async function selectMissionFocus(
   try {
     const { data: membership } = await db
       .from('campaign_memberships')
-      .select('id')
+      .select('role')
       .eq('campaign_id', campaignId)
       .eq('user_id', user.id)
       .in('role', ['COMMANDER', 'GM'])
@@ -332,6 +344,8 @@ export async function selectMissionFocus(
     if (!membership) {
       return { errors: { _form: ['Only the Commander or GM can select mission focus'] } };
     }
+
+    const isOverride = membership.role === 'GM';
 
     const { data: campaign, error: fetchError } = await db
       .from('campaigns')
@@ -365,7 +379,11 @@ export async function selectMissionFocus(
       step: 'AWAITING_MISSION_FOCUS',
       role: 'COMMANDER',
       actionType: 'MISSION_FOCUS_SELECTED',
-      details: { focus },
+      details: { 
+        focus,
+        gm_override: isOverride,
+        acting_user_id: isOverride ? user.id : undefined,
+      },
     });
 
     revalidatePath('/dashboard');
@@ -428,15 +446,17 @@ export async function submitIntelQuestions(
 
   const { data: membership } = await db
     .from('campaign_memberships')
-    .select('id')
+    .select('role')
     .eq('campaign_id', campaign_id)
     .eq('user_id', user.id)
-    .eq('role', 'COMMANDER')
+    .in('role', ['COMMANDER', 'GM'])
     .maybeSingle();
 
   if (!membership) {
-    return { errors: { _form: ['Only the Commander can submit intel questions'] } };
+    return { errors: { _form: ['Only the Commander or GM can submit intel questions'] } };
   }
+
+  const isOverride = membership.role === 'GM';
 
   const { data: campaign, error: fetchError } = await db
     .from('campaigns')
@@ -458,7 +478,11 @@ export async function submitIntelQuestions(
     step: 'AWAITING_MISSION_SELECTION',
     role: 'COMMANDER',
     actionType: 'INTEL_QUESTIONS_SUBMITTED',
-    details: { questions: selectedQuestions },
+    details: { 
+      questions: selectedQuestions,
+      gm_override: isOverride,
+      acting_user_id: isOverride ? user.id : undefined,
+    },
   });
 
   revalidatePath('/dashboard/commander');
@@ -520,15 +544,17 @@ export async function selectMissions(
 
   const { data: membership } = await db
     .from('campaign_memberships')
-    .select('id')
+    .select('role')
     .eq('campaign_id', campaign_id)
     .eq('user_id', user.id)
-    .eq('role', 'COMMANDER')
+    .in('role', ['COMMANDER', 'GM'])
     .maybeSingle();
 
   if (!membership) {
-    return { errors: { _form: ['Only the Commander can select missions'] } };
+    return { errors: { _form: ['Only the Commander or GM can select missions'] } };
   }
+
+  const isOverride = membership.role === 'GM';
 
   const { data: campaign, error: fetchError } = await db
     .from('campaigns')
@@ -613,6 +639,8 @@ export async function selectMissions(
       intel_for_primary,
       intel_for_secondary,
       intel_spent_total: totalIntelSpent,
+      gm_override: isOverride,
+      acting_user_id: isOverride ? user.id : undefined,
     },
   });
 

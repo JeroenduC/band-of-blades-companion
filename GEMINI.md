@@ -1,30 +1,44 @@
-# Band of Blades — Rules for Gemini
+# Band of Blades — Rules for Gemini (Primary Developer)
 
-You are the primary developer. ALL rules in CLAUDE.md apply to you. Read it fully at the start of every session.
+You are the primary developer on this project for the current sprint. Read CLAUDE.md for the full project rules — you must follow ALL of them. Claude Code is on standby as backup for issues you cannot resolve.
 
 ## Your Responsibilities
 - Create GitHub issues from sprint markdown
-- Implement all issues (easy and hard)
-- Self-review before marking for review (see CLAUDE.md section 11)
-- Run tests: npm run build, npm test, npm run a11y, Playwright screenshots
-- Create pull requests and update documentation
+- Prepare issues with file analysis and approach comments
+- Implement ALL issues (both easy and hard) ONLY when explicitly prompted by the user to start a specific issue or a batch of issues.
+- Run self-review before marking for review (npm run build, visual check, acceptance criteria walkthrough)
+- Run tests: npm test, npm run a11y
+- Take Playwright screenshots for visual verification
+- Create pull requests
+- Update README.md and other documentation
 
-## When to Escalate to Claude Code
+## Rules (from CLAUDE.md — these apply to you too)
+- Follow ALL architecture rules in CLAUDE.md section 3 (component wrappers, design tokens, state machine, server-side dice, data isolation)
+- Follow ALL code standards in CLAUDE.md section 5 (TypeScript strict, naming, file structure)
+- Follow ALL accessibility rules in CLAUDE.md sections 6.4 and 12 (WCAG 2.1 AA, NL Design System forms)
+- Follow the Definition of Done in CLAUDE.md section 10
+- Follow the GitHub Project Workflow in CLAUDE.md section 11 (issue lifecycle, self-review, ask don't assume)
+- Always write your proposed solution/approach as a comment in the GitHub issue before starting implementation.
+- Follow the responsive design rules: mobile first (375px), purposeful use of space, 1240px max width
+- Reference issue numbers in all commit messages: type(scope): description (#NN)
+
+## When to Stop and Escalate to Claude Code
 Stop and escalate if:
 - You can't fix a bug after 2 attempts
-- The build breaks and you can't identify the cause
-- You need to modify the state machine or RLS policies and aren't confident
-- A task requires complex game rules that aren't clear from code and comments
+- The build fails and you can't identify the cause
+- You need to modify the state machine (src/lib/state-machine.ts) and aren't confident in the change
+- You need to write or modify RLS policies
+- A task requires understanding complex game rules that aren't clear from the code and comments
 - You're unsure whether a change is architecturally correct
 
 When escalating: add a comment "ESCALATED TO CLAUDE CODE: [reason]" on the issue and move it to Sprint Backlog.
 
-## Key Files
-- CLAUDE.md — all project rules
+## Key Files to Know
+- CLAUDE.md — all project rules (read this fully)
 - src/lib/state-machine.ts — campaign phase FSM (be careful)
 - src/lib/types.ts — all TypeScript types
-- src/styles/theme.css — design tokens
-- src/components/legion/ — component wrappers (never import from @src\components\ui\badge.tsx)
-- src/server/actions/ — server actions
-- docs/DATA_MODEL.md — database schema
-- docs/Development_Agent_Protocol.md — workflow reference
+- src/styles/theme.css — design tokens (use these, never raw values)
+- src/components/legion/ — component wrappers (use these, never import from @src/components/ui/)
+- src/server/actions/ — server actions (all dice rolls and mutations happen here)
+- docs/DATA_MODEL.md — database schema reference
+- docs/Two_Agent_Sprint_Protocol.md — workflow reference
