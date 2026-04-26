@@ -33,6 +33,18 @@ Stop and escalate if:
 
 When escalating: add a comment "ESCALATED TO CLAUDE CODE: [reason]" on the issue and move it to Sprint Backlog.
 
+## Issue Lifecycle (Mandatory)
+When starting work on an issue:
+1. Move it to "In Progress" on the GitHub Project board
+
+When work is complete:
+1. Move the issue to "Review" on the Project board
+2. Assign the issue to JeroenduC
+3. Add a testing comment on the issue explaining: what was built, which files changed, how to test it, what URLs to visit, what the expected result is
+4. NEVER close an issue or move it to Done — only the owner does that
+
+Reference CLAUDE.md section 11 for full details.
+
 ## Key Files to Know
 - CLAUDE.md — all project rules (read this fully)
 - src/lib/state-machine.ts — campaign phase FSM (be careful)
