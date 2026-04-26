@@ -531,6 +531,124 @@ export async function toggleBrokenAbility(
 }
 
 /**
+ * GM action: generic override of campaign values.
+ */
+export async function gmOverride(
+  campaignId: string,
+  updates: Record<string, any>,
+  reason: string,
+): Promise<void> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/sign-in');
+
+  if (!reason) throw new Error('Reason is required for GM override');
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .eq('role', 'GM')
+    .maybeSingle();
+
+  if (!membership) throw new Error('Only the GM can perform overrides');
+
+  const { data: campaign } = await db
+    .from('campaigns')
+    .select('phase_number, campaign_phase_state')
+    .eq('id', campaignId)
+    .single();
+
+  if (!campaign) throw new Error('Campaign not found');
+
+  const { error } = await db
+    .from('campaigns')
+    .update(updates)
+    .eq('id', campaignId);
+
+  if (error) throw new Error(error.message);
+
+  await logCampaignAction({
+    campaignId,
+    phaseNumber: campaign.phase_number,
+    step: campaign.campaign_phase_state as any,
+    role: 'GM',
+    actionType: 'GM_OVERRIDE',
+    details: {
+      updates,
+      reason,
+      acting_user_id: user.id,
+    },
+  });
+
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/gm');
+}
+
+/**
+ * GM action: force transition the campaign phase state machine.
+ */
+export async function gmTransitionState(
+  campaignId: string,
+  newState: CampaignPhaseState,
+  reason: string,
+): Promise<void> {
+  const supabase = await createClient();
+  const db = createServiceClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/sign-in');
+
+  if (!reason) throw new Error('Reason is required for GM state transition');
+
+  const { data: membership } = await db
+    .from('campaign_memberships')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .eq('role', 'GM')
+    .maybeSingle();
+
+  if (!membership) throw new Error('Only the GM can perform state overrides');
+
+  const { data: campaign } = await db
+    .from('campaigns')
+    .select('phase_number, campaign_phase_state')
+    .eq('id', campaignId)
+    .single();
+
+  if (!campaign) throw new Error('Campaign not found');
+
+  const { error } = await db
+    .from('campaigns')
+    .update({ campaign_phase_state: newState })
+    .eq('id', campaignId);
+
+  if (error) throw new Error(error.message);
+
+  await logCampaignAction({
+    campaignId,
+    phaseNumber: campaign.phase_number,
+    step: campaign.campaign_phase_state as any,
+    role: 'GM',
+    actionType: 'GM_OVERRIDE',
+    details: {
+      type: 'STATE_TRANSITION',
+      from: campaign.campaign_phase_state,
+      to: newState,
+      reason,
+      acting_user_id: user.id,
+    },
+  });
+
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/gm');
+}
+
+/**
  * GM action: update notes for a Broken.
  */
 export async function updateBrokenNotes(

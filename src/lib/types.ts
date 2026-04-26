@@ -305,7 +305,8 @@ export type CampaignPhaseLogActionType =
   | 'PERSONNEL_DEPLOYED'
   | 'ENGAGEMENT_ROLL'
   | 'PERSONNEL_UPDATED'
-  | 'TALE_TOLD';
+  | 'TALE_TOLD'
+  | 'GM_OVERRIDE';
 
 export interface CampaignPhaseLog {
   id: string;

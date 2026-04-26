@@ -15,6 +15,7 @@ import { MissionGenerationForm } from '@/components/features/campaign/mission-ge
 import { GmOverview } from '@/components/features/campaign/gm-overview';
 import { BrokenTracking } from '@/components/features/campaign/broken-tracking';
 import { GmAntagonistSelection } from '@/components/features/campaign/gm-antagonist-selection';
+import { GmOverrideForm } from '@/components/features/campaign/gm-override-form';
 import { LocationThumbnail } from '@/components/features/campaign/location-thumbnail';
 import { LocationMap } from '@/components/features/campaign/location-map';
 import { LegionOverride } from '@/components/features/campaign/legion-override';
@@ -25,7 +26,7 @@ import { startCampaignPhase } from '@/server/actions/phase';
 import { createSession, selectBroken } from '@/server/actions/phase/gm';
 import { getLocation } from '@/lib/locations';
 import type { CampaignPhaseState, MissionType, BrokenName } from '@/lib/types';
-import { PlusIcon, CalendarIcon, HistoryIcon, SkullIcon } from 'lucide-react';
+import { PlusIcon, CalendarIcon, HistoryIcon, SkullIcon, AlertTriangleIcon } from 'lucide-react';
 
 export const metadata = { title: 'GM Dashboard — Band of Blades' };
 
@@ -364,6 +365,21 @@ export default async function GmDashboardPage() {
             spymasterData={spymasterData}
             missions={campaignMissions || undefined}
           />
+        </section>
+
+        {/* ─── GM Authority Section (Permanent) ─── */}
+        <section className="space-y-4 pt-4">
+          <div className="flex items-center gap-2 border-b border-white/10 pb-2">
+            <AlertTriangleIcon className="w-4 h-4 text-legion-amber" />
+            <h2 className="font-heading text-lg text-legion-text-primary uppercase tracking-widest">
+              GM Authority & Overrides
+            </h2>
+          </div>
+          <LegionCard className="border-legion-amber/20 bg-black/20">
+            <LegionCardContent className="pt-6">
+              <GmOverrideForm campaign={campaign} />
+            </LegionCardContent>
+          </LegionCard>
         </section>
 
       </div>
