@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { performLongTermProject, type LongTermProjectState } from '@/server/actions/phase';
 import type { Campaign, LongTermProject } from '@/lib/types';
 import type { ActionQuality } from '@/lib/campaign-utils';
+import { LegionDice } from '@/components/legion';
 
 interface LongTermProjectActionCardProps {
   campaign: Campaign;
@@ -76,14 +77,18 @@ export function LongTermProjectActionCard({ campaign, longTermProjects }: LongTe
           <span className="font-mono text-xs text-legion-text-muted">{r.new_total}/{r.clock_size}</span>
         </div>
 
-        {r.completed ? (
-          <p className="text-sm text-legion-amber font-medium">Project complete!</p>
-        ) : (
-          <p className="text-xs text-legion-text-muted">
-            Dice: [{r.dice.join(', ')}]
-            {r.base_quality !== r.final_quality && ` → boosted from ${QUALITY_LABELS[r.base_quality]}`}
-          </p>
-        )}
+        <div className="mb-3">
+          <LegionDice 
+            results={r.dice} 
+            bestDieIndex={r.dice.indexOf(Math.max(...r.dice))} 
+            className="mb-2"
+          />
+          {r.base_quality !== r.final_quality && (
+            <p className="text-[10px] text-legion-amber font-mono uppercase">
+              Boosted from {QUALITY_LABELS[r.base_quality]}
+            </p>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => { setSelectedProjectId(''); setBoosts(0); router.refresh(); }}

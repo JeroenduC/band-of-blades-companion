@@ -10,7 +10,7 @@ const ROLE_ROUTES: Record<LegionRole, string> = {
   QUARTERMASTER: '/dashboard/quartermaster',
   LOREKEEPER: '/dashboard/lorekeeper',
   SPYMASTER: '/dashboard/spymaster',
-  SOLDIER: '/dashboard/commander', // Soldiers see a read-only view (Epic 11); default to commander for now
+  SOLDIER: '/dashboard/soldier',
 };
 
 export default async function DashboardPage() {

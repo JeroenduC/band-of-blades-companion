@@ -47,6 +47,29 @@ export async function signIn(_prevState: { error: string } | null, formData: For
   redirect('/dashboard');
 }
 
+export async function signInWithGoogle() {
+  const supabase = await createClient();
+  
+  // Use VERCEL_URL if available, otherwise fallback to localhost for development
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 
+                  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${siteUrl}/auth/callback`,
+    },
+  });
+
+  if (error) {
+    redirect(`/sign-in?error=${encodeURIComponent(error.message)}`);
+  }
+
+  if (data.url) {
+    redirect(data.url);
+  }
+}
+
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();

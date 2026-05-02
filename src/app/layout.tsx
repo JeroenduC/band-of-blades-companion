@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Cinzel, Geist, Geist_Mono } from 'next/font/google';
+import { LegionToaster } from '@/components/legion';
 import './globals.css';
 
 // Heading font — Cinzel is drawn from classical Roman inscriptions.
@@ -7,7 +8,7 @@ import './globals.css';
 const cinzel = Cinzel({
   variable: '--font-cinzel',
   subsets: ['latin'],
-  weight: ['400', '600', '700', '900'],
+  weight: ['400', '700'],
   display: 'swap',
 });
 
@@ -40,7 +41,10 @@ export default function RootLayout({
       // button borders, etc.). Our app is dark-only; there is no light mode.
       className={`dark ${cinzel.variable} ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <LegionToaster />
+      </body>
     </html>
   );
 }

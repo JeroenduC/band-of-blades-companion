@@ -14,6 +14,9 @@
  */
 
 import { Toaster } from '@/components/ui/sonner';
+import { toast } from 'sonner';
+
+export { toast };
 
 export function LegionToaster() {
   // Dark is the only theme; no next-themes provider needed.

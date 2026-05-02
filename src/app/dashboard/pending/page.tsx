@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { signOut } from '@/server/actions/auth';
+import { RealtimeDashboard } from '@/components/features/campaign/realtime-dashboard';
 
 export const metadata = { title: 'Waiting for role — Band of Blades' };
 
@@ -15,7 +16,7 @@ export default async function PendingDashboardPage() {
   // Fetch the pending membership and join to get the campaign name.
   const { data: membership } = await db
     .from('campaign_memberships')
-    .select('campaign_id, campaigns(name)')
+    .select('campaign_id, campaigns(name, campaign_phase_state)')
     .eq('user_id', user.id)
     .is('role', null)
     .order('assigned_at', { ascending: false })
@@ -25,10 +26,17 @@ export default async function PendingDashboardPage() {
   // If role was assigned since they last loaded, route them to the right place.
   if (!membership) redirect('/dashboard');
 
-  const campaignName = (membership.campaigns as unknown as { name: string } | null)?.name;
+  const campaignId = membership.campaign_id;
+  const campaignName = (membership.campaigns as any)?.name;
+  const phaseState = (membership.campaigns as any)?.campaign_phase_state || null;
 
   return (
     <div className="min-h-screen bg-legion-bg-base max-w-[1240px] mx-auto border-x border-border/20 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-10">
+      <RealtimeDashboard 
+        campaignId={campaignId} 
+        userRole={null} 
+        currentState={phaseState} 
+      />
       <div className="w-full max-w-sm text-center space-y-6">
 
         {/* Identity */}

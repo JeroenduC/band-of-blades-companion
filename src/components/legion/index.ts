@@ -28,9 +28,10 @@ export {
   LegionDialogClose,
 } from './legion-dialog';
 export { LegionBadge } from './legion-badge';
-export { LegionToaster } from './legion-toaster';
+export { LegionToaster, toast } from './legion-toaster';
 export { LegionIcon, type IconName } from './legion-icon';
 export { LegionClock, type LegionClockProps } from './legion-clock';
+export { LegionDice } from './legion-dice';
 export {
   LegionTabs,
   LegionTabsList,

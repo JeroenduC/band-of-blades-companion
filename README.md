@@ -10,23 +10,21 @@ A web application that digitises the campaign phase of [Band of Blades](https://
 
 ## 🚀 Current Status
 
-**Epic 8 — Lorekeeper Tools** ⏳
+**All Core Epics Complete** ✅
 
-Epic 7 is complete. Spymaster tools are live: spy roster, simple and long-term assignments with clock progress and dice rolls, and the visual spy network upgrade tree. Next up: Lorekeeper tools — death tracking, Tales of the Legion, and the Annals.
+The Legion Phase Companion is now feature-complete for all player roles and the Game Master. The app supports full campaign cycles from mission resolution through to next-mission preparation, including all specialist tools, resource tracking, and strategic decisions.
 
 ---
 
-## ✨ Features (Planned)
+## ✨ Features
 
-- **Role-based dashboards** — Commander, Marshal, Quartermaster, Lorekeeper, Spymaster each see their own view
-- **Campaign phase workflow** — a guided, step-by-step pipeline with dependencies and parallel tracks
-- **Server-side dice rolling** — tamper-proof, logged, with visual feedback
-- **Visual clocks** — circular segment clocks matching the paper game aesthetic
-- **Async-native** — notifications when it's your turn, summaries of what others did
-- **Mobile first** — designed for phones, works on everything
-- **Accessible** — WCAG 2.1 AA compliant
-- **Themeable** — design token system lets you adjust the entire visual identity
-- **Multi-campaign** — multiple groups can use the same instance with complete data isolation
+- **Role-based dashboards** — Commander, Marshal, Quartermaster, Lorekeeper, Spymaster, and GM each have dedicated, rules-accurate interfaces.
+- **Campaign phase workflow** — A guided, 10-step pipeline with parallel tracks for QM and Spymaster.
+- **Server-side dice rolling** — Tamper-proof rolls for all game mechanics (Acquire Assets, Advance, Engagement, etc.) with dramatic visual feedback.
+- **Dynamic Clocks & Tracks** — Visual segment clocks for projects and time, and persistent tracking for Morale, Pressure, Intel, and Deaths.
+- **GM Command Centre** — Full visibility, mission generation, Broken tracking, and role override capabilities for session management.
+- **Undo & Security** — 10-second undo window for resource changes and strict RLS data isolation.
+- **Mobile First & Accessible** — Designed for use at the table or between sessions, compliant with WCAG 2.1 AA.
 
 ---
 
@@ -74,17 +72,17 @@ Morale, squads, Specialists, mission deployment, and engagement roll builder. Ad
 ### ✅ Epic 7: Spymaster Tools
 Spy dispatch, assignments, network upgrades. → [Sprint 7 Journal](docs/journal/sprint-07-spymaster.md)
 
-### ⏳ Epic 8: Lorekeeper Tools
-Death tracker, Tales, Back at Camp scenes, Annals.
+### ✅ Epic 8: Lorekeeper Tools
+Death tracker, Tales of the Legion, Back at Camp scenes, and the Annals. → [Sprint 8 Journal](docs/journal/sprint-08-lorekeeper.md)
 
-### ⏳ Epic 9: GM Dashboard & Session Management
-Full visibility, mission generation, session prep and notes.
+### ✅ Epic 9: GM Dashboard & Session Management
+Full visibility, mission generation, Broken tracking, and session management. → [Sprint 9 Journal](docs/journal/sprint-09-gm-dashboard.md)
 
-### ⏳ Epic 10: End-of-Phase Summaries
-Tailored summaries for every role.
+### ✅ Epic 10: End-of-Phase Summaries
+Tailored summaries for every role at the end of each campaign phase.
 
-### ⏳ Epic 11: Polish & Quality of Life
-Animations, notifications, undo, Google OAuth, Soldier (observer) role.
+### ✅ Epic 11: Polish & Quality of Life
+Animations, notifications, 10-second undo, Google OAuth, and Soldier (observer) role. → [Sprint 10 Journal](docs/journal/sprint-10-polish-security.md)
 
 ### ⏳ Epic 12: Shared Universe / Multi-Group Campaigns
 Multiple tables, same Legion, same strategic layer.
@@ -157,6 +155,9 @@ Each entry covers what was built, decisions made, and lessons learned — writte
 - [Sprint 5 — Commander Tools](docs/journal/sprint-05-commander.md)
 - [Sprint 6 — Marshal Tools](docs/journal/sprint-06-marshal.md)
 - [Sprint 7 — Spymaster Tools](docs/journal/sprint-07-spymaster.md)
+- [Sprint 8 — Lorekeeper Tools](docs/journal/sprint-08-lorekeeper.md)
+- [Sprint 9 — GM Dashboard](docs/journal/sprint-09-gm-dashboard.md)
+- [Sprint 10 — Polish & Security](docs/journal/sprint-10-polish-security.md)
 
 ---
 

@@ -42,14 +42,26 @@ export default async function MarshalDashboardPage({
   if (phaseState === 'PHASE_COMPLETE') {
     const { logs } = await loadLorekeeperData(campaign.id);
     return (
-      <DashboardShell role="MARSHAL" campaignName={campaign.name}>
+      <DashboardShell 
+      role="MARSHAL" 
+      campaignName={campaign.name}
+      campaignId={campaign.id}
+      currentState={phaseState}
+      pendingExpiry={campaign.pending_expiry}
+    >
         <PhaseSummary campaign={campaign} role="MARSHAL" logs={logs} />
       </DashboardShell>
     );
   }
 
   return (
-    <DashboardShell role="MARSHAL" campaignName={campaign.name}>
+    <DashboardShell 
+      role="MARSHAL" 
+      campaignName={campaign.name}
+      campaignId={campaign.id}
+      currentState={phaseState}
+      pendingExpiry={campaign.pending_expiry}
+    >
       <div className="space-y-6">
         <MarshalOverview
           morale={campaign.morale}

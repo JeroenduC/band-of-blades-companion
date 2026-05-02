@@ -10,6 +10,7 @@ import {
 import { LOCATIONS, type AssetType } from '@/lib/locations';
 import type { Campaign } from '@/lib/types';
 import type { ActionQuality } from '@/lib/campaign-utils';
+import { LegionDice } from '@/components/legion';
 
 interface AcquireAssetsActionCardProps {
   campaign: Campaign;
@@ -91,12 +92,18 @@ export function AcquireAssetsActionCard({ campaign, acquiredAssetTypes }: Acquir
           <span className={QUALITY_COLOURS[r.final_quality]}>{QUALITY_LABELS[r.final_quality]}</span>
           {r.boosts > 0 && <span className="text-xs text-legion-text-muted ml-1">(+{r.boosts} boost)</span>}
         </p>
-        <p className="text-xs text-legion-text-muted mb-1">
-          Dice: [{r.dice.join(', ')}]
+        <div className="mb-3">
+          <LegionDice 
+            results={r.dice} 
+            bestDieIndex={r.dice.indexOf(Math.max(...r.dice))} 
+            className="mb-2"
+          />
           {r.base_quality !== r.final_quality && (
-            <span> → boosted from {QUALITY_LABELS[r.base_quality]}</span>
+            <p className="text-[10px] text-legion-amber font-mono uppercase">
+              Boosted from {QUALITY_LABELS[r.base_quality]}
+            </p>
           )}
-        </p>
+        </div>
         {r.uses_gained !== undefined && (
           <p className="text-xs text-legion-text-muted">+{r.uses_gained} uses added.</p>
         )}

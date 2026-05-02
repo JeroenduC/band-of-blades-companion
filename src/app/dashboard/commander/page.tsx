@@ -38,14 +38,26 @@ export default async function CommanderDashboardPage() {
   if (phaseState === 'PHASE_COMPLETE') {
     const { logs } = await loadLorekeeperData(campaign.id);
     return (
-      <DashboardShell role="COMMANDER" campaignName={campaign.name}>
+      <DashboardShell 
+      role="COMMANDER" 
+      campaignName={campaign.name}
+      campaignId={campaign.id}
+      currentState={phaseState}
+      pendingExpiry={campaign.pending_expiry}
+    >
         <PhaseSummary campaign={campaign} role="COMMANDER" logs={logs} />
       </DashboardShell>
     );
   }
 
   return (
-    <DashboardShell role="COMMANDER" campaignName={campaign.name}>
+    <DashboardShell 
+      role="COMMANDER" 
+      campaignName={campaign.name}
+      campaignId={campaign.id}
+      currentState={phaseState}
+      pendingExpiry={campaign.pending_expiry}
+    >
       <CommanderWarTable campaign={campaign} />
 
       <LegionCard>
