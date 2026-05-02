@@ -5,7 +5,7 @@
 **Developer:** Gemini CLI (primary)
 
 ## 1. Goal Achievement
-All goals for the Polish and Security epic were met. The application is now production-ready for tabletop sessions. Dice rolls feature dramatic animations, real-time notifications alert players when it is their turn, and a 10-second undo window provides a safety net for misclicks. The Soldier role is fully implemented as a read-only observer, Google OAuth is available, and the app has passed comprehensive security and accessibility audits.
+All goals for the Polish and Security epic were met. The application is now production-ready for tabletop sessions. Dice rolls feature dramatic animations, real-time notifications alert players when it is their turn, and a 10-second undo window provides a safety net for misclicks. The Spymaster can now complete their actions even if some spies remain unassigned, preventing workflow blocks. The Soldier role is fully implemented as a read-only observer, Google OAuth is available, and the app has passed comprehensive security and accessibility audits.
 
 ## 2. Best Practices Review (All 10 Sprints)
 

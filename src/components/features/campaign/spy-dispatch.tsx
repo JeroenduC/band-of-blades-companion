@@ -52,17 +52,9 @@ export function SpyDispatch({ campaignId, spies, intelTiers, longTermAssignments
         </LegionCardHeader>
         <LegionCardContent>
           {allSpiesAssigned ? (
-            <div className="space-y-4 text-center py-4">
-              <p className="text-sm text-legion-text-muted italic">
-                All available spies have been dispatched or are currently on assignment.
-              </p>
-              <form action={completeSpymasterActions}>
-                <input type="hidden" name="campaign_id" value={campaignId} />
-                <LegionButton type="submit" variant="default" className="w-full sm:w-auto">
-                  Mark Spy Dispatch Complete
-                </LegionButton>
-              </form>
-            </div>
+            <p className="text-sm text-legion-text-muted italic text-center py-4">
+              All available spies have been dispatched or are currently on assignment.
+            </p>
           ) : (
             <div className="space-y-6">
               {/* Spy selection tabs */}
@@ -119,10 +111,10 @@ export function SpyDispatch({ campaignId, spies, intelTiers, longTermAssignments
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {activeTab === 'simple' ? (
-                      <SimpleAssignmentPanel 
-                        campaignId={campaignId} 
-                        spy={selectedSpy} 
-                        intelTiers={intelTiers} 
+                      <SimpleAssignmentPanel
+                        campaignId={campaignId}
+                        spy={selectedSpy}
+                        intelTiers={intelTiers}
                       />
                     ) : (
                       <LongTermAssignmentPanel
@@ -136,6 +128,16 @@ export function SpyDispatch({ campaignId, spies, intelTiers, longTermAssignments
               )}
             </div>
           )}
+
+          {/* Always available — spymaster can finish without dispatching every spy */}
+          <div className="pt-4 border-t border-border mt-4">
+            <form action={completeSpymasterActions} className="flex justify-end">
+              <input type="hidden" name="campaign_id" value={campaignId} />
+              <LegionButton type="submit" variant="default">
+                Mark Spy Dispatch Complete
+              </LegionButton>
+            </form>
+          </div>
         </LegionCardContent>
       </LegionCard>
     </div>
