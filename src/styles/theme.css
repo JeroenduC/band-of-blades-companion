@@ -34,8 +34,8 @@
   --bob-text-primary: #1f1a14;
   /* Labels, secondary copy */
   --bob-text-muted:   #3d3327;
-  /* Captions, placeholders — use sparingly, borderline contrast at small sizes */
-  --bob-text-faint:   #7a6a52;
+  /* Captions, placeholders — must be ≥ 4.5:1 on all parchment surfaces */
+  --bob-text-faint:   #5d5040;
 
   /* ===================================================================
    * ACCENT — AMBER / GOLD
@@ -132,7 +132,7 @@
   --bob-auth-paper-light: #f0e6cf;
   --bob-auth-ink:         #1f1a14;
   --bob-auth-ink-soft:    #3d3327;
-  --bob-auth-ink-faint:   #7a6a52;
+  --bob-auth-ink-faint:   #5d5040;
   --bob-auth-parch-edge:  #9a8458;
   --bob-auth-amber:       #c08428;
   --bob-auth-red:         #8b2418;

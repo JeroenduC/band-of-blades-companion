@@ -33,7 +33,7 @@ export function SignUpForm() {
         </div>
         <div
           aria-hidden="true"
-          className="shrink-0 mt-1 inline-block px-2.5 py-0.5 border-2 border-auth-amber text-auth-amber font-mono text-[10px] font-bold uppercase tracking-[0.2em] rotate-[-3deg] opacity-80 whitespace-nowrap"
+          className="shrink-0 mt-1 inline-block px-2.5 py-0.5 border-2 border-auth-amber text-auth-ink font-mono text-[10px] font-bold uppercase tracking-[0.2em] rotate-[-3deg] opacity-80 whitespace-nowrap"
         >
           Enlist
         </div>
@@ -136,7 +136,7 @@ export function SignUpForm() {
         Already have an account?{' '}
         <Link
           href="/sign-in"
-          className="text-auth-amber underline underline-offset-[3px] font-semibold"
+          className="text-auth-ink-soft underline underline-offset-[3px] font-semibold"
         >
           Sign in
         </Link>

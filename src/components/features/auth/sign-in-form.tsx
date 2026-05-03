@@ -118,7 +118,7 @@ export function SignInForm() {
         No account yet?{' '}
         <Link
           href="/sign-up"
-          className="text-auth-amber underline underline-offset-[3px] font-semibold"
+          className="text-auth-ink-soft underline underline-offset-[3px] font-semibold"
         >
           Enlist here
         </Link>
