@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Sign In — Band of Blades · Direction B</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Crimson+Pro:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Crimson Pro', Georgia, serif;
+      background: #e8dcc4;
+      color: #1f1a14;
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="../tweaks-panel.jsx"></script>
+
+<script type="text/babel">
+
+
+/* ─── Direction B tokens ─────────────────────────────────────────────── */
+const T = {
+  paper: "#e8dcc4",
+  paperDark: "#d6c8a8",
+  paperLight: "#f0e6cf",
+  ink: "#1f1a14",
+  inkSoft: "#3d3327",
+  inkFaint: "#7a6a52",
+  red: "#8b2418",
+  amber: "#c08428",
+  parchEdge: "#9a8458",
+  paperNoise: `#e8dcc4 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='4'/><feColorMatrix values='0 0 0 0 0.13  0 0 0 0 0.10  0 0 0 0 0.07  0 0 0 0.10 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>")`,
+  fontHead: "'IM Fell English', Georgia, serif",
+  fontBody: "'Crimson Pro', Georgia, serif",
+  fontMono: "'Special Elite', 'Courier New', monospace"
+};
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "view": "sign-up",
+  "showError": false,
+  "showMobile": false
+}/*EDITMODE-END*/;
+
+/* ─── Small atoms ────────────────────────────────────────────────────── */
+
+function DoubleRule({ my = 20 }) {
+  return (
+    <div style={{
+      margin: `${my}px 0`,
+      borderTop: `3px double ${T.ink}`
+    }} />);
+
+}
+
+function DashedDivider({ my = 20 }) {
+  return (
+    <div style={{
+      margin: `${my}px 0`,
+      display: 'flex', alignItems: 'center', gap: 12
+    }}>
+      <div style={{ flex: 1, borderTop: `1px dashed ${T.parchEdge}` }} />
+      <span style={{
+        fontFamily: T.fontMono, fontSize: 10,
+        letterSpacing: '0.2em', textTransform: 'uppercase', color: T.inkFaint
+      }}>or</span>
+      <div style={{ flex: 1, borderTop: `1px dashed ${T.parchEdge}` }} />
+    </div>);
+
+}
+
+function InkButton({ children, variant = 'primary', onClick, type = 'button', disabled }) {
+  const isPrimary = variant === 'primary';
+  const [hovered, setHovered] = React.useState(false);
+  return (
+    <button
+      type={type}
+      disabled={disabled}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={onClick}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        width: '100%', minHeight: 52, padding: '14px 20px',
+        background: isPrimary ? hovered ? T.inkSoft : T.ink : hovered ? `rgba(31,26,20,0.06)` : 'transparent',
+        color: isPrimary ? T.paper : T.ink,
+        border: `2px solid ${T.ink}`,
+        fontFamily: T.fontHead, fontSize: 18, fontWeight: 700,
+        letterSpacing: '0.12em', textTransform: 'uppercase',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.55 : 1,
+        transition: 'background 0.12s',
+        outline: 'none'
+      }}>
+      {children}</button>);
+
+}
+
+function InkInput({ id, name, type = 'text', label, hint, error, autoComplete }) {
+  const [focused, setFocused] = React.useState(false);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <label
+        htmlFor={id}
+        style={{ fontFamily: T.fontBody, fontWeight: 600, color: T.inkSoft, letterSpacing: '0.03em', fontSize: "19px" }}>
+        {label}</label>
+      {hint &&
+      <p style={{ fontFamily: T.fontBody, fontSize: 16, color: T.inkFaint, lineHeight: 1.4, marginBottom: 2 }}>{hint}</p>
+      }
+      <input
+        id={id}
+        name={name}
+        type={type}
+        autoComplete={autoComplete}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={{
+          width: '100%', minHeight: 52, padding: '13px 14px',
+          background: T.paperLight,
+          border: `2px solid ${error ? T.red : focused ? T.ink : T.parchEdge}`,
+          fontFamily: T.fontBody, fontSize: 18, color: T.ink,
+          outline: 'none',
+          transition: 'border-color 0.12s'
+        }} />
+      
+      {error &&
+      <p style={{ fontFamily: T.fontBody, fontSize: 16, color: T.red, lineHeight: 1.4 }}>
+          <strong>Error:</strong> {error}
+        </p>
+      }
+    </div>);
+
+}
+
+/* ─── Google wordmark SVG ────────────────────────────────────────────── */
+function GoogleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+    </svg>);
+
+}
+
+/* ─── Ink stamp ──────────────────────────────────────────────────────── */
+function Stamp({ children, color = T.red, rotate = -3 }) {
+  return (
+    <div style={{
+      display: 'inline-block', padding: '3px 10px',
+      border: `2px solid ${color}`, color,
+      fontFamily: T.fontMono, fontSize: 10, fontWeight: 700,
+      letterSpacing: '0.2em', textTransform: 'uppercase',
+      transform: `rotate(${rotate}deg)`, opacity: 0.82,
+      whiteSpace: 'nowrap', flexShrink: 0
+    }}>{children}</div>);
+
+}
+
+/* ─── Brand panel (desktop left col) ────────────────────────────────── */
+function BrandPanel() {
+  return (
+    <div style={{
+      background: T.paperNoise,
+      backgroundBlendMode: 'multiply',
+      borderRight: `3px double ${T.ink}`,
+      padding: '52px 48px',
+      display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+      minHeight: '100vh'
+    }}>
+      {/* Top: marching orders tag + title */}
+      <div>
+        <div style={{
+          fontFamily: T.fontMono, fontSize: 10, letterSpacing: '0.25em',
+          textTransform: 'uppercase', color: T.inkFaint, marginBottom: 32
+        }}>
+          338th Legion · Campaign Phase
+        </div>
+
+        {/* Title block */}
+        <div style={{ marginBottom: 8 }}>
+          <h1 style={{
+            fontFamily: T.fontHead, fontSize: 72, fontWeight: 700,
+            lineHeight: 0.95, letterSpacing: '0.01em', color: T.ink
+          }}>
+            Band<br />of<br />Blades
+          </h1>
+        </div>
+
+        {/* Amber rule */}
+        <div style={{ width: 48, height: 3, background: T.amber, margin: '20px 0 16px' }} />
+
+        <p style={{
+          fontFamily: T.fontMono, fontSize: 11, letterSpacing: '0.22em',
+          textTransform: 'uppercase', color: T.inkSoft
+        }}>
+          Legion Phase Companion
+        </p>
+      </div>
+
+      {/* Middle: decorative map placeholder */}
+      <div style={{
+        flex: 1, margin: '40px 0',
+        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center'
+      }}>
+        {/* Phantom campaign art placeholder */}
+        <div style={{
+          width: '100%', maxWidth: 320, aspectRatio: '4/3',
+          border: `1px solid ${T.parchEdge}`,
+          background: `repeating-linear-gradient(
+            45deg,
+            rgba(154,132,88,0.07) 0px,
+            rgba(154,132,88,0.07) 1px,
+            transparent 1px,
+            transparent 8px
+          )`,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          gap: 8
+        }}>
+          <div style={{
+            fontFamily: T.fontMono, fontSize: 10, letterSpacing: '0.15em',
+            textTransform: 'uppercase', color: T.inkFaint, textAlign: 'center',
+            padding: '0 20px', lineHeight: 1.6
+          }}>
+            campaign map<br />art
+          </div>
+        </div>
+
+        {/* Campaign status summary */}
+        <div style={{
+          marginTop: 20, padding: '12px 16px',
+          borderLeft: `3px solid ${T.amber}`,
+          background: 'rgba(192,132,40,0.07)'
+        }}>
+          <div style={{ fontFamily: T.fontMono, fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: T.inkFaint, marginBottom: 4 }}>
+            Current Campaign
+          </div>
+          <div style={{ fontFamily: T.fontHead, fontSize: 18, color: T.ink, marginBottom: 2 }}>
+            The Long March
+          </div>
+          <div style={{ fontFamily: T.fontMono, fontSize: 11, color: T.inkSoft, letterSpacing: '0.06em' }}>
+            Phase 07 · Gallows Pass · 4 alive
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom: flavour quote */}
+      <blockquote style={{
+        borderLeft: `2px solid ${T.amber}`, paddingLeft: 14
+      }}>
+        <p style={{
+          fontFamily: T.fontBody, fontStyle: 'italic', fontSize: 15,
+          color: T.inkFaint, lineHeight: 1.6
+        }}>
+          "The Long March does not end until the last soldier falls or the Black City burns. Every choice is a debt. Every debt comes due."
+        </p>
+      </blockquote>
+    </div>);
+
+}
+
+/* ─── Mobile brand header ────────────────────────────────────────────── */
+function MobileBrandHeader() {
+  return (
+    <header style={{
+      textAlign: 'center', padding: '36px 24px 28px',
+      borderBottom: `3px double ${T.ink}`
+    }}>
+      <div style={{
+        fontFamily: T.fontMono, fontSize: 12, letterSpacing: '0.22em',
+        textTransform: 'uppercase', color: T.inkFaint, marginBottom: 12
+      }}>338th Legion · Campaign Phase</div>
+      <h1 style={{
+        fontFamily: T.fontHead, fontSize: 48, fontWeight: 700,
+        lineHeight: 0.95, letterSpacing: '0.01em', color: T.ink
+      }}>Band of Blades</h1>
+      <div style={{ width: 40, height: 3, background: T.amber, margin: '14px auto 10px' }} />
+      <p style={{
+        fontFamily: T.fontMono, fontSize: 10, letterSpacing: '0.2em',
+        textTransform: 'uppercase', color: T.inkSoft
+      }}>Legion Phase Companion</p>
+    </header>);
+
+}
+
+/* ─── Sign-in form ───────────────────────────────────────────────────── */
+function SignInForm({ showError }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+      {/* Masthead */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+        borderBottom: `3px double ${T.ink}`, paddingBottom: 14, marginBottom: 20,
+        gap: 12
+      }}>
+        <div>
+          <div style={{
+            fontFamily: T.fontMono, fontSize: 12, letterSpacing: '0.22em',
+            textTransform: 'uppercase', color: T.inkFaint, marginBottom: 6
+          }}>Orders · Authentication</div>
+          <h2 style={{
+            fontFamily: T.fontHead, fontSize: 38, fontWeight: 700,
+            lineHeight: 1, color: T.ink
+          }}>Sign in</h2>
+          <p style={{ fontFamily: T.fontBody, fontSize: 18, color: T.inkSoft, marginTop: 4 }}>
+            Welcome back, Legionnaire.
+          </p>
+        </div>
+        <Stamp rotate={4}>Authorised</Stamp>
+      </div>
+
+      {/* Google SSO */}
+      <InkButton variant="outline">
+        <GoogleIcon />
+        Sign in with Google
+      </InkButton>
+
+      <DashedDivider my={18} />
+
+      {/* Email + password */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <InkInput
+          id="email"
+          name="email"
+          type="email"
+          label="Email"
+          autoComplete="email"
+          error={showError ? undefined : undefined} />
+        
+        <InkInput
+          id="password"
+          name="password"
+          type="password"
+          label="Password"
+          autoComplete="current-password"
+          error={showError ? "Incorrect email or password." : undefined} />
+        
+
+        {/* Inline error state (shown via tweak) */}
+        {showError &&
+        <div style={{
+          padding: '10px 12px',
+          borderLeft: `3px solid ${T.red}`,
+          background: 'rgba(139,36,24,0.07)'
+        }}>
+            <p style={{
+            fontFamily: T.fontBody, fontSize: 14, color: T.red, lineHeight: 1.45
+          }}>
+              <strong>Error:</strong> Incorrect email or password. Check your details and try again.
+            </p>
+          </div>
+        }
+
+        <InkButton type="submit" variant="primary">
+          Sign in →
+        </InkButton>
+      </div>
+
+      <DoubleRule my={20} />
+
+      {/* Footer link */}
+      <p style={{
+        textAlign: 'center', fontFamily: T.fontBody, fontSize: 14, color: T.inkFaint
+      }}>
+        No account yet?{' '}
+        <a href="/sign-up" style={{
+          color: T.amber, textDecoration: 'underline', textUnderlineOffset: 3,
+          fontWeight: 600
+        }}>Enlist here</a>
+      </p>
+    </div>);
+
+}
+
+/* ─── Sign-up form ───────────────────────────────────────────────────── */
+function SignUpForm({ showError }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+      {/* Masthead */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+        borderBottom: `3px double ${T.ink}`, paddingBottom: 14, marginBottom: 20,
+        gap: 12
+      }}>
+        <div>
+          <div style={{
+            fontFamily: T.fontMono, fontSize: 12, letterSpacing: '0.22em',
+            textTransform: 'uppercase', color: T.inkFaint, marginBottom: 6
+          }}>Orders · Enlistment</div>
+          <h2 style={{
+            fontFamily: T.fontHead, fontSize: 38, fontWeight: 700,
+            lineHeight: 1, color: T.ink
+          }}>Join the Legion</h2>
+          <p style={{ fontFamily: T.fontBody, fontSize: 18, color: T.inkSoft, marginTop: 4 }}>
+            Create your account to begin the campaign.
+          </p>
+        </div>
+        <Stamp color={T.amber} rotate={-3}>Enlist</Stamp>
+      </div>
+
+      {/* Google SSO */}
+      <InkButton variant="outline">
+        <GoogleIcon />
+        Sign up with Google
+      </InkButton>
+
+      <DashedDivider my={18} />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <InkInput
+          id="display_name"
+          name="display_name"
+          type="text"
+          label="Display name"
+          autoComplete="name" />
+        
+        <InkInput
+          id="email"
+          name="email"
+          type="email"
+          label="Email"
+          autoComplete="email" />
+        
+        <InkInput
+          id="password"
+          name="password"
+          type="password"
+          label="Password"
+          hint="Minimum 8 characters."
+          autoComplete="new-password"
+          error={showError ? "Password must be at least 8 characters." : undefined} />
+        
+
+        <InkButton type="submit" variant="primary">
+          Create account →
+        </InkButton>
+      </div>
+
+      <DoubleRule my={20} />
+
+      <p style={{
+        textAlign: 'center', fontFamily: T.fontBody, fontSize: 14, color: T.inkFaint
+      }}>
+        Already have an account?{' '}
+        <a href="/sign-in" style={{
+          color: T.amber, textDecoration: 'underline', textUnderlineOffset: 3,
+          fontWeight: 600
+        }}>Sign in</a>
+      </p>
+    </div>);
+
+}
+
+/* ─── Full page shell ────────────────────────────────────────────────── */
+function AuthPage({ view, showError, mobile }) {
+  const Form = view === 'sign-in' ? SignInForm : SignUpForm;
+
+  if (mobile) {
+    /* Mobile: single column */
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: T.paperNoise,
+        backgroundBlendMode: 'multiply'
+      }}>
+        <MobileBrandHeader />
+        <div style={{ padding: '32px 24px 48px' }}>
+          <Form showError={showError} />
+        </div>
+      </div>);
+
+  }
+
+  /* Desktop: single column, centred */
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: T.paperNoise,
+      backgroundBlendMode: 'multiply',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      padding: '52px 24px'
+    }}>
+      {/* Compact brand header */}
+      <div style={{ width: '100%', maxWidth: 480, marginBottom: 32, textAlign: 'center' }}>
+        <div style={{
+          fontFamily: T.fontMono, fontSize: 10, letterSpacing: '0.25em',
+          textTransform: 'uppercase', color: T.inkFaint, marginBottom: 10
+        }}>338th Legion · Campaign Phase</div>
+        <h1 style={{
+          fontFamily: T.fontHead, fontSize: 56, fontWeight: 700,
+          lineHeight: 0.95, letterSpacing: '0.01em', color: T.ink
+        }}>Band of Blades</h1>
+        <div style={{ width: 48, height: 3, background: T.amber, margin: '16px auto 12px' }} />
+        <p style={{
+          fontFamily: T.fontMono, fontSize: 11, letterSpacing: '0.22em',
+          textTransform: 'uppercase', color: T.inkSoft
+        }}>Legion Phase Companion</p>
+      </div>
+
+      {/* Form card */}
+      <div style={{
+        width: '100%', maxWidth: 480,
+        border: `3px double ${T.ink}`,
+        padding: '40px 48px',
+        background: T.paperLight
+      }}>
+        <Form showError={showError} />
+      </div>
+
+      {/* Flavour quote */}
+      <blockquote style={{
+        width: '100%', maxWidth: 480,
+        borderLeft: `2px solid ${T.amber}`, paddingLeft: 14,
+        marginTop: 28
+      }}>
+        <p style={{
+          fontFamily: T.fontBody, fontStyle: 'italic', fontSize: 14,
+          color: T.inkFaint, lineHeight: 1.6
+        }}>
+          "Every choice is a debt. Every debt comes due."
+        </p>
+      </blockquote>
+    </div>);
+
+}
+
+/* ─── App root with tweaks ───────────────────────────────────────────── */
+function App() {
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+  return (
+    <>
+      <AuthPage
+        view={tweaks.view}
+        showError={tweaks.showError}
+        mobile={tweaks.showMobile} />
+      
+
+      <TweaksPanel>
+        <TweakSection label="Screen">
+          <TweakRadio
+            label="View"
+            value={tweaks.view}
+            options={[
+            { label: 'Sign In', value: 'sign-in' },
+            { label: 'Sign Up', value: 'sign-up' }]
+            }
+            onChange={(v) => setTweak('view', v)} />
+          
+          <TweakToggle
+            label="Show error state"
+            value={tweaks.showError}
+            onChange={(v) => setTweak('showError', v)} />
+          
+          <TweakToggle
+            label="Mobile layout"
+            value={tweaks.showMobile}
+            onChange={(v) => setTweak('showMobile', v)} />
+          
+        </TweakSection>
+      </TweaksPanel>
+    </>);
+
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

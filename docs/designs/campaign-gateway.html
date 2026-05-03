@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Campaign Gateway — Band of Blades · Direction B</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Crimson+Pro:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Crimson Pro', Georgia, serif;
+      background: #e8dcc4;
+      color: #1f1a14;
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="../tweaks-panel.jsx"></script>
+
+<script type="text/babel">
+
+/* ─── Direction B tokens ─────────────────────────────────────────────── */
+const T = {
+  paper:      "#e8dcc4",
+  paperDark:  "#d6c8a8",
+  paperLight: "#f0e6cf",
+  ink:        "#1f1a14",
+  inkSoft:    "#3d3327",
+  inkFaint:   "#7a6a52",
+  red:        "#8b2418",
+  amber:      "#c08428",
+  parchEdge:  "#9a8458",
+  paperNoise: `#e8dcc4 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='4'/><feColorMatrix values='0 0 0 0 0.13  0 0 0 0 0.10  0 0 0 0 0.07  0 0 0 0.10 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>")`,
+  fontHead:   "'IM Fell English', Georgia, serif",
+  fontBody:   "'Crimson Pro', Georgia, serif",
+  fontMono:   "'Special Elite', 'Courier New', monospace",
+};
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "view": "pending",
+  "showMobile": false,
+  "showError": false
+}/*EDITMODE-END*/;
+
+/* ─── Shared atoms ───────────────────────────────────────────────────── */
+function DoubleRule({ my = 20 }) {
+  return <div style={{ margin: `${my}px 0`, borderTop: `3px double ${T.ink}` }} />;
+}
+
+function DashedDivider({ my = 20 }) {
+  return (
+    <div style={{ margin: `${my}px 0`, display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ flex: 1, borderTop: `1px dashed ${T.parchEdge}` }} />
+      <span style={{ fontFamily: T.fontMono, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: T.inkFaint }}>or</span>
+      <div style={{ flex: 1, borderTop: `1px dashed ${T.parchEdge}` }} />
+    </div>
+  );
+}
+
+function Stamp({ children, color = T.red, rotate = -3 }) {
+  return (
+    <div style={{
+      display: 'inline-block', padding: '3px 10px',
+      border: `2px solid ${color}`, color,
+      fontFamily: T.fontMono, fontSize: 10, fontWeight: 700,
+      letterSpacing: '0.2em', textTransform: 'uppercase',
+      transform: `rotate(${rotate}deg)`, opacity: 0.82,
+      whiteSpace: 'nowrap', flexShrink: 0,
+    }}>{children}</div>
+  );
+}
+
+function InkButton({ children, variant = 'primary', onClick, type = 'button', disabled, style: extraStyle }) {
+  const isPrimary = variant === 'primary';
+  const [hovered, setHov] = React.useState(false);
+  return (
+    <button
+      type={type}
+      disabled={disabled}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      onClick={onClick}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        width: '100%', minHeight: 52, padding: '14px 20px',
+        background: isPrimary ? (hovered ? T.inkSoft : T.ink) : (hovered ? 'rgba(31,26,20,0.06)' : 'transparent'),
+        color: isPrimary ? T.paper : T.ink,
+        border: `2px solid ${T.ink}`,
+        fontFamily: T.fontHead, fontSize: 18, fontWeight: 700,
+        letterSpacing: '0.12em', textTransform: 'uppercase',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.55 : 1,
+        transition: 'background 0.12s',
+        outline: 'none',
+        ...extraStyle,
+      }}
+    >{children}</button>
+  );
+}
+
+function InkInput({ id, name, type = 'text', label, hint, error, autoComplete, placeholder, extraClass }) {
+  const [focused, setFocused] = React.useState(false);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <label htmlFor={id} style={{ fontFamily: T.fontBody, fontSize: '18px', fontWeight: 600, color: T.inkSoft, letterSpacing: '0.03em' }}>
+        {label}
+      </label>
+      {hint && <p style={{ fontFamily: T.fontBody, fontSize: 15, color: T.inkFaint, lineHeight: 1.4, marginBottom: 2 }}>{hint}</p>}
+      <input
+        id={id} name={name} type={type}
+        autoComplete={autoComplete}
+        placeholder={placeholder}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={{
+          width: '100%', minHeight: 52, padding: '13px 14px',
+          background: T.paperLight,
+          border: `2px solid ${error ? T.red : focused ? T.ink : T.parchEdge}`,
+          fontFamily: T.fontMono, fontSize: 18, color: T.ink,
+          letterSpacing: '0.1em',
+          outline: 'none', transition: 'border-color 0.12s',
+        }}
+      />
+      {error && <p style={{ fontFamily: T.fontBody, fontSize: 16, color: T.red, lineHeight: 1.4 }}><strong>Error:</strong> {error}</p>}
+    </div>
+  );
+}
+
+/* ─── Page nav bar ───────────────────────────────────────────────────── */
+function NavBar() {
+  return (
+    <div style={{
+      borderBottom: `1px solid ${T.parchEdge}`,
+      padding: '14px 0',
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      marginBottom: 48,
+    }}>
+      <div style={{ fontFamily: T.fontHead, fontSize: 20, color: T.ink, letterSpacing: '0.01em' }}>
+        Band of Blades
+      </div>
+      <button style={{
+        fontFamily: T.fontBody, fontSize: 15, color: T.inkFaint,
+        background: 'none', border: 'none', cursor: 'pointer',
+        textDecoration: 'underline', textUnderlineOffset: 3,
+      }}>Sign out</button>
+    </div>
+  );
+}
+
+/* ─── Overline + heading masthead ────────────────────────────────────── */
+function Masthead({ overline, heading, description, stamp, stampColor, stampRotate }) {
+  return (
+    <div style={{
+      borderBottom: `3px double ${T.ink}`,
+      paddingBottom: 16, marginBottom: 24,
+      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12,
+    }}>
+      <div>
+        <div style={{
+          fontFamily: T.fontMono, fontSize: 12, letterSpacing: '0.22em',
+          textTransform: 'uppercase', color: T.inkFaint, marginBottom: 6,
+        }}>{overline}</div>
+        <h1 style={{
+          fontFamily: T.fontHead, fontSize: 38, fontWeight: 700,
+          lineHeight: 1, color: T.ink, marginBottom: 8,
+        }}>{heading}</h1>
+        {description && (
+          <p style={{ fontFamily: T.fontBody, fontSize: 18, color: T.inkSoft, lineHeight: 1.5 }}>
+            {description}
+          </p>
+        )}
+      </div>
+      {stamp && <Stamp color={stampColor || T.red} rotate={stampRotate ?? -3}>{stamp}</Stamp>}
+    </div>
+  );
+}
+
+/* ─── JOIN CAMPAIGN view ─────────────────────────────────────────────── */
+function JoinView({ showError }) {
+  return (
+    <>
+      <Masthead
+        overline="338th Legion · Enlistment"
+        heading="Join a Campaign"
+        description="Enter the invite code your GM shared with you."
+        stamp="New recruit"
+        stampColor={T.amber}
+        stampRotate={3}
+      />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <InkInput
+          id="invite_code"
+          name="invite_code"
+          type="text"
+          label="Invite code"
+          placeholder="e.g. XKBM7R4N"
+          autoComplete="off"
+          error={showError ? "Invalid invite code. Check with your GM." : undefined}
+        />
+
+        <InkButton type="submit">Join campaign →</InkButton>
+      </div>
+
+      <DashedDivider my={28} />
+
+      <div style={{
+        padding: '20px 22px',
+        border: `1px solid ${T.parchEdge}`,
+        background: T.paperLight,
+        display: 'flex', flexDirection: 'column', gap: 12,
+      }}>
+        <div style={{ fontFamily: T.fontMono, fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: T.inkFaint }}>
+          Are you the GM?
+        </div>
+        <p style={{ fontFamily: T.fontBody, fontSize: 17, color: T.inkSoft, lineHeight: 1.5 }}>
+          Start a new campaign and receive an invite code to share with your players.
+        </p>
+        <InkButton variant="outline">Create a campaign</InkButton>
+      </div>
+    </>
+  );
+}
+
+/* ─── CREATE CAMPAIGN view ───────────────────────────────────────────── */
+function CreateView({ showError }) {
+  return (
+    <>
+      <Masthead
+        overline="338th Legion · Setup"
+        heading="New Campaign"
+        description="Name your Legion's campaign. You'll receive an invite code to share with your players."
+        stamp="GM orders"
+        stampColor={T.red}
+        stampRotate={-4}
+      />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <InkInput
+          id="name"
+          name="name"
+          type="text"
+          label="Campaign name"
+          placeholder="e.g. The Long March"
+          autoComplete="off"
+          error={showError ? "Campaign name is required." : undefined}
+        />
+
+        {/* Starting location — 7 options → select, not radio */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <label htmlFor="location" style={{ fontFamily: T.fontBody, fontSize: '18px', fontWeight: 600, color: T.inkSoft, letterSpacing: '0.03em' }}>
+            Starting location
+          </label>
+          <p style={{ fontFamily: T.fontBody, fontSize: 15, color: T.inkFaint, lineHeight: 1.4 }}>
+            Where does the Legion begin its march?
+          </p>
+          <select id="location" name="location" style={{
+            width: '100%', minHeight: 52, padding: '13px 14px',
+            background: T.paperLight, border: `2px solid ${T.parchEdge}`,
+            fontFamily: T.fontMono, fontSize: 16, color: T.ink,
+            outline: 'none', appearance: 'none',
+            backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' stroke='%237a6a52' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 14px center',
+          }}>
+            <option value="">Select a location…</option>
+            <option value="plainsworth">Plainsworth</option>
+            <option value="gallows_pass">Gallows Pass</option>
+            <option value="the_maw">The Maw</option>
+            <option value="barrak_gorge">Barrak Gorge</option>
+            <option value="vethara">Vethara</option>
+            <option value="the_bazar">The Bazar</option>
+            <option value="the_black_city">The Black City</option>
+          </select>
+        </div>
+
+        <InkButton type="submit">Create campaign →</InkButton>
+      </div>
+
+      <DoubleRule my={28} />
+
+      <p style={{ textAlign: 'center', fontFamily: T.fontBody, fontSize: 17, color: T.inkFaint }}>
+        Have a code already?{' '}
+        <a href="/campaign/join" style={{ color: T.amber, textDecoration: 'underline', textUnderlineOffset: 3, fontWeight: 600 }}>
+          Join a campaign
+        </a>
+      </p>
+    </>
+  );
+}
+
+/* ─── PENDING view ───────────────────────────────────────────────────── */
+function PendingView() {
+  // Animated waiting dots
+  const [dots, setDots] = React.useState('');
+  React.useEffect(() => {
+    const id = setInterval(() => setDots(d => d.length >= 3 ? '' : d + '.'), 600);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <>
+      <Masthead
+        overline="338th Legion · Awaiting Orders"
+        heading="Waiting for the GM"
+        description={null}
+        stamp="Pending"
+        stampColor={T.amber}
+        stampRotate={2}
+      />
+
+      {/* Status block */}
+      <div style={{
+        padding: '28px 24px',
+        border: `1px solid ${T.parchEdge}`,
+        background: T.paperLight,
+        marginBottom: 24,
+        display: 'flex', flexDirection: 'column', gap: 16,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          {/* Animated clock glyph */}
+          <div style={{
+            width: 48, height: 48, flexShrink: 0,
+            border: `2px solid ${T.parchEdge}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <span style={{ fontFamily: T.fontMono, fontSize: 22, color: T.inkFaint }}>⧖</span>
+          </div>
+          <div>
+            <div style={{ fontFamily: T.fontHead, fontSize: 20, color: T.ink, lineHeight: 1.2 }}>
+              The Long March{dots}
+            </div>
+            <div style={{ fontFamily: T.fontMono, fontSize: 12, color: T.inkFaint, letterSpacing: '0.1em', marginTop: 4 }}>
+              JOINED · AWAITING ROLE ASSIGNMENT
+            </div>
+          </div>
+        </div>
+
+        <div style={{ borderTop: `1px dashed ${T.parchEdge}`, paddingTop: 16 }}>
+          <p style={{ fontFamily: T.fontBody, fontSize: 17, color: T.inkSoft, lineHeight: 1.6 }}>
+            You've enlisted. Your GM will assign you a Legion role before the campaign phase begins. You'll be notified when it's time to act.
+          </p>
+        </div>
+      </div>
+
+      {/* What to expect */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{
+          fontFamily: T.fontMono, fontSize: 11, letterSpacing: '0.18em',
+          textTransform: 'uppercase', color: T.inkFaint,
+          borderBottom: `1px solid ${T.parchEdge}`, paddingBottom: 8, marginBottom: 14,
+        }}>What happens next</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          {[
+            ["01", "Your GM assigns you a role — Commander, Marshal, Quartermaster, Lorekeeper, or Spymaster."],
+            ["02", "The GM opens the campaign phase. You'll receive a notification."],
+            ["03", "You act through your role's steps in order, asynchronously with the other players."],
+          ].map(([n, text]) => (
+            <div key={n} style={{
+              display: 'grid', gridTemplateColumns: '40px 1fr',
+              gap: 12, padding: '12px 0',
+              borderBottom: `1px dashed ${T.parchEdge}`,
+              alignItems: 'baseline',
+            }}>
+              <span style={{ fontFamily: T.fontMono, fontSize: 13, color: T.inkFaint, letterSpacing: '0.08em' }}>{n}.</span>
+              <span style={{ fontFamily: T.fontBody, fontSize: 17, color: T.inkSoft, lineHeight: 1.5 }}>{text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <InkButton variant="outline" style={{ marginTop: 4 }}>← Leave campaign</InkButton>
+    </>
+  );
+}
+
+/* ─── Page shell ─────────────────────────────────────────────────────── */
+function GatewayPage({ view, showError, mobile }) {
+  const ViewComp = view === 'join' ? JoinView : view === 'create' ? CreateView : PendingView;
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: T.paperNoise,
+      backgroundBlendMode: 'multiply',
+      padding: mobile ? '0 0 60px' : '0',
+    }}>
+      <div style={{
+        maxWidth: 560,
+        margin: '0 auto',
+        padding: mobile ? '0 20px' : '0 24px',
+      }}>
+        <NavBar />
+        <ViewComp showError={showError} />
+      </div>
+    </div>
+  );
+}
+
+/* ─── App ────────────────────────────────────────────────────────────── */
+function App() {
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+  return (
+    <>
+      <GatewayPage
+        view={tweaks.view}
+        showError={tweaks.showError}
+        mobile={tweaks.showMobile}
+      />
+
+      <TweaksPanel>
+        <TweakSection label="Screen state" />
+        <TweakRadio
+          label="View"
+          value={tweaks.view}
+          options={[
+            { label: 'Join', value: 'join' },
+            { label: 'Create', value: 'create' },
+            { label: 'Pending', value: 'pending' },
+          ]}
+          onChange={v => setTweak('view', v)}
+        />
+        <TweakToggle
+          label="Show error state"
+          value={tweaks.showError}
+          onChange={v => setTweak('showError', v)}
+        />
+        <TweakToggle
+          label="Mobile layout"
+          value={tweaks.showMobile}
+          onChange={v => setTweak('showMobile', v)}
+        />
+      </TweaksPanel>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

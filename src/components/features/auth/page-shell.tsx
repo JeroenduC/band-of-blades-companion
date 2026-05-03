@@ -1,49 +1,93 @@
 /**
- * PageShell — atmospheric centered layout for in-app form pages.
+ * PageShell — Direction B layout for campaign gateway pages.
  *
- * Used for pages that sit between auth and the main dashboard:
- * campaign creation, join campaign, pending member wait screen.
- *
- * Matches the visual mood of AuthShell (dark, military, warm amber)
- * without the brand panel — the player is already in the app.
+ * Used for: join campaign, create campaign, pending member.
+ * Renders the nav bar (wordmark + sign out) and the masthead (overline + h1
+ * + double-rule) above the page's form content.
  */
 
+import { signOut } from '@/server/actions/auth';
+
 interface PageShellProps {
-  /** Monospaced overline above the heading (e.g. "338th Legion · Setup") */
+  /** Special Elite overline above the heading (e.g. "338th Legion · Setup") */
   overline?: string;
-  /** Main Cinzel heading */
+  /** IM Fell English main heading */
   heading: string;
-  /** Supporting copy below the amber rule */
+  /** Supporting copy below the heading */
   description?: string;
+  /** Optional stamp badge (text, color, rotate) */
+  stamp?: { label: string; color?: 'red' | 'amber' };
   children: React.ReactNode;
 }
 
-export function PageShell({ overline, heading, description, children }: PageShellProps) {
-  return (
-    // Outer page frame — 1240px max-width with subtle border framing on wide screens.
-    <div className="min-h-screen bg-legion-bg-base max-w-[1240px] mx-auto border-x border-border/20 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-10">
-      <div className="w-full max-w-sm space-y-6">
+export function PageShell({ overline, heading, description, stamp, children }: PageShellProps) {
+  const stampBorderColor = stamp?.color === 'amber' ? '#c08428' : '#8b2418';
+  const stampTextColor   = stamp?.color === 'amber' ? '#c08428' : '#8b2418';
+  const stampRotate      = stamp?.color === 'amber' ? '3deg' : '-4deg';
 
-        {/* Page identity */}
-        <div>
-          {overline && (
-            <p className="font-mono text-xs uppercase tracking-[0.22em] text-legion-text-muted mb-3">
-              {overline}
-            </p>
-          )}
-          <h1 className="font-heading text-3xl font-bold uppercase tracking-[0.05em] text-legion-amber leading-none">
-            {heading}
-          </h1>
-          <div className="h-0.5 w-10 bg-legion-amber mt-4 mb-4" />
-          {description && (
-            <p className="text-sm text-legion-text-muted leading-relaxed">
-              {description}
-            </p>
+  return (
+    <div
+      className="min-h-screen bg-parchment-noise"
+      style={{ colorScheme: 'light' }}
+    >
+      <div className="max-w-[560px] mx-auto px-5 sm:px-6">
+
+        {/* ── Nav bar ──────────────────────────────────────────────────── */}
+        <nav
+          className="flex items-center justify-between py-[14px] border-b border-legion-border mb-12"
+          aria-label="Site navigation"
+        >
+          <span className="font-fell text-[20px] text-legion-text-primary leading-none">
+            Band of Blades
+          </span>
+          <form action={signOut}>
+            <button
+              type="submit"
+              className="font-crimson text-[15px] text-legion-text-faint underline underline-offset-[3px] hover:text-legion-text-primary transition-colors min-h-[44px] flex items-center"
+            >
+              Sign out
+            </button>
+          </form>
+        </nav>
+
+        {/* ── Masthead ─────────────────────────────────────────────────── */}
+        <div
+          className="flex items-start justify-between gap-3 pb-4 mb-6"
+          style={{ borderBottom: '3px double #1f1a14' }}
+        >
+          <div>
+            {overline && (
+              <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-legion-text-faint mb-1.5">
+                {overline}
+              </p>
+            )}
+            <h1 className="font-fell text-[38px] font-bold leading-none text-legion-text-primary mb-2">
+              {heading}
+            </h1>
+            {description && (
+              <p className="font-crimson text-[18px] text-legion-text-muted leading-snug">
+                {description}
+              </p>
+            )}
+          </div>
+
+          {stamp && (
+            <div
+              aria-hidden="true"
+              className="shrink-0 mt-1 px-2.5 py-0.5 border-2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] opacity-80 whitespace-nowrap"
+              style={{
+                borderColor: stampBorderColor,
+                color: stampTextColor,
+                transform: `rotate(${stampRotate})`,
+              }}
+            >
+              {stamp.label}
+            </div>
           )}
         </div>
 
-        {/* Page content (form, status, etc.) */}
-        <div>
+        {/* ── Page content ─────────────────────────────────────────────── */}
+        <div className="pb-16">
           {children}
         </div>
 

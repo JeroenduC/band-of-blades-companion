@@ -1,171 +1,179 @@
 /**
- * PhaseProgressIndicator — shows all 10 campaign phase steps as a vertical
- * pipeline. Each step displays its number, label, responsible role(s), and
- * status (complete / active / upcoming).
+ * PhaseProgressIndicator — Direction B compact strip + collapsible step list.
  *
- * Parallel steps (CAMPAIGN_ACTIONS step 4 = QM + Spymaster) are visually
- * grouped with a shared bracket to communicate simultaneity.
+ * Collapsed: ink progress bar + "Step N/9 · Label" + expand toggle.
+ * Expanded: full list of all steps with status, role, and NOW badge.
  *
- * Design principle (§2): "Informed decisions, not blind clicks." Every role
- * can always see the full pipeline — not just their own step — so they know
- * what has happened and what is coming next.
+ * alwaysExpanded bypasses the toggle (used in WaitingForOthers).
  */
 
+'use client';
+
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { PHASE_STEPS, getStepStatus } from '@/lib/state-machine';
 import type { CampaignPhaseState } from '@/lib/types';
 
 export interface PhaseProgressIndicatorProps {
   currentState: CampaignPhaseState | null;
-  /** Optional extra class on the root element */
+  alwaysExpanded?: boolean;
   className?: string;
 }
 
 const ROLE_LABELS: Record<string, string> = {
-  GM: 'GM',
-  COMMANDER: 'Commander',
-  MARSHAL: 'Marshal',
-  QUARTERMASTER: 'Quartermaster',
-  LOREKEEPER: 'Lorekeeper',
-  SPYMASTER: 'Spymaster',
+  GM:            'GM',
+  COMMANDER:     'Commander',
+  MARSHAL:       'Marshal',
+  QUARTERMASTER: 'QM',
+  LOREKEEPER:    'Lorekeeper',
+  SPYMASTER:     'Spymaster',
 };
-
-// Steps whose roles act in parallel (CAMPAIGN_ACTIONS)
-const PARALLEL_STEP_NUMBER = 5;
 
 export function PhaseProgressIndicator({
   currentState,
+  alwaysExpanded = false,
   className,
 }: PhaseProgressIndicatorProps) {
+  const [expanded, setExpanded] = useState(false);
+  const showList = alwaysExpanded || expanded;
+
   const totalSteps = PHASE_STEPS.length;
+  const activeIndex = currentState
+    ? PHASE_STEPS.findIndex((s) => s.state === currentState)
+    : -1;
+  const activeStep = activeIndex >= 0 ? PHASE_STEPS[activeIndex] : null;
+  const completedCount = PHASE_STEPS.filter(
+    (s) => getStepStatus(s, currentState) === 'complete',
+  ).length;
+
+  const progressPct = totalSteps > 0 ? (completedCount / totalSteps) * 100 : 0;
 
   return (
     <nav
       aria-label="Campaign phase progress"
       className={cn('w-full', className)}
     >
-      {/* Screen-reader summary */}
-      <p className="sr-only">
-        {currentState
-          ? `Current step: ${PHASE_STEPS.find((s) => s.state === currentState)?.label ?? currentState}`
-          : 'No campaign phase in progress'}
-      </p>
+      {/* ── Compact header strip ──────────────────────────────────── */}
+      <div className="border border-legion-border bg-legion-bg-elevated">
+        {/* Progress bar */}
+        <div className="h-[3px] bg-legion-border" aria-hidden="true">
+          <div
+            className="h-full bg-legion-text-primary transition-all duration-500"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
 
-      <ol className="relative flex flex-col gap-0" role="list">
-        {PHASE_STEPS.map((step, index) => {
-          const status = getStepStatus(step, currentState);
-          const isLast = index === totalSteps - 1;
-          const isParallel = step.stepNumber === PARALLEL_STEP_NUMBER;
+        <div className="flex items-center justify-between gap-4 px-3 py-2.5">
+          <div className="flex items-baseline gap-2 min-w-0">
+            <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-legion-text-faint shrink-0">
+              Step {activeStep ? activeStep.stepNumber : '—'}/{totalSteps}
+            </span>
+            {activeStep && (
+              <span className="font-crimson text-[15px] text-legion-text-primary truncate">
+                {activeStep.label}
+              </span>
+            )}
+            {!activeStep && (
+              <span className="font-crimson text-[15px] text-legion-text-faint italic">
+                {currentState === null ? 'No phase in progress' : 'Complete'}
+              </span>
+            )}
+          </div>
 
-          return (
-            <li
-              key={step.state}
-              className="relative flex items-stretch gap-3"
-              aria-current={status === 'active' ? 'step' : undefined}
+          {!alwaysExpanded && (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="font-mono text-[10px] uppercase tracking-[0.14em] text-legion-text-faint hover:text-legion-text-primary transition-colors shrink-0 min-h-[44px] flex items-center gap-1"
+              aria-expanded={expanded}
             >
-              {/* Connector line column */}
-              <div className="flex flex-col items-center" aria-hidden="true">
-                {/* Step circle */}
-                <div
-                  className={cn(
-                    'relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-mono font-semibold transition-colors',
-                    status === 'complete' && 'border-[var(--bob-amber)] bg-[var(--bob-amber)] text-[var(--bob-amber-fg)]',
-                    status === 'active'   && 'border-[var(--bob-amber)] bg-legion-bg-elevated text-legion-amber shadow-[0_0_0_3px_var(--bob-amber-muted)]',
-                    status === 'upcoming' && 'border-border bg-legion-bg-surface text-legion-text-faint',
-                  )}
-                >
-                  {status === 'complete' ? (
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                      <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  ) : (
-                    step.stepNumber
-                  )}
-                </div>
+              All steps
+              <span aria-hidden="true">{expanded ? '▲' : '▼'}</span>
+            </button>
+          )}
+        </div>
+      </div>
 
-                {/* Vertical connector line */}
-                {!isLast && (
-                  <div
-                    className={cn(
-                      'w-px flex-1 transition-colors',
-                      status === 'complete' ? 'bg-[var(--bob-amber)]' : 'bg-border',
-                    )}
-                    style={{ minHeight: '1.5rem' }}
-                    aria-hidden="true"
-                  />
-                )}
-              </div>
+      {/* ── Expanded step list ────────────────────────────────────── */}
+      {showList && (
+        <ol
+          className="border border-t-0 border-legion-border divide-y divide-dashed divide-legion-border"
+          role="list"
+          aria-label="All phase steps"
+        >
+          {/* Screen-reader summary */}
+          <p className="sr-only">
+            {currentState
+              ? `Current step: ${activeStep?.label ?? currentState}`
+              : 'No campaign phase in progress'}
+          </p>
 
-              {/* Step content */}
-              <div
+          {PHASE_STEPS.map((step) => {
+            const status = getStepStatus(step, currentState);
+
+            return (
+              <li
+                key={step.state}
                 className={cn(
-                  'flex-1 pb-5',
-                  isLast && 'pb-0',
+                  'grid items-center gap-x-3 px-3 py-2.5',
+                  'grid-cols-[28px_1fr_auto]',
                 )}
+                aria-current={status === 'active' ? 'step' : undefined}
               >
-                <div
+                {/* Step number */}
+                <span
                   className={cn(
-                    'rounded-md border px-3 py-2.5 transition-colors',
-                    status === 'complete' && 'border-[var(--bob-amber)]/30 bg-legion-bg-surface',
-                    status === 'active'   && 'border-[var(--bob-amber)] bg-legion-bg-elevated',
-                    status === 'upcoming' && 'border-border bg-legion-bg-surface opacity-60',
+                    'font-mono text-[11px] tracking-[0.06em]',
+                    status === 'complete' && 'text-legion-text-faint line-through',
+                    status === 'active'   && 'text-legion-text-primary font-bold',
+                    status === 'upcoming' && 'text-legion-text-faint',
+                  )}
+                  aria-hidden="true"
+                >
+                  {step.stepNumber.toString().padStart(2, '0')}
+                </span>
+
+                {/* Step label */}
+                <span
+                  className={cn(
+                    'font-crimson text-[16px] leading-snug',
+                    status === 'complete' && 'text-legion-text-faint line-through',
+                    status === 'active'   && 'text-legion-text-primary font-bold',
+                    status === 'upcoming' && 'text-legion-text-muted',
                   )}
                 >
-                  {/* Label row */}
-                  <div className="flex items-center justify-between gap-2">
-                    <p
+                  {step.label}
+                </span>
+
+                {/* Role + NOW badge */}
+                <div className="flex items-center gap-1.5 justify-end">
+                  {status === 'active' && (
+                    <span
+                      className="bg-legion-amber/10 border border-legion-amber text-legion-amber font-mono text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5"
+                      aria-label="Currently active"
+                    >
+                      NOW
+                    </span>
+                  )}
+                  {step.roles.map((role) => (
+                    <span
+                      key={role}
                       className={cn(
-                        'font-heading text-sm font-semibold leading-snug tracking-wide',
-                        status === 'complete' && 'text-legion-text-muted line-through decoration-[var(--bob-amber)]/50',
-                        status === 'active'   && 'text-legion-amber',
-                        status === 'upcoming' && 'text-legion-text-primary',
+                        'font-mono text-[9px] uppercase tracking-[0.12em] border px-1.5 py-0.5',
+                        status === 'complete' && 'border-legion-border text-legion-text-faint',
+                        status === 'active'   && 'border-legion-border text-legion-text-faint',
+                        status === 'upcoming' && 'border-legion-border text-legion-text-faint',
                       )}
                     >
-                      {step.label}
-                    </p>
-
-                    {/* Active indicator badge */}
-                    {status === 'active' && (
-                      <span
-                        className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-wider bg-[var(--bob-amber)] text-[var(--bob-amber-fg)]"
-                        aria-hidden="true"
-                      >
-                        Now
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Description + roles */}
-                  <p className="mt-0.5 text-xs text-legion-text-muted leading-relaxed">
-                    {step.description}
-                  </p>
-
-                  {/* Role tags */}
-                  {step.roles.length > 0 && (
-                    <div className="mt-1.5 flex flex-wrap gap-1" aria-label="Responsible roles">
-                      {step.roles.map((role) => (
-                        <span
-                          key={role}
-                          className={cn(
-                            'rounded px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-wider border',
-                            isParallel
-                              ? 'border-[var(--bob-border-strong)] bg-legion-bg-overlay text-legion-text-muted'
-                              : status === 'active'
-                                ? 'border-[var(--bob-amber)]/40 bg-[var(--bob-amber)]/10 text-legion-amber'
-                                : 'border-border bg-legion-bg-overlay text-legion-text-faint',
-                          )}
-                        >
-                          {ROLE_LABELS[role] ?? role}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                      {ROLE_LABELS[role] ?? role}
+                    </span>
+                  ))}
                 </div>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
+              </li>
+            );
+          })}
+        </ol>
+      )}
     </nav>
   );
 }

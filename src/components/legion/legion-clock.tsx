@@ -25,6 +25,8 @@ export interface LegionClockProps {
   filled: number;
   /** Display size */
   size?: 'sm' | 'md' | 'lg';
+  /** Color palette for filled segments and label */
+  color?: 'amber' | 'ink' | 'danger';
   /** Optional label rendered below the clock */
   label?: string;
   /** Animate segment fills (respects prefers-reduced-motion) */
@@ -81,10 +83,23 @@ function segmentPath(
   ].join(' ');
 }
 
+const COLOR_FILL: Record<'amber' | 'ink' | 'danger', string> = {
+  amber:  'fill-[var(--bob-amber)]',
+  ink:    'fill-[var(--bob-text-primary)]',
+  danger: 'fill-[var(--bob-danger)]',
+};
+
+const COLOR_LABEL: Record<'amber' | 'ink' | 'danger', string> = {
+  amber:  'text-legion-text-muted',
+  ink:    'text-legion-text-faint',
+  danger: 'text-legion-danger',
+};
+
 export function LegionClock({
   total,
   filled,
   size = 'md',
+  color = 'amber',
   label,
   animated = false,
   className,
@@ -127,7 +142,7 @@ export function LegionClock({
                 // Empty segment — subtle surface colour with a faint border
                 'stroke-[var(--bob-border)] stroke-[0.5px]',
                 isFilled
-                  ? 'fill-[var(--bob-amber)]'
+                  ? COLOR_FILL[color]
                   : 'fill-[var(--bob-bg-elevated)]',
               )}
             />
@@ -136,7 +151,7 @@ export function LegionClock({
       </svg>
 
       {label && (
-        <figcaption className="text-legion-xs font-mono uppercase tracking-widest text-legion-text-muted">
+        <figcaption className={cn('text-legion-xs font-mono uppercase tracking-widest', COLOR_LABEL[color])}>
           {label}
         </figcaption>
       )}

@@ -3,8 +3,6 @@
 @import "shadcn/tailwind.css";
 @import "../styles/theme.css";
 
-@custom-variant dark (&:is(.dark *));
-
 /*
  * Tailwind v4 theme bridge.
  * Maps CSS custom properties to Tailwind colour utilities.
@@ -48,7 +46,6 @@
   --color-sidebar-ring:       var(--sidebar-ring);
 
   /* --- Band of Blades semantic utilities (page/feature code) --- */
-  /* Use these for app-specific colour intent that Shadcn names don't cover. */
   --color-legion-amber:        var(--bob-amber);
   --color-legion-amber-muted:  var(--bob-amber-muted);
   --color-legion-danger:       var(--bob-danger);
@@ -63,26 +60,37 @@
   --color-legion-text-muted:   var(--bob-text-muted);
   --color-legion-text-faint:   var(--bob-text-faint);
   --color-legion-border-focus: var(--bob-border-focus);
+  --color-legion-border:       var(--bob-border);
+
+  /* --- Auth page color utilities --- */
+  --color-auth-paper:       var(--bob-auth-paper);
+  --color-auth-paper-light: var(--bob-auth-paper-light);
+  --color-auth-ink:         var(--bob-auth-ink);
+  --color-auth-ink-soft:    var(--bob-auth-ink-soft);
+  --color-auth-ink-faint:   var(--bob-auth-ink-faint);
+  --color-auth-parch-edge:  var(--bob-auth-parch-edge);
+  --color-auth-amber:       var(--bob-auth-amber);
+  --color-auth-red:         var(--bob-auth-red);
 
   /* --- Typography --- */
-  /* These reference --bob-font-* which in turn reference the next/font CSS variables
-   * set on <html> by layout.tsx. Avoids circular var() references. */
   --font-sans:    var(--bob-font-body);
   --font-mono:    var(--bob-font-mono);
   --font-heading: var(--bob-font-heading);
+  --font-fell:    var(--bob-font-fell);
+  --font-crimson: var(--bob-font-crimson);
 
   /* --- Type scale utilities (legion-text-*) --- */
-  --text-legion-xs:   var(--bob-text-xs);    /* 12px — captions, badges */
-  --text-legion-sm:   var(--bob-text-sm);    /* 14px — labels */
-  --text-legion-base: var(--bob-text-base);  /* 16px — body */
-  --text-legion-lg:   var(--bob-text-lg);    /* 18px */
-  --text-legion-xl:   var(--bob-text-xl);    /* 20px */
-  --text-legion-2xl:  var(--bob-text-2xl);   /* 24px — h4 */
-  --text-legion-3xl:  var(--bob-text-3xl);   /* 30px — h3 */
-  --text-legion-4xl:  var(--bob-text-4xl);   /* 36px — h2 */
-  --text-legion-5xl:  var(--bob-text-5xl);   /* 48px — h1 */
+  --text-legion-xs:   var(--bob-text-xs);
+  --text-legion-sm:   var(--bob-text-sm);
+  --text-legion-base: var(--bob-text-base);
+  --text-legion-lg:   var(--bob-text-lg);
+  --text-legion-xl:   var(--bob-text-xl);
+  --text-legion-2xl:  var(--bob-text-2xl);
+  --text-legion-3xl:  var(--bob-text-3xl);
+  --text-legion-4xl:  var(--bob-text-4xl);
+  --text-legion-5xl:  var(--bob-text-5xl);
 
-  /* --- Border radius --- */
+  /* --- Border radius (all zero — Direction B rule) --- */
   --radius-sm: var(--bob-radius-sm);
   --radius-md: var(--bob-radius-md);
   --radius-lg: var(--bob-radius-lg);
@@ -90,14 +98,11 @@
 }
 
 /*
- * Shadcn semantic variable mapping.
- * Dark military theme is the DEFAULT — there is no light theme.
- * The .dark selector is kept so Shadcn component dark: variants still resolve,
- * but its values are identical to :root.
+ * Shadcn semantic variable mapping — Direction B light (parchment) theme.
+ * This is the ONLY theme. No dark mode.
  */
-:root,
-.dark {
-  color-scheme: dark;
+:root {
+  color-scheme: light;
 
   /* Backgrounds */
   --background: var(--bob-bg-base);
@@ -113,7 +118,7 @@
   --primary:              var(--bob-amber);
   --primary-foreground:   var(--bob-amber-fg);
 
-  /* Secondary — elevated surface */
+  /* Secondary — surface */
   --secondary:            var(--bob-bg-elevated);
   --secondary-foreground: var(--bob-text-primary);
 
@@ -121,7 +126,7 @@
   --muted:                var(--bob-bg-surface);
   --muted-foreground:     var(--bob-text-muted);
 
-  /* Accent — also amber (same intent as primary in this theme) */
+  /* Accent — also amber */
   --accent:               var(--bob-amber);
   --accent-foreground:    var(--bob-amber-fg);
 
@@ -130,15 +135,13 @@
 
   /* Borders & inputs */
   --border: var(--bob-border);
-  /* Input borders use the stronger 25% opacity white so fields are clearly
-   * readable against the dark background without being harsh. */
   --input:  var(--bob-border-strong);
   --ring:   var(--bob-border-focus);
 
-  /* Shared radius base — components scale off this */
-  --radius: var(--bob-radius-md);
+  /* Shared radius base — all zero */
+  --radius: 0;
 
-  /* Chart colours (pressure curves, resource graphs) */
+  /* Chart colours */
   --chart-1: var(--bob-amber);
   --chart-2: var(--bob-success);
   --chart-3: var(--bob-danger);
@@ -166,7 +169,6 @@
   html {
     @apply font-sans;
   }
-  /* Cinzel for all headings — tracked slightly for the Roman inscription feel */
   h1, h2, h3, h4 {
     font-family: var(--bob-font-heading);
     letter-spacing: 0.04em;
@@ -176,24 +178,16 @@
 
 @layer utilities {
   /*
-   * Subtle grain/noise texture utilities.
-   *
-   * The texture is a CSS-only SVG feTurbulence filter rendered as a
-   * pseudo-element overlay. It uses mix-blend-mode: overlay at very low
-   * opacity so it darkens/lightens the surface slightly without affecting
-   * text readability or contrast ratios.
-   *
-   * Usage:
-   *   grain-base    — apply to the page background (lighter grain)
-   *   grain-surface — apply to card/panel surfaces (slightly denser grain)
-   *
-   * Implementation notes:
-   * - The pseudo-element covers the parent; pointer-events: none so it never
-   *   blocks clicks.
-   * - Respects prefers-reduced-motion: the filter is static (no animation).
-   * - Does not affect contrast: the overlay is below 5% opacity. Run
-   *   `npm run a11y` after applying to verify.
+   * bg-parchment-noise — warm seeded fractal noise blended into the parchment bg.
+   * Uses background-blend-mode: multiply so grain stays in the background layer.
+   * Used on all parchment-background pages.
    */
+  .bg-parchment-noise {
+    background-color: var(--bob-bg-base);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 0.13 0 0 0 0 0.10 0 0 0 0 0.07 0 0 0 0.10 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+    background-blend-mode: multiply;
+  }
 
   .grain-base {
     position: relative;
@@ -224,6 +218,30 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23n)'/%3E%3C/svg%3E");
     background-size: 150px 150px;
   }
+
+  /*
+   * Styled <select> for Direction B — square corners, parchment bg, custom chevron.
+   * Apply as className="select-ink" on <select> elements.
+   */
+  .select-ink {
+    appearance: none;
+    width: 100%;
+    min-height: 52px;
+    padding: 13px 40px 13px 14px;
+    background-color: var(--bob-bg-surface);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a6a52' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    border: 2px solid var(--bob-border);
+    font-family: var(--bob-font-mono);
+    font-size: 16px;
+    color: var(--bob-text-primary);
+    outline: none;
+    transition: border-color 0.12s;
+  }
+  .select-ink:focus-visible {
+    border-color: var(--bob-border-strong);
+  }
 }
 
 /* SVG interactive node focus ring — g:focus-visible shows the sibling circle.focus-ring */
@@ -236,13 +254,12 @@ g:focus-visible circle.focus-ring {
     size: auto;
     margin: 20mm;
   }
-  
+
   body {
     background: white !important;
     color: black !important;
   }
 
-  /* Force white backgrounds for cards in print */
   div, section, article {
     background-color: transparent !important;
     border-color: #ddd !important;
@@ -250,27 +267,22 @@ g:focus-visible circle.focus-ring {
     box-shadow: none !important;
   }
 
-  /* Reset all custom text colors to black */
   span, p, h1, h2, h3, h4, li {
     color: black !important;
   }
 
-  /* Special handling for headers in print */
   h1, h2, h3, h4 {
     border-bottom: 1px solid black !important;
   }
 
-  /* Hide grain textures */
   .grain-base::after, .grain-surface::after {
     display: none !important;
   }
 
-  /* Hide main navigation and other non-content items */
   header, nav, form, button, .print-hidden {
     display: none !important;
   }
 
-  /* Ensure the summary content takes full width */
   main {
     max-width: 100% !important;
     width: 100% !important;

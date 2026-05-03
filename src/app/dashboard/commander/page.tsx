@@ -7,8 +7,8 @@ import { WaitingForOthers } from '@/components/features/campaign/waiting-for-oth
 import { TimePassesSummary } from '@/components/features/campaign/time-passes-summary';
 import { AdvanceDecisionForm } from '@/components/features/campaign/advance-decision-form';
 import { MissionSelectionStep } from '@/components/features/campaign/mission-selection-step';
-import { LegionCard, LegionCardContent, LegionCardHeader, LegionCardTitle } from '@/components/legion';
 import { LocationMap } from '@/components/features/campaign/location-map';
+import { PhaseProgressIndicator } from '@/components/features/campaign/phase-progress-indicator';
 import { createServiceClient } from '@/lib/supabase/service';
 import { isRoleActive } from '@/lib/state-machine';
 import { loadLorekeeperData } from '@/server/loaders/dashboard';
@@ -21,7 +21,6 @@ export default async function CommanderDashboardPage() {
   const phaseState = campaign.campaign_phase_state as CampaignPhaseState | null;
   const isMyTurn = phaseState !== null && isRoleActive('COMMANDER', phaseState);
 
-  // Fetch missions for the selection step
   let phaseMissions: Mission[] = [];
   if (phaseState === 'AWAITING_MISSION_SELECTION') {
     const db = createServiceClient();
@@ -38,101 +37,111 @@ export default async function CommanderDashboardPage() {
   if (phaseState === 'PHASE_COMPLETE') {
     const { logs } = await loadLorekeeperData(campaign.id);
     return (
-      <DashboardShell 
-      role="COMMANDER" 
-      campaignName={campaign.name}
-      campaignId={campaign.id}
-      currentState={phaseState}
-      pendingExpiry={campaign.pending_expiry}
-    >
+      <DashboardShell
+        role="COMMANDER"
+        campaignName={campaign.name}
+        campaignId={campaign.id}
+        currentState={phaseState}
+        pendingExpiry={campaign.pending_expiry}
+      >
         <PhaseSummary campaign={campaign} role="COMMANDER" logs={logs} />
       </DashboardShell>
     );
   }
 
   return (
-    <DashboardShell 
-      role="COMMANDER" 
+    <DashboardShell
+      role="COMMANDER"
       campaignName={campaign.name}
       campaignId={campaign.id}
       currentState={phaseState}
       pendingExpiry={campaign.pending_expiry}
     >
-      <CommanderWarTable campaign={campaign} />
+      {/* Phase progress strip */}
+      <PhaseProgressIndicator currentState={phaseState} className="mb-6" />
 
-      <LegionCard>
-        <LegionCardHeader>
-          <LegionCardTitle className="text-sm font-medium text-legion-text-muted uppercase tracking-widest">
-            Campaign Map
-          </LegionCardTitle>
-        </LegionCardHeader>
-        <LegionCardContent>
-          <LocationMap currentLocationId={campaign.current_location} />
-        </LegionCardContent>
-      </LegionCard>
+      {/* Double-rule divider before action zone */}
+      <div className="border-t-[3px] border-double border-legion-border mb-6" aria-hidden="true" />
 
+      {/* Active action or waiting state */}
       {phaseState === null ? (
-        <div className="rounded-lg border border-dashed border-border p-8 text-center">
-          <p className="text-sm text-legion-text-muted">
+        <div className="border border-dashed border-legion-border p-8 text-center">
+          <p className="font-crimson text-[17px] text-legion-text-muted">
             No campaign phase in progress. Waiting for the GM to start one.
           </p>
         </div>
       ) : isMyTurn ? (
-        phaseState === 'TIME_PASSING' ? (
-          <LegionCard>
-            <LegionCardHeader>
-              <LegionCardTitle className="text-sm font-medium text-legion-text-muted uppercase tracking-widest">
-                Step 3 — Time Passes
-              </LegionCardTitle>
-            </LegionCardHeader>
-            <LegionCardContent>
+        <>
+          {phaseState === 'TIME_PASSING' && (
+            <ActionZone stepLabel="Step 3 — Time Passes">
               <TimePassesSummary campaign={campaign} />
-            </LegionCardContent>
-          </LegionCard>
-        ) : phaseState === 'AWAITING_ADVANCE' ? (
-          <LegionCard>
-            <LegionCardHeader>
-              <LegionCardTitle className="text-sm font-medium text-legion-text-muted uppercase tracking-widest">
-                Step 6 — Advance Decision
-              </LegionCardTitle>
-            </LegionCardHeader>
-            <LegionCardContent>
-              <AdvanceDecisionForm campaign={campaign} />
-            </LegionCardContent>
-          </LegionCard>
-        ) : phaseState === 'AWAITING_MISSION_FOCUS' ? (
-          <LegionCard>
-            <LegionCardHeader>
-              <LegionCardTitle className="text-sm font-medium text-legion-text-muted uppercase tracking-widest">
-                Step 7 — Mission Focus
-              </LegionCardTitle>
-            </LegionCardHeader>
-            <LegionCardContent>
+            </ActionZone>
+          )}
+          {phaseState === 'AWAITING_ADVANCE' && (
+            <AdvanceDecisionForm campaign={campaign} />
+          )}
+          {phaseState === 'AWAITING_MISSION_FOCUS' && (
+            <ActionZone stepLabel="Step 7 — Mission Focus">
               <MissionFocusForm campaign={campaign} />
-            </LegionCardContent>
-          </LegionCard>
-        ) : phaseState === 'AWAITING_MISSION_SELECTION' ? (
-          <LegionCard>
-            <LegionCardHeader>
-              <LegionCardTitle className="text-sm font-medium text-legion-text-muted uppercase tracking-widest">
-                Step 9 — Mission Selection
-              </LegionCardTitle>
-            </LegionCardHeader>
-            <LegionCardContent>
-              <MissionSelectionStep campaignId={campaign.id} intel={campaign.intel} missions={phaseMissions} />
-            </LegionCardContent>
-          </LegionCard>
-        ) : (
-          <div className="rounded-lg border border-[var(--bob-amber)] bg-legion-bg-elevated p-6 text-center">
-            <p className="font-heading text-lg text-legion-amber mb-1">It&apos;s your turn, Commander</p>
-            <p className="text-sm text-legion-text-muted">
-              Commander action for this step coming soon.
-            </p>
-          </div>
-        )
+            </ActionZone>
+          )}
+          {phaseState === 'AWAITING_MISSION_SELECTION' && (
+            <ActionZone stepLabel="Step 9 — Mission Selection">
+              <MissionSelectionStep
+                campaignId={campaign.id}
+                intel={campaign.intel}
+                missions={phaseMissions}
+              />
+            </ActionZone>
+          )}
+          {phaseState !== 'TIME_PASSING' &&
+            phaseState !== 'AWAITING_ADVANCE' &&
+            phaseState !== 'AWAITING_MISSION_FOCUS' &&
+            phaseState !== 'AWAITING_MISSION_SELECTION' && (
+              <div className="border border-legion-amber/40 bg-legion-amber/5 px-4 py-5 text-center">
+                <p className="font-fell text-[20px] text-legion-amber mb-1">
+                  {"It's your turn, Commander"}
+                </p>
+                <p className="font-crimson text-[16px] text-legion-text-muted">
+                  Commander action for this step coming soon.
+                </p>
+              </div>
+            )}
+        </>
       ) : (
         <WaitingForOthers currentState={phaseState} viewerRole="COMMANDER" />
       )}
+
+      {/* Double-rule divider before war table */}
+      <div className="border-t-[3px] border-double border-legion-border mt-8 mb-6" aria-hidden="true" />
+
+      {/* Campaign map */}
+      <div className="mb-6">
+        <h2 className="font-fell text-[22px] uppercase tracking-[0.04em] text-legion-text-primary border-b-2 border-legion-text-primary pb-2 mb-4">
+          Campaign Map
+        </h2>
+        <LocationMap currentLocationId={campaign.current_location} />
+      </div>
+
+      {/* War table — always at the bottom */}
+      <CommanderWarTable campaign={campaign} />
     </DashboardShell>
+  );
+}
+
+function ActionZone({
+  stepLabel,
+  children,
+}: {
+  stepLabel: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-legion-text-faint mb-3">
+        {stepLabel}
+      </p>
+      {children}
+    </div>
   );
 }

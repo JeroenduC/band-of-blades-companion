@@ -1,20 +1,34 @@
 /**
- * LegionInput — project-owned wrapper around the Shadcn Input primitive.
+ * LegionInput — Direction B parchment text input.
  *
- * Why this exists (ADR-002): App and feature code must never import directly
- * from @/components/ui/. All UI primitives go through this layer so the
- * underlying library can be swapped without touching feature code.
+ * Square corners, bg-surface parchment, ink focus border.
+ * Default font is Crimson Pro (body text). Override with className="font-mono"
+ * for code-style inputs (invite codes, identifiers).
  *
- * Project defaults applied here:
- * - Full-width by default (most inputs in this app span their container)
- * - Inherits border/ring colours from design tokens (amber focus ring)
+ * ADR-002: Feature code must import from @/components/legion — never from
+ * @/components/ui/ or @base-ui/react directly.
  */
 
-import { Input } from '@/components/ui/input';
+import { Input } from '@base-ui/react/input';
+import { cn } from '@/lib/utils';
 import type * as React from 'react';
 
 type LegionInputProps = React.ComponentProps<'input'>;
 
-export function LegionInput(props: LegionInputProps) {
-  return <Input {...props} />;
+export function LegionInput({ className, ...props }: LegionInputProps) {
+  return (
+    <Input
+      className={cn(
+        'w-full min-h-[52px] px-3.5 py-3',
+        'bg-legion-bg-surface border-2 border-legion-border',
+        'font-crimson text-[18px] text-legion-text-primary',
+        'outline-none transition-colors',
+        'focus-visible:border-legion-text-primary',
+        'disabled:opacity-50 disabled:cursor-not-allowed',
+        'placeholder:text-legion-text-faint',
+        className,
+      )}
+      {...props}
+    />
+  );
 }
