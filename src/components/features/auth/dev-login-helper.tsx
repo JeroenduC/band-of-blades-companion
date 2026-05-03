@@ -78,37 +78,37 @@ export function DevLoginHelper() {
   const [openCampaign, setOpenCampaign] = useState<number | null>(null);
 
   return (
-    <div className="mt-6 rounded-md border border-dashed border-legion-text-muted/30 bg-legion-bg-elevated/50 text-xs">
+    <div className="mt-6 border border-dashed border-auth-parch-edge bg-auth-paper text-xs">
       {/* Toggle header */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-3 py-2.5 text-left text-legion-text-muted hover:text-legion-text-primary transition-colors min-h-[44px]"
+        className="flex w-full items-center justify-between px-3 py-2.5 text-left text-auth-ink-faint hover:text-auth-ink transition-colors min-h-[44px]"
         aria-expanded={open}
       >
         <span className="font-mono tracking-widest uppercase text-[10px]">
           🧪 Test Accounts
         </span>
-        <span aria-hidden="true" className="text-legion-text-muted/60">
+        <span aria-hidden="true" className="text-auth-ink-faint">
           {open ? '▲' : '▼'}
         </span>
       </button>
 
       {open && (
-        <div className="border-t border-legion-text-muted/20 px-3 pb-3 pt-2 space-y-3">
+        <div className="border-t border-auth-parch-edge px-3 pb-3 pt-2 space-y-3">
           {TEST_CAMPAIGNS.map((campaign, ci) => (
             <div key={ci}>
               {/* Campaign section toggle */}
               <button
                 type="button"
                 onClick={() => setOpenCampaign(openCampaign === ci ? null : ci)}
-                className="flex w-full items-center justify-between py-1 text-left text-legion-text-muted hover:text-legion-text-primary transition-colors"
+                className="flex w-full items-center justify-between py-1 text-left text-auth-ink-faint hover:text-auth-ink transition-colors"
                 aria-expanded={openCampaign === ci}
               >
-                <span className="font-medium text-[11px] text-legion-amber/80">
+                <span className="font-medium text-[11px] text-auth-amber">
                   {campaign.name}
                 </span>
-                <span aria-hidden="true" className="text-legion-text-muted/50 text-[10px]">
+                <span aria-hidden="true" className="text-auth-ink-faint text-[10px]">
                   {openCampaign === ci ? '▲' : '▼'}
                 </span>
               </button>
@@ -120,15 +120,15 @@ export function DevLoginHelper() {
                       key={account.email}
                       type="button"
                       onClick={() => fillAndSubmit(account.email)}
-                      className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left hover:bg-legion-amber/10 transition-colors min-h-[36px] group"
+                      className="flex w-full items-center justify-between px-2 py-1.5 text-left hover:bg-auth-ink/5 transition-colors min-h-[36px] group"
                     >
-                      <span className="text-legion-text-muted group-hover:text-legion-text-primary transition-colors w-28 shrink-0">
+                      <span className="text-auth-ink-soft group-hover:text-auth-ink transition-colors w-28 shrink-0">
                         {account.role}
                       </span>
-                      <span className="font-mono text-legion-text-muted/70 group-hover:text-legion-text-muted transition-colors truncate">
+                      <span className="font-mono text-auth-ink-faint group-hover:text-auth-ink-soft transition-colors truncate">
                         {account.email}
                       </span>
-                      <span className="ml-2 shrink-0 text-legion-amber/50 group-hover:text-legion-amber transition-colors">
+                      <span className="ml-2 shrink-0 text-auth-parch-edge group-hover:text-auth-amber transition-colors">
                         →
                       </span>
                     </button>
@@ -138,7 +138,7 @@ export function DevLoginHelper() {
             </div>
           ))}
 
-          <p className="text-legion-text-muted/50 font-mono text-[10px] pt-1">
+          <p className="text-auth-ink-faint font-mono text-[10px] pt-1">
             password: {PASSWORD} · dev only
           </p>
         </div>

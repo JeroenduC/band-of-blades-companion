@@ -1,132 +1,145 @@
 /*
- * Band of Blades — Design Token System
+ * Band of Blades — Design Token System  (Direction B — Field Journal)
  * Single source of truth for all visual values.
  * Changing the look of the app means changing this file only.
  *
  * Naming convention: --bob-{category}-{variant}
- * All values are in oklch for perceptual uniformity.
+ * All values are hex. No oklch.
  *
- * WCAG 2.1 AA note: all text tokens are calibrated to ≥4.5:1 contrast
- * against their intended background. See docs/DESIGN_TOKENS.md.
+ * Palette intent: warm parchment, ink typography, amber accents — field
+ * journal / war-room aesthetic throughout the entire app.
  */
 
 :root {
   /* ===================================================================
-   * BACKGROUNDS
-   * Deep charcoal hierarchy — evokes a command tent at night.
+   * BACKGROUNDS — parchment hierarchy
    * =================================================================== */
 
-  /* Page background — darkest layer */
-  --bob-bg-base:     oklch(0.14 0.010 50);
-  /* Card and panel surfaces */
-  --bob-bg-surface:  oklch(0.19 0.012 52);
+  /* Page background — parchment with grain texture */
+  --bob-bg-base:     #e8dcc4;
+  /* Card and panel surfaces — slightly lighter parchment */
+  --bob-bg-surface:  #f0e6cf;
   /* Elevated elements: dropdowns, modals, tooltips */
-  --bob-bg-elevated: oklch(0.23 0.012 52);
-  /* Hover and selected row overlays */
-  --bob-bg-overlay:  oklch(0.28 0.012 52);
+  --bob-bg-elevated: #f0e6cf;
+  /* Hover/selected row overlays — slightly darker than base */
+  --bob-bg-overlay:  #d6c8a8;
 
   /* ===================================================================
-   * TEXT
-   * Warm parchment palette — evokes field journals and orders.
-   * Contrast against --bob-bg-base: primary ≈13:1, muted ≈7:1, faint ≈4.5:1
+   * TEXT — ink on parchment
+   * Contrast against --bob-bg-base:
+   *   primary ≥ 12:1, muted ≥ 7:1, faint ≥ 4.5:1
    * =================================================================== */
 
-  /* Main body text — warm off-white parchment */
-  --bob-text-primary: oklch(0.87 0.028 78);
-  /* Labels, secondary text, supporting copy */
-  --bob-text-muted:   oklch(0.64 0.018 62);
-  /* Disabled text, placeholders — WCAG WARNING: fails 4.5:1 at small sizes
-   * against bg-surface/bg-elevated. Only use for truly decorative visible
-   * text or for disabled/placeholder states where contrast exemption applies.
-   * For captions or metadata use --bob-text-muted instead. */
-  --bob-text-faint:   oklch(0.46 0.012 58);
+  /* Main body text — deep ink */
+  --bob-text-primary: #1f1a14;
+  /* Labels, secondary copy */
+  --bob-text-muted:   #3d3327;
+  /* Captions, placeholders — must be ≥ 4.5:1 on all parchment surfaces */
+  --bob-text-faint:   #5d5040;
 
   /* ===================================================================
    * ACCENT — AMBER / GOLD
-   * The Legion's colour. Used for interactive elements and emphasis.
    * =================================================================== */
 
-  /* Primary interactive accent */
-  --bob-amber:       oklch(0.71 0.145 73);
-  /* Hovered amber */
-  --bob-amber-hover: oklch(0.77 0.145 73);
-  /* Desaturated amber for secondary/ghost buttons */
-  --bob-amber-muted: oklch(0.56 0.082 70);
-  /* Text rendered ON amber backgrounds (dark, for contrast) */
-  --bob-amber-fg:    oklch(0.14 0.010 50);
+  --bob-amber:       #c08428;
+  --bob-amber-hover: #c8922e;
+  --bob-amber-muted: #a06f1e;
+  /* Text rendered ON amber backgrounds */
+  --bob-amber-fg:    #1f1a14;
 
   /* ===================================================================
    * SEMANTIC — DANGER
-   * Desaturated blood-red. Used for death, injury, failed rolls.
+   * Blood-red — death, injury, failed rolls.
    * =================================================================== */
 
-  --bob-danger:       oklch(0.48 0.130 22);
-  --bob-danger-hover: oklch(0.54 0.130 22);
-  /* Subtle danger surface tint (e.g. destructive confirmation bg) */
-  --bob-danger-subtle: oklch(0.22 0.060 22);
+  --bob-danger:        #8b2418;
+  --bob-danger-hover:  #6b1a10;
+  /* Subtle surface tint for destructive confirmations */
+  --bob-danger-subtle: #f7e5e3;
   /* Text rendered ON danger backgrounds */
-  --bob-danger-fg:    oklch(0.92 0.010 50);
+  --bob-danger-fg:     #f0e6cf;
 
   /* ===================================================================
    * SEMANTIC — SUCCESS
-   * Military olive-green. Used for completed missions, recovered resources.
+   * Olive-green — completed missions, recovered resources.
    * =================================================================== */
 
-  --bob-success:    oklch(0.52 0.092 145);
-  --bob-success-fg: oklch(0.92 0.010 50);
+  --bob-success:    #4a6e28;
+  --bob-success-fg: #f0e6cf;
 
   /* ===================================================================
    * SEMANTIC — WARNING
-   * Amber-family. Used for low supplies, pressure escalation alerts.
+   * Amber-family — low supplies, pressure escalation.
    * =================================================================== */
 
-  --bob-warning:    oklch(0.65 0.140 75);
-  --bob-warning-fg: oklch(0.14 0.010 50);
+  --bob-warning:    #c08428;
+  --bob-warning-fg: #1f1a14;
 
   /* ===================================================================
    * BORDERS & DIVIDERS
    * =================================================================== */
 
-  /* Default subtle border */
-  --bob-border:       oklch(1 0 0 / 12%);
-  /* Stronger border for focused or active containers */
-  --bob-border-strong: oklch(1 0 0 / 25%);
-  /* Focus ring — amber, matches interactive accent */
-  --bob-border-focus: oklch(0.71 0.145 73);
+  /* Default warm-gray border — visible on parchment */
+  --bob-border:        #9a8458;
+  /* Strong border — ink, for active containers and focus */
+  --bob-border-strong: #1f1a14;
+  /* Focus ring — amber */
+  --bob-border-focus:  #c08428;
 
   /* ===================================================================
-   * SHAPE
-   * Slightly softened corners — military precision, not corporate round.
+   * SHAPE — zero border-radius throughout (Direction B rule)
    * =================================================================== */
 
-  --bob-radius-sm:  0.1875rem;   /*  3px */
-  --bob-radius-md:  0.3125rem;   /*  5px */
-  --bob-radius-lg:  0.5rem;      /*  8px */
-  --bob-radius-xl:  0.75rem;     /* 12px */
+  --bob-radius-sm:  0;
+  --bob-radius-md:  0;
+  --bob-radius-lg:  0;
+  --bob-radius-xl:  0;
 
   /* ===================================================================
-   * ELEVATION / SHADOWS
-   * Dark, dramatic shadows — helps surfaces read against the dark bg.
+   * ELEVATION / SHADOWS — subtle on light background
    * =================================================================== */
 
-  --bob-shadow-sm: 0 1px 3px  oklch(0 0 0 / 50%);
-  --bob-shadow-md: 0 4px 12px oklch(0 0 0 / 60%);
-  --bob-shadow-lg: 0 8px 24px oklch(0 0 0 / 70%);
+  --bob-shadow-sm: 0 1px 3px  rgba(31, 26, 20, 0.15);
+  --bob-shadow-md: 0 4px 12px rgba(31, 26, 20, 0.20);
+  --bob-shadow-lg: 0 8px 24px rgba(31, 26, 20, 0.25);
 
   /* ===================================================================
    * TYPOGRAPHY
    * Font family tokens are populated by next/font in layout.tsx.
-   * The --font-* CSS variables below are set as className attributes
-   * on <html> and referenced here for use in components.
+   * The --font-* CSS variables are set as className attributes on <html>
+   * and referenced here for use in components.
    * =================================================================== */
 
-  /* Resolved in layout.tsx via next/font — variable names match the CSS variables
-   * set by next/font's `variable` option on the <html> element. */
-  --bob-font-heading: var(--font-cinzel, Georgia, serif);
-  --bob-font-body:    var(--font-geist-sans, system-ui, sans-serif);
-  --bob-font-mono:    var(--font-geist-mono, 'Courier New', monospace);
+  /* Direction B headline font — IM Fell English */
+  --bob-font-heading: var(--font-im-fell, Georgia, serif);
+  /* Direction B body font — Crimson Pro */
+  --bob-font-body:    var(--font-crimson-pro, Georgia, serif);
+  /* Direction B mono font — Special Elite (typewriter codes, overlines, badges) */
+  --bob-font-mono:    var(--font-special-elite, 'Courier New', monospace);
+  /* Legacy fallbacks — Cinzel and Geist still loaded for existing components */
+  --bob-font-cinzel:  var(--font-cinzel, Georgia, serif);
+  --bob-font-geist:   var(--font-geist-sans, system-ui, sans-serif);
 
-  /* Type scale — used in component classes */
+  /* Convenience aliases used by auth components */
+  --bob-font-fell:    var(--font-im-fell, Georgia, serif);
+  --bob-font-crimson: var(--font-crimson-pro, Georgia, serif);
+
+  /* ===================================================================
+   * AUTH PAGE — parchment palette (aliased to main tokens)
+   * Kept for backwards compat — auth components still reference these.
+   * =================================================================== */
+  --bob-auth-paper:       #e8dcc4;
+  --bob-auth-paper-light: #f0e6cf;
+  --bob-auth-ink:         #1f1a14;
+  --bob-auth-ink-soft:    #3d3327;
+  --bob-auth-ink-faint:   #5d5040;
+  --bob-auth-parch-edge:  #9a8458;
+  --bob-auth-amber:       #c08428;
+  --bob-auth-red:         #8b2418;
+
+  /* ===================================================================
+   * TYPE SCALE — used in component classes
+   * =================================================================== */
   --bob-text-xs:   0.75rem;    /* 12px — captions, badges */
   --bob-text-sm:   0.875rem;   /* 14px — small copy, labels */
   --bob-text-base: 1rem;       /* 16px — body */

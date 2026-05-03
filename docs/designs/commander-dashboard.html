@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Commander Dashboard — Band of Blades · Direction B</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Crimson+Pro:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body { font-family: 'Crimson Pro', Georgia, serif; background: #e8dcc4; color: #1f1a14; }
+
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="../tweaks-panel.jsx"></script>
+
+<script type="text/babel">
+
+/* ─── Tokens ─────────────────────────────────────────────────────────── */
+const T = {
+  paper:      "#e8dcc4",
+  paperLight: "#f0e6cf",
+  paperDark:  "#d6c8a8",
+  ink:        "#1f1a14",
+  inkSoft:    "#3d3327",
+  inkFaint:   "#7a6a52",
+  red:        "#8b2418",
+  amber:      "#c08428",
+  parchEdge:  "#9a8458",
+  noise:      `#e8dcc4 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='4'/><feColorMatrix values='0 0 0 0 0.13  0 0 0 0 0.10  0 0 0 0 0.07  0 0 0 0.10 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>")`,
+  fontHead:   "'IM Fell English', Georgia, serif",
+  fontBody:   "'Crimson Pro', Georgia, serif",
+  fontMono:   "'Special Elite', 'Courier New', monospace",
+};
+
+/* ─── Campaign data ──────────────────────────────────────────────────── */
+const C = {
+  name: "The Long March",
+  phase: 7,
+  location: "Gallows Pass",
+  morale: 4, morale_max: 12,
+  pressure: 5,
+  intel: 2,
+  supply: 1,
+  food: 2,
+  horses: 1,
+  black_shot: 3,
+  time_1: 10, time_2: 6, time_3: 0,
+};
+
+const STEPS = [
+  { n: 1,  label: "Mission Resolution",     role: "GM",            done: true,  current: false },
+  { n: 2,  label: "Back at Camp",           role: "Lorekeeper",    done: true,  current: false },
+  { n: 3,  label: "Time Passes",            role: "Commander",     done: true,  current: false },
+  { n: 4,  label: "Campaign Actions",       role: "Quartermaster", done: true,  current: false },
+  { n: 5,  label: "Laborers & Alchemists",  role: "Quartermaster", done: true,  current: false },
+  { n: 6,  label: "Advance Decision",       role: "Commander",     done: false, current: true  },
+  { n: 7,  label: "Mission Focus",          role: "Commander",     done: false, current: false },
+  { n: 8,  label: "Mission Generation",     role: "GM",            done: false, current: false },
+  { n: 9,  label: "Mission Selection",      role: "Commander",     done: false, current: false },
+];
+
+const NEXT_LOCATIONS = [
+  { id: "the_maw",   name: "The Maw",    description: "A blighted pass. Strange and terrible. Faith may help.", danger: "HIGH",   missions: ["ASSAULT", "RELIGIOUS"] },
+  { id: "high_road", name: "High Road",  description: "Exposed mountain road. No time to forage.", danger: "MEDIUM", missions: ["ASSAULT", "RECON"] },
+];
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "phaseState": "WAITING",
+  "showMobile": false,
+  "advanceStep": "decision"
+}/*EDITMODE-END*/;
+
+/* ─── Atoms ──────────────────────────────────────────────────────────── */
+function Badge({ children, color = T.inkFaint }) {
+  return (
+    <div style={{
+      display: 'inline-block', padding: '4px 10px',
+      background: color === T.red ? 'rgba(139,36,24,0.10)' : color === T.amber ? 'rgba(192,132,40,0.12)' : 'rgba(122,106,82,0.12)',
+      border: `1px solid ${color}`, color,
+      fontFamily: T.fontMono, fontSize: 11, fontWeight: 700,
+      letterSpacing: '0.16em', textTransform: 'uppercase',
+      whiteSpace: 'nowrap', flexShrink: 0,
+    }}>{children}</div>
+  );
+}
+
+function InkButton({ children, variant = 'primary', onClick, type = 'button', disabled, fullWidth }) {
+  const isPrimary = variant === 'primary';
+  const [hov, setHov] = React.useState(false);
+  return (
+    <button type={type} disabled={disabled}
+      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      onClick={onClick}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        width: fullWidth ? '100%' : 'auto',
+        minHeight: 52, padding: '14px 24px',
+        background: isPrimary ? (hov ? T.inkSoft : T.ink) : (hov ? 'rgba(31,26,20,0.06)' : 'transparent'),
+        color: isPrimary ? T.paper : T.ink,
+        border: `2px solid ${T.ink}`,
+        fontFamily: T.fontHead, fontSize: 17, fontWeight: 700,
+        letterSpacing: '0.1em', textTransform: 'uppercase',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.5 : 1,
+        transition: 'background 0.1s', outline: 'none',
+      }}>{children}</button>
+  );
+}
+
+/* ─── Donut clock ────────────────────────────────────────────────────── */
+function Clock({ filled, total, size = 88, label, alert }) {
+  const cx = size / 2, cy = size / 2, rO = size / 2 - 4, rI = size / 2 - 17, gap = 3;
+  const seg = 360 / total;
+  function arc(start, end) {
+    const r = Math.PI / 180;
+    const s = start - 90, e = end - 90;
+    const x1 = cx + rO * Math.cos(s * r), y1 = cy + rO * Math.sin(s * r);
+    const x2 = cx + rO * Math.cos(e * r), y2 = cy + rO * Math.sin(e * r);
+    const x3 = cx + rI * Math.cos(e * r), y3 = cy + rI * Math.sin(e * r);
+    const x4 = cx + rI * Math.cos(s * r), y4 = cy + rI * Math.sin(s * r);
+    const lg = (end - start) > 180 ? 1 : 0;
+    return `M${x1},${y1} A${rO},${rO} 0 ${lg} 1 ${x2},${y2} L${x3},${y3} A${rI},${rI} 0 ${lg} 0 ${x4},${y4}Z`;
+  }
+  const color = alert ? T.red : T.ink;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+      <svg width={size} height={size}>
+        <circle cx={cx} cy={cy} r={rO + 1} fill="none" stroke={color} strokeWidth={1.5} />
+        {Array.from({ length: total }).map((_, i) => (
+          <path key={i} d={arc(i * seg + gap / 2, (i + 1) * seg - gap / 2)}
+            fill={i < filled ? color : 'none'} stroke={color} strokeWidth={0.8} />
+        ))}
+        <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="middle"
+          fill={color} fontFamily={T.fontMono} fontSize={size * 0.18} fontWeight={700}>
+          {filled}/{total}
+        </text>
+      </svg>
+      <div style={{ fontFamily: T.fontMono, fontSize: 11, color: alert ? T.red : T.inkFaint, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+        {label}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Nav bar ────────────────────────────────────────────────────────── */
+function NavBar() {
+  return (
+    <div style={{
+      borderBottom: `1px solid ${T.parchEdge}`,
+      padding: '14px 0', marginBottom: 32,
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    }}>
+      <div>
+        <div style={{ fontFamily: T.fontMono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: T.inkFaint }}>
+          Commander
+        </div>
+        <div style={{ fontFamily: T.fontHead, fontSize: 20, color: T.ink, lineHeight: 1.1, marginTop: 2 }}>
+          {C.name}
+        </div>
+      </div>
+      <button style={{ fontFamily: T.fontBody, fontSize: 15, color: T.inkFaint, background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+        Sign out
+      </button>
+    </div>
+  );
+}
+
+/* ─── Phase progress summary ─────────────────────────────────────────── */
+function PipelineStrip() {
+  const [open, setOpen] = React.useState(false);
+  const current = STEPS.find(s => s.current);
+  const done = STEPS.filter(s => s.done).length;
+  const total = STEPS.length;
+
+  return (
+    <div style={{ marginBottom: 28 }}>
+      {/* Compact summary row — always visible */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          width: '100%', padding: '10px 0',
+          background: 'none', border: 'none', cursor: 'pointer',
+          borderBottom: `1px solid ${T.parchEdge}`,
+          gap: 12,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          {/* Progress bar */}
+          <div style={{ width: 80, height: 4, background: 'rgba(31,26,20,0.12)', flexShrink: 0 }}>
+            <div style={{ width: `${(done / total) * 100}%`, height: '100%', background: T.ink }} />
+          </div>
+          <span style={{ fontFamily: T.fontMono, fontSize: 12, color: T.inkFaint, letterSpacing: '0.1em' }}>
+            Step {current?.n ?? '—'} of {total}
+          </span>
+          <span style={{ fontFamily: T.fontHead, fontSize: 16, color: T.ink }}>
+            {current?.label ?? 'Complete'}
+          </span>
+        </div>
+        <span style={{ fontFamily: T.fontMono, fontSize: 11, color: T.inkFaint, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          {open ? 'Hide ▲' : 'All steps ▼'}
+        </span>
+      </button>
+
+      {/* Expanded step list */}
+      {open && (
+        <div style={{ borderBottom: `1px solid ${T.parchEdge}`, paddingBottom: 4 }}>
+          {STEPS.map((s) => (
+            <div key={s.n} style={{
+              display: 'grid', gridTemplateColumns: '28px 1fr auto',
+              gap: 10, padding: '8px 0',
+              borderBottom: `1px dashed rgba(154,132,88,0.4)`,
+              alignItems: 'center',
+            }}>
+              <span style={{ fontFamily: T.fontMono, fontSize: 11, color: T.inkFaint }}>
+                {String(s.n).padStart(2,'0')}
+              </span>
+              <span style={{
+                fontFamily: T.fontBody, fontSize: 15,
+                color: s.current ? T.ink : s.done ? T.inkFaint : T.inkSoft,
+                textDecoration: s.done && !s.current ? 'line-through' : 'none',
+                fontWeight: s.current ? 700 : 400,
+              }}>{s.label}</span>
+              <span style={{ fontFamily: T.fontMono, fontSize: 10, color: s.current ? T.amber : T.inkFaint, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                {s.current ? 'NOW' : s.done ? '✓' : s.role}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Masthead ───────────────────────────────────────────────────────── */
+function Masthead() {
+  return (
+    <div style={{
+      borderBottom: `3px double ${T.ink}`,
+      paddingBottom: 16, marginBottom: 28,
+    }}>
+      <div>
+        <div style={{ fontFamily: T.fontMono, fontSize: 12, letterSpacing: '0.22em', textTransform: 'uppercase', color: T.inkFaint, marginBottom: 6 }}>
+          Orders · Phase {String(C.phase).padStart(2, '0')} · {C.location}
+        </div>
+        <h1 style={{ fontFamily: T.fontHead, fontSize: 42, fontWeight: 700, lineHeight: 0.95, color: T.ink, marginBottom: 10 }}>
+          {C.name}
+        </h1>
+        <Badge color={T.inkFaint}>Commander</Badge>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Legion ledger (resources) ─────────────────────────────────────── */
+function LedgerRow({ label, value, danger, large }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+      borderBottom: `1.5px solid ${T.ink}`, paddingBottom: 6, paddingTop: 4, gap: 12,
+    }}>
+      <span style={{ fontFamily: T.fontHead, fontSize: large ? 16 : 15, color: T.inkSoft, letterSpacing: '0.03em' }}>{label}</span>
+      <span style={{ fontFamily: T.fontMono, fontSize: large ? 26 : 22, fontWeight: 700, color: danger ? T.red : T.ink, lineHeight: 1 }}>{value}</span>
+    </div>
+  );
+}
+
+function WarTable({ mobile }) {
+  return (
+    <div style={{ marginBottom: 32 }}>
+      <div style={{
+        fontFamily: T.fontHead, fontSize: 19, color: T.ink,
+        borderBottom: `2px solid ${T.ink}`, paddingBottom: 5, marginBottom: 16,
+      }}>State of the Legion</div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: mobile ? 0 : 32 }}>
+        {/* Left: resources */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <LedgerRow label="Morale"     value={C.morale}      danger={C.morale <= 3} />
+          <LedgerRow label="Pressure"   value={C.pressure}    danger={C.pressure >= 5} />
+          <LedgerRow label="Intel"      value={C.intel} />
+          <LedgerRow label="Supply"     value={C.supply}      danger={C.supply <= 1} />
+          <LedgerRow label="Food"       value={C.food}        danger={C.food <= 2} />
+          <LedgerRow label="Horses"     value={C.horses} />
+          <LedgerRow label="Black Shot" value={C.black_shot} />
+        </div>
+
+        {/* Right: time clocks */}
+        <div style={{ marginTop: mobile ? 28 : 0 }}>
+          <div style={{ fontFamily: T.fontHead, fontSize: 16, color: T.inkSoft, letterSpacing: '0.04em', marginBottom: 14, borderBottom: `1px solid ${T.parchEdge}`, paddingBottom: 5 }}>
+            Time Clocks
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-around', gap: 8 }}>
+            <Clock filled={C.time_1} total={10} size={84} label="Clock I"   alert={C.time_1 === 10} />
+            <Clock filled={C.time_2} total={10} size={84} label="Clock II" />
+            <Clock filled={C.time_3} total={10} size={84} label="Clock III" />
+          </div>
+
+          {C.time_1 === 10 && (
+            <div style={{
+              marginTop: 16, padding: '10px 14px',
+              borderLeft: `3px solid ${T.red}`,
+              background: 'rgba(139,36,24,0.07)',
+            }}>
+              <div style={{ fontFamily: T.fontHead, fontSize: 15, color: T.red, fontWeight: 700, marginBottom: 2 }}>Clock I has filled.</div>
+              <div style={{ fontFamily: T.fontBody, fontSize: 14, color: T.inkSoft, lineHeight: 1.45 }}>The first Broken commander stirs. Consult the GM.</div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Advance decision card ──────────────────────────────────────────── */
+function AdvanceCard({ step, setStep, mobile }) {
+  const [choice, setChoice] = React.useState(null); // 'ADVANCE' | 'STAY'
+  const [path, setPath] = React.useState(null);
+
+  if (step === 'result_advance') {
+    return (
+      <div style={{
+        border: `2px solid ${T.ink}`, padding: mobile ? 20 : 32,
+        background: T.paperLight,
+        boxShadow: `4px 4px 0 rgba(31,26,20,0.12)`,
+      }}>
+        <div style={{ fontFamily: T.fontMono, fontSize: 11, letterSpacing: '0.2em', color: T.inkFaint, marginBottom: 8, textTransform: 'uppercase' }}>
+          Step 06 — Result
+        </div>
+        <h2 style={{ fontFamily: T.fontHead, fontSize: 26, color: T.ink, marginBottom: 8 }}>The Legion advances to The Maw.</h2>
+        <div style={{ marginBottom: 16 }}><Badge color={T.amber}>Advance confirmed</Badge></div>
+
+        {/* Dice result */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontFamily: T.fontMono, fontSize: 11, letterSpacing: '0.15em', color: T.inkFaint, textTransform: 'uppercase', marginBottom: 8 }}>Pressure dice (5 rolled)</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[2, 4, 1, 5, 3].map((v, i) => (
+              <div key={i} style={{
+                width: 42, height: 42,
+                border: `2px solid ${i === 2 ? T.red : T.parchEdge}`,
+                background: i === 2 ? 'rgba(139,36,24,0.08)' : T.paperLight,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: T.fontMono, fontSize: 20, fontWeight: 700,
+                color: i === 2 ? T.red : T.ink,
+              }}>{v}</div>
+            ))}
+          </div>
+          <div style={{ fontFamily: T.fontBody, fontSize: 14, color: T.inkFaint, marginTop: 6 }}>Worst die: <strong style={{ color: T.red }}>1</strong> → +1 tick added to Clock II (now 7/10)</div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+          {[
+            ["Worst die", "1"],
+            ["Time ticks added", "+1"],
+            ["New location", "The Maw"],
+            ["Pressure after", "0 (reset)"],
+          ].map(([l, v]) => (
+            <div key={l} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px dashed ${T.parchEdge}`, paddingBottom: 5 }}>
+              <span style={{ fontFamily: T.fontBody, fontSize: 15, color: T.inkSoft }}>{l}</span>
+              <span style={{ fontFamily: T.fontMono, fontSize: 15, fontWeight: 700, color: T.ink }}>{v}</span>
+            </div>
+          ))}
+        </div>
+        <InkButton onClick={() => setStep('decision')}>Continue →</InkButton>
+      </div>
+    );
+  }
+
+  if (step === 'result_stay') {
+    return (
+      <div style={{
+        border: `2px solid ${T.ink}`, padding: mobile ? 20 : 32,
+        background: T.paperLight,
+        boxShadow: `4px 4px 0 rgba(31,26,20,0.12)`,
+      }}>
+        <div style={{ fontFamily: T.fontMono, fontSize: 11, letterSpacing: '0.2em', color: T.inkFaint, marginBottom: 8, textTransform: 'uppercase' }}>Step 06 — Result</div>
+        <h2 style={{ fontFamily: T.fontHead, fontSize: 26, color: T.ink, marginBottom: 8 }}>The Legion remains at Gallows Pass.</h2>
+        <div style={{ marginBottom: 14 }}><Badge color={T.inkFaint}>Stay confirmed</Badge></div>
+        <p style={{ fontFamily: T.fontBody, fontSize: 17, color: T.inkSoft, lineHeight: 1.55, marginBottom: 20 }}>
+          No dice were rolled. Pressure carries into the next phase at <strong style={{ color: T.ink }}>5</strong>.
+        </p>
+        <InkButton onClick={() => setStep('decision')}>Continue →</InkButton>
+      </div>
+    );
+  }
+
+  /* Default: decision form */
+  return (
+    <div style={{
+      border: `2px solid ${T.ink}`, padding: mobile ? 20 : 32,
+      background: T.paperLight,
+      boxShadow: `4px 4px 0 rgba(31,26,20,0.12)`,
+    }}>
+      <div style={{ position: 'absolute', top: -13, right: 20 }}>
+        <Badge color={T.red}>Decide now</Badge>
+      </div>
+
+      <div style={{ fontFamily: T.fontMono, fontSize: 11, letterSpacing: '0.2em', color: T.inkFaint, marginBottom: 6, textTransform: 'uppercase' }}>
+        Step 06 — Advance Decision
+      </div>
+      <h2 style={{ fontFamily: T.fontHead, fontSize: mobile ? 26 : 32, color: T.ink, marginBottom: 10, lineHeight: 1.05 }}>
+        Do we advance the Legion?
+      </h2>
+      <p style={{ fontFamily: T.fontBody, fontSize: 17, color: T.inkSoft, lineHeight: 1.55, marginBottom: 22 }}>
+        Pressure stands at <strong style={{ color: T.ink }}>5</strong>. Advancing rolls 5 dice — worst die adds ticks to the Time Clocks. Stay, and pressure carries unchanged into the next phase.
+      </p>
+
+      {/* Path options */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontFamily: T.fontMono, fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: T.inkFaint, marginBottom: 10 }}>
+          If advancing — choose your path
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 10 }}>
+          {NEXT_LOCATIONS.map(loc => (
+            <label key={loc.id} style={{
+              display: 'block', padding: '14px 16px',
+              border: `2px solid ${path === loc.id ? T.ink : T.parchEdge}`,
+              background: path === loc.id ? T.paperDark : T.paper,
+              cursor: 'pointer', transition: 'border-color 0.1s',
+            }}>
+              <input type="radio" name="path" value={loc.id}
+                checked={path === loc.id}
+                onChange={() => { setPath(loc.id); setChoice('ADVANCE'); }}
+                style={{ position: 'absolute', opacity: 0 }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4, gap: 8 }}>
+                <span style={{ fontFamily: T.fontHead, fontSize: 18, color: T.ink }}>{loc.name}</span>
+                <span style={{ fontFamily: T.fontMono, fontSize: 10, color: loc.danger === 'HIGH' ? T.red : T.amber, letterSpacing: '0.1em', fontWeight: 700 }}>{loc.danger}</span>
+              </div>
+              <div style={{ fontFamily: T.fontBody, fontSize: 14, color: T.inkSoft, lineHeight: 1.4, marginBottom: 8 }}>{loc.description}</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {loc.missions.map(m => (
+                  <span key={m} style={{ fontFamily: T.fontMono, fontSize: 10, padding: '2px 7px', border: `1px solid ${T.parchEdge}`, color: T.inkFaint, letterSpacing: '0.07em' }}>{m}</span>
+                ))}
+              </div>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Horse uses */}
+      <div style={{ marginBottom: 22, display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <label htmlFor="horses" style={{ fontFamily: T.fontBody, fontSize: 16, color: T.inkSoft, fontWeight: 600 }}>
+            Horse uses to spend <span style={{ fontFamily: T.fontMono, fontSize: 12, color: T.inkFaint }}>(not required · reduces pressure by 1 each)</span>
+          </label>
+          <input id="horses" type="text" inputMode="numeric" defaultValue="0"
+            style={{
+              width: 72, minHeight: 44, padding: '10px 12px',
+              background: T.paperLight, border: `2px solid ${T.parchEdge}`,
+              fontFamily: T.fontMono, fontSize: 20, color: T.ink, outline: 'none', textAlign: 'center',
+            }} />
+        </div>
+        <div style={{ fontFamily: T.fontMono, fontSize: 13, color: T.inkFaint, letterSpacing: '0.05em' }}>
+          Available: <strong style={{ color: T.ink }}>1</strong>
+        </div>
+      </div>
+
+      {/* CTA buttons */}
+      <div style={{ display: 'flex', gap: 12, flexWrap: mobile ? 'wrap' : 'nowrap' }}>
+        <InkButton fullWidth onClick={() => setStep('result_advance')}>Advance →</InkButton>
+        <InkButton fullWidth variant="outline" onClick={() => setStep('result_stay')}>Stay this phase</InkButton>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Waiting state ──────────────────────────────────────────────────── */
+function WaitingCard({ waitingFor, stepLabel }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+      {/* Dispatch note */}
+      <div style={{
+        padding: '16px 20px',
+        borderLeft: `3px solid ${T.parchEdge}`,
+        background: T.paperLight,
+        marginBottom: 28,
+      }}>
+        <div style={{ fontFamily: T.fontMono, fontSize: 11, letterSpacing: '0.15em', textTransform: 'uppercase', color: T.inkFaint, marginBottom: 4 }}>
+          Awaiting orders
+        </div>
+        <p style={{ fontFamily: T.fontBody, fontSize: 18, color: T.inkSoft, lineHeight: 1.5 }}>
+          Waiting for <strong style={{ color: T.ink }}>{waitingFor}</strong> — {stepLabel}.
+        </p>
+      </div>
+
+      {/* Pipeline as readable list */}
+      <div style={{ fontFamily: T.fontHead, fontSize: 17, color: T.ink, borderBottom: `2px solid ${T.ink}`, paddingBottom: 5, marginBottom: 12 }}>
+        Phase Progress
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        {STEPS.map((s, i) => (
+          <div key={s.n} style={{
+            display: 'grid', gridTemplateColumns: '32px 1fr auto',
+            gap: 12, padding: '9px 0',
+            borderBottom: `1px dashed ${T.parchEdge}`,
+            alignItems: 'center',
+            background: s.current ? 'rgba(192,132,40,0.09)' : 'transparent',
+            paddingLeft: s.current ? 10 : 0, paddingRight: s.current ? 10 : 0,
+            marginLeft: s.current ? -10 : 0, marginRight: s.current ? -10 : 0,
+          }}>
+            <span style={{ fontFamily: T.fontMono, fontSize: 12, color: T.inkFaint, letterSpacing: '0.08em' }}>
+              {String(s.n).padStart(2, '0')}
+            </span>
+            <span style={{
+              fontFamily: T.fontBody, fontSize: 16, lineHeight: 1.2,
+              color: s.current ? T.ink : s.done ? T.inkFaint : T.inkSoft,
+              textDecoration: s.done && !s.current ? 'line-through' : 'none',
+              fontWeight: s.current ? 700 : 400,
+            }}>{s.label}</span>
+            <span style={{ fontFamily: T.fontMono, fontSize: 10, color: s.current ? T.amber : T.inkFaint, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              {s.current ? 'NOW' : s.done ? '✓' : s.role}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── No phase started ───────────────────────────────────────────────── */
+function NoPhasCard() {
+  return (
+    <div style={{
+      padding: '28px 24px',
+      border: `1px dashed ${T.parchEdge}`,
+      textAlign: 'center',
+    }}>
+      <div style={{ fontFamily: T.fontMono, fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: T.inkFaint, marginBottom: 8 }}>
+        No phase in progress
+      </div>
+      <p style={{ fontFamily: T.fontBody, fontSize: 17, color: T.inkSoft, lineHeight: 1.5 }}>
+        Waiting for the GM to open the campaign phase.
+      </p>
+    </div>
+  );
+}
+
+/* ─── Full page ──────────────────────────────────────────────────────── */
+function DashboardPage({ phaseState, mobile, advanceStep, setAdvanceStep }) {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: T.noise,
+      backgroundBlendMode: 'multiply',
+      padding: mobile ? '0 0 60px' : 0,
+    }}>
+      <div style={{ maxWidth: 680, margin: '0 auto', padding: mobile ? '0 18px' : '0 24px' }}>
+        <NavBar />
+        <Masthead />
+        <PipelineStrip />
+        {/* Divider before action zone */}
+        <div style={{ borderTop: `3px double ${T.ink}`, marginBottom: 28 }} />
+
+        {phaseState === 'AWAITING_ADVANCE' && (
+          <AdvanceCard step={advanceStep} setStep={setAdvanceStep} mobile={mobile} />
+        )}
+        {phaseState === 'WAITING' && (
+          <WaitingCard waitingFor="the Quartermaster" stepLabel="Campaign Actions" />
+        )}
+        {phaseState === 'NO_PHASE' && (
+          <NoPhasCard />
+        )}
+        {/* State of the Legion — always at the bottom */}
+        <div style={{ borderTop: `3px double ${T.ink}`, marginTop: 40, paddingTop: 8 }} />
+        <WarTable mobile={mobile} />
+
+      </div>
+    </div>
+  );
+}
+
+/* ─── App ────────────────────────────────────────────────────────────── */
+function App() {
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const [advanceStep, setAdvanceStep] = React.useState(tweaks.advanceStep);
+
+  return (
+    <>
+      <DashboardPage
+        phaseState={tweaks.phaseState}
+        mobile={tweaks.showMobile}
+        advanceStep={advanceStep}
+        setAdvanceStep={setAdvanceStep}
+      />
+
+      <TweaksPanel>
+        <TweakSection label="Phase state" />
+        <TweakRadio
+          label="Current state"
+          value={tweaks.phaseState}
+          options={[
+            { label: 'My Turn (Advance)', value: 'AWAITING_ADVANCE' },
+            { label: 'Waiting', value: 'WAITING' },
+            { label: 'No Phase', value: 'NO_PHASE' },
+          ]}
+          onChange={v => setTweak('phaseState', v)}
+        />
+        <TweakRadio
+          label="Advance sub-step"
+          value={advanceStep}
+          options={[
+            { label: 'Decision', value: 'decision' },
+            { label: 'Result: Advance', value: 'result_advance' },
+            { label: 'Result: Stay', value: 'result_stay' },
+          ]}
+          onChange={v => { setAdvanceStep(v); setTweak('advanceStep', v); }}
+        />
+        <TweakSection label="Layout" />
+        <TweakToggle
+          label="Mobile layout"
+          value={tweaks.showMobile}
+          onChange={v => setTweak('showMobile', v)}
+        />
+      </TweaksPanel>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
